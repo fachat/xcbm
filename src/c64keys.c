@@ -57,7 +57,7 @@ void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
 	static int xflag;
 	uchar rows;
 	chtype key;
-	keytab *k;
+	keytab *k = NULL;
 	scnt i;	
 /*	time_setval(timer, KEYTIMER);*/
 

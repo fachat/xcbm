@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <math.h>
 #include <string.h>
+#include <errno.h>
 
 #include "emu65.h"
 #include "iec.h"
@@ -36,7 +37,7 @@ typedef struct {
 
 vcBuf *vcBuf_get(size_t size) {
 	char *m1=malloc(size+1);
-	vcBuf *m2;
+	vcBuf *m2 = NULL;
 	if(m1) {
 	  m2=malloc(sizeof(vcBuf));
 	  if(m2) {
@@ -90,8 +91,8 @@ typedef struct {
 typedef struct device {
 		int	mode;
 		int	timeout;
-		void 	(*out)();	/* output, uses global actdev */
-		scnt 	(*get)();	/* input, uses global actdev */
+		void 	(*out)(scnt, struct device*);	/* output, uses global actdev */
+		scnt 	(*get)(struct device*);	/* input, uses global actdev */
 		int	type;		/* type of device */
 } device;
 
@@ -128,8 +129,6 @@ void close_1541(void);
 
 
 device	*dev;
-int	mode;
-int	secadr;
 
 device	*devs[16];
 
@@ -240,8 +239,8 @@ int init_1541(VC1541 *v, int dev) {
 	int i;
 
 	v->dev.mode=MODE_FREE; 
-	v->dev.out =out_1541;
-	v->dev.get =get_1541;
+	v->dev.out =(void(*)(scnt, device*))out_1541;
+	v->dev.get =(scnt(*)(device*))get_1541;
 	v->drive[0]=v->drive[1]=NULL;
 
 	for(i=0;i<16;i++) {
@@ -795,7 +794,7 @@ logout(0,"detect cmd/err channel or open");
 scnt get_1541(VC1541 *vcp) {
 /* see d39b */
 	vcFile *vf;
-	scnt byte;
+	scnt byte = 0;
 
 	vc=vcp;
 	vf=&vc->bufp[vc->channel];

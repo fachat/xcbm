@@ -73,7 +73,7 @@ int io_init(void) {
 }
 
 void io_wr(scnt adr, scnt val) {
-	register a=(adr&0x0c00);
+	register scnt a=(adr&0x0c00);
 	switch(a) {
 	case 0:
 		video_wr(adr&0x3f,val);
@@ -99,7 +99,7 @@ void io_wr(scnt adr, scnt val) {
 }
 
 scnt io_rd(scnt adr) {
-        register a=(adr&0x0c00);
+        register scnt a=(adr&0x0c00);
         switch(a) {
         case 0:
                 return(video_rd(adr&0x3f));

@@ -33,7 +33,7 @@ c64: $(C64OBJ) $(COMMOBJ)
 	cc  -o $(XCBMLIB)/xcbm  $(C64OBJ) $(COMMOBJ) $(LIBS)
 
 clean:
-	rm -f *.o xcbm.dep c64.log
+	rm -f $(COMMOBJ) $(C64OBJ) xcbm.dep c64.log
 
 dep depend:
 	cc -M -E *.c > xcbm.dep

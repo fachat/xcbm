@@ -26,6 +26,17 @@ stuff to really emulate.
 On the other hand the programm can run some BASIC and machine language
 programms in c64 mode that do not require that much hardware simulation.
 
+Note that the (new) purpose of the program is to run test versions of
+my GeckOS operating system in various memory configurations (that
+still need to be implemented). For example, I plan to implement the
+CS/A memory configuration with MMU, or the Micro- and Ultra-PET
+memory configurations.
+Also, it is specifically limited to console output, and not being 
+cycle accurate, and never will be.
+
+For any decent emulation of the real Commodore machines, use the
+VICE emulator.
+
 To run the emulator, you have to get the ROM images from the C64.
 For text mode you need the basic and the kernel ROM. They have to 
 have a leading load address, i.e. these two address bytes to tell
@@ -43,20 +54,15 @@ change the loop to "for i=14*4096 to 65535" and of course the filename.
 The character ROM is also not included, but for curses modes, it is not 
 necessary.
 
-I don't do anything on this emulator anymore (since 1994 actually)
-as I have joined the VICE emulator team. However, people have expressed
-interest in a curses-based emulator. So I fixed some little annoyances
-and a bug now and released 0.1.2.
-However, this emulator is horribly slow as it lacks all necessary
+This emulator is horribly slow as it lacks all necessary
 optimization. Especially the main CPU loop could be made into a 
 big "case" switch() as it is much faster etc.
 
 A cross assembler for 6502 computer is also available, so you can
-develop programms without even having a 6502. For more info, mail me.
+develop programms without even having a 6502. For more info, contact me.
 
 Andre Fachat
 
-email: fachat@physik.tu-chemnitz.de
 
 -------------------------------------------------------------------------------
 
@@ -79,8 +85,8 @@ BUGS/FEATURES (don't expect too much):
   be a bit slower, but I have long time no real C64 seen).
 - Can use Un*x filesystem subdirectories as disks. At the moment, the 
   current directory for unit 8, drive 0 is ".". You can set this at
-  command line. no real disk command ("R","S",...) is emulated
-  (what is a second window for? ;-), no just kidding, it should be
+  command line. no real disk command ("R","S",...) is emulated.
+  (what is a second disk for? ;-), no just kidding, it should be
   possible in the future, but low priority for now)
 - The current ROM directory is "/var/lib/xcbm" 
 - sigint not yet trapped, i.e. no run/stop possible. curses gave me some 

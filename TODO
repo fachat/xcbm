@@ -1,4 +1,6 @@
 
+- separate out multiple machine types, like pet, upet/ultra-pet
+
 - make CPU loop a big switch/case thing to improve speed
 
 - simulating 1541:

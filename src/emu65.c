@@ -13,12 +13,9 @@
 
 extern uchar prb[];
 
-int fancy=1;		/* 0= raw, 1=fancy */
-int wide=0;		/* 0= 40 cols, 1= 80 cols */
 int c64=1;		/* 0= 3032, 1= c64 */
 int exrom=0;		/* exrom (note: the exp. port has /exrom) */
 int game=0;		/* game */
-int xwin=0;		/* 0= curses, 1=Xwindows */
 int color=0;		/* 0= black/white, 1=color use for ncurses */
 
 char *files[] = {
@@ -36,8 +33,6 @@ void usage(void) {
  "      [-L c64_exp_rom_on_lomem][-H c64_exp_rom_on_himem]\n"
  "      [-R cbm3032_rom_file]\n"
  "   -p =cbm3032 emulation   -v =c64 emulation (default)\n"
- "   -r =raw mode            -f =fancy mode (default)\n"
- "   -x =XWindows            -c =curses (default)\n"
  "   -E =hold EXROM low      -G =hold GAMES low\n"
  "   -b =force to black/white in curses mode\n"
  "   -d =set common ROM directory (default=/var/lib/xcbm)\n"
@@ -73,15 +68,6 @@ int main(int argc, char *argv[])
 		break;
 	    case 'd':
 	 	files[0]=optarg;
-		break;
-	    case 'r':
-		fancy=0;
-		break;
-	    case 'f':
-		fancy=1;
-		break;
-	    case 'x':
-		xwin=1;
 		break;
 	    case '8':
 		if(optarg[0]=='0' && optarg[1]=='=') 
@@ -127,7 +113,7 @@ int main(int argc, char *argv[])
 	    }
 	}
 
-	if(xwin || !c64 || wide) usage();
+	if(!c64) usage();
 	
 	mem_init(files,0,0);
 	cur_init();

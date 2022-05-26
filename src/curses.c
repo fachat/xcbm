@@ -68,6 +68,8 @@ int cur_init(void) {
 	    }
 	    color=3;
 	  }
+	} else 
+	if (color < 0 && has_colors()) {
 	} else {
 	  color=0;
 	}

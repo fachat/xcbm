@@ -38,7 +38,7 @@ c64: $(C64SRC)
 	cc  -o $(XCBMLIB)/xcbm  $(C64SRC)  $(LIBS)
 
 clean:
-	rm -f *.o xcbm.dep 
+	rm -f *.o xcbm.dep c64.log
 
 dep depend:
 	cc -M -E *.c > xcbm.dep

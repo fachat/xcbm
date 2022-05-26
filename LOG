@@ -1,0 +1,43 @@
+
+Version 0.1.2 13Jul1998 A. Fachat
+Fixed a curses bug that prevented non-blocking operation.
+Removed some more logs in the IEC code
+
+Version 0.1.1 4.10.1994 A.Fachat
+The directory mask stuff broke the save or write open routines...
+This is fixed. I found the iec routines extremly messy (among many other...)
+especially with error recovery, but nothing done on this (yet)
+Fixed a bug in uncpk (brackets in the wrong place :-( ) that makes
+uncpk extract only those 'compressed' bytes...
+
+Version 0.1.0a 3.10.1994 A.Fachat
+removed some annoying logouts in trap.c, making the iec routines
+very slow (they are slow, after all, but now a bit less ;-)
+
+Version 0.1.0 29.9.1994 A.Fachat
+rewrote memory management - hm, actually wrote some ;-))
+now all this memory management stuff (except for exrom and game)
+should work now (but actually not yet tested)
+
+25.9.1994 A.Fachat
+IEC quite well, i.e. directory and file search with masks working. No
+commands (rename,...) yet, but don't know if necessary at all. No real
+error messages yet, only number.
+Video screen address is recognized (cia2, dra and vic reg 24),
+started working on color support for curses, but still problems with
+curses. Added command line parsing.
+
+12.09.1994 A.Fachat
+petscii<>ascii conversion done, directory partially (no header line and
+no free bytes), IEC a bit buggy, though.
+Cleaned up the directories a little bit, introduced dependencies
+
+08.09.1994 A.Fachat
+IEC emulation mostly working. todo: petscii<>ascii conversion, dir,
+  floppy commands
+
+XCBM V0.0.1 6.7.1994 A.Fachat
+
+6502 Emulator, surrounded with C64 stuff like ROMs, I/O etc. only keyboard 
+and video (char mode, curses based) working.
+

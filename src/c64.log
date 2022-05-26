@@ -1,0 +1,66 @@
+! 13-Jul-98 18:07:14  6502-Emulation 
+(c) 1993/94 A.Fachat
+  13-Jul-98 18:07:14  Read of /home/c/fs2/fachat/lib/lib/vice/C64/kernal successful
+  13-Jul-98 18:07:14  Read of /home/c/fs2/fachat/lib/lib/vice/C64/basic successful
+! 13-Jul-98 18:07:14  Error opening /var/lib/xcbm/c64chars.rom > errno=2, No such file or directory
+! 13-Jul-98 18:07:14  Error opening /var/lib/xcbm/c64romh.rom > errno=2, No such file or directory
+! 13-Jul-98 18:07:14  Error opening /var/lib/xcbm/c64roml.rom > errno=2, No such file or directory
+  13-Jul-98 18:07:14  set loram=1, hiram=2, charen=4
+# 13-Jul-98 18:07:14  Terminal reports color capability...
+: 13-Jul-98 18:07:14  Terminal has 8 possible colors and 64 color pairs
+  13-Jul-98 18:07:14  videopage=c000
+  13-Jul-98 18:07:14  set videoaddresses: screen=c000, char=c000, hires=c000
+  13-Jul-98 18:07:14  set color: 0 -> fg=0, bg=0
+  13-Jul-98 18:07:14  set color: 1 -> fg=7, bg=0
+  13-Jul-98 18:07:14  set color: 2 -> fg=1, bg=0
+  13-Jul-98 18:07:14  set color: 3 -> fg=5, bg=0
+  13-Jul-98 18:07:14  set color: 4 -> fg=6, bg=0
+  13-Jul-98 18:07:14  set color: 5 -> fg=2, bg=0
+  13-Jul-98 18:07:14  set color: 6 -> fg=4, bg=0
+  13-Jul-98 18:07:14  set color: 7 -> fg=3, bg=0
+  13-Jul-98 18:07:14  set color: 8 -> fg=0, bg=0
+  13-Jul-98 18:07:14  set color: 9 -> fg=0, bg=0
+  13-Jul-98 18:07:14  set color: 10 -> fg=0, bg=0
+  13-Jul-98 18:07:14  set color: 11 -> fg=0, bg=0
+  13-Jul-98 18:07:14  set color: 12 -> fg=0, bg=0
+  13-Jul-98 18:07:14  set color: 13 -> fg=0, bg=0
+  13-Jul-98 18:07:14  set color: 14 -> fg=6, bg=0
+  13-Jul-98 18:07:14  set color: 15 -> fg=0, bg=0
+  13-Jul-98 18:07:14  set videoaddresses: screen=c000, char=c000, hires=c000
+# 13-Jul-98 18:07:14  time_register returns 0 for timer cia1 timera
+# 13-Jul-98 18:07:14  time_register returns 1 for timer cia1 timerb
+# 13-Jul-98 18:07:14  time_register returns 2 for timer cia2 timera
+# 13-Jul-98 18:07:14  time_register returns 3 for timer cia2 timerb
+: 13-Jul-98 18:07:14  set trap: mempage=16, name=(null), trapadr=ea31 -> 0x8052530
+: 13-Jul-98 18:07:14  set trap: mempage=16, name=(null), trapadr=ed40 -> 0x8053110
+: 13-Jul-98 18:07:14  set trap: mempage=16, name=(null), trapadr=ee13 -> 0x8053070
+: 13-Jul-98 18:07:14  set trap: mempage=16, name=(null), trapadr=eeb3 -> 0x8053240
+# 13-Jul-98 18:07:14  set drive(unit=8, drive=0) to .
++ 13-Jul-98 18:07:14  err=16, xcbm version 0.1.0 error, 00, 00
+: 13-Jul-98 18:07:14  set trap: mempage=17, name=test, trapadr=fce4 -> (nil)
+  13-Jul-98 18:07:14  videopage=0
+  13-Jul-98 18:07:14  set videoaddresses: screen=0, char=0, hires=0
+  13-Jul-98 18:07:14  set loram=1, hiram=2, charen=4
+  13-Jul-98 18:07:14  set loram=1, hiram=2, charen=4
+  13-Jul-98 18:07:16  set color: 0 -> fg=0, bg=4
+  13-Jul-98 18:07:16  set color: 1 -> fg=7, bg=4
+  13-Jul-98 18:07:16  set color: 2 -> fg=1, bg=4
+  13-Jul-98 18:07:16  set color: 3 -> fg=5, bg=4
+  13-Jul-98 18:07:16  set color: 4 -> fg=6, bg=4
+  13-Jul-98 18:07:16  set color: 5 -> fg=2, bg=4
+  13-Jul-98 18:07:16  set color: 6 -> fg=4, bg=4
+  13-Jul-98 18:07:16  set color: 7 -> fg=3, bg=4
+  13-Jul-98 18:07:16  set color: 8 -> fg=0, bg=4
+  13-Jul-98 18:07:16  set color: 9 -> fg=0, bg=4
+  13-Jul-98 18:07:16  set color: 10 -> fg=0, bg=4
+  13-Jul-98 18:07:16  set color: 11 -> fg=0, bg=4
+  13-Jul-98 18:07:16  set color: 12 -> fg=0, bg=4
+  13-Jul-98 18:07:16  set color: 13 -> fg=0, bg=4
+  13-Jul-98 18:07:16  set color: 14 -> fg=6, bg=4
+  13-Jul-98 18:07:16  set color: 15 -> fg=0, bg=4
+  13-Jul-98 18:07:16  set videoaddresses: screen=0, char=0, hires=0
+  13-Jul-98 18:07:16  set videoaddresses: screen=400, char=1000, hires=0
+  13-Jul-98 18:07:17  set loram=1, hiram=2, charen=4
+  13-Jul-98 18:07:24  detect cmd/err channel or open
+: 13-Jul-98 18:07:24  cmd=o, cmdbuf=$
+: 13-Jul-98 18:07:24  close_1541: vf=0x807c72c

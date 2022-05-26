@@ -1,0 +1,51 @@
+XCBM will be an emulator for C64 and CBM 3032. It will _not_ go
+to deeply into hardware emulation but will therefore be written
+in C, using curses-library (standardized Terminal-I/O library) or
+the common X-Windows system. XCBM will run on Unixes and will,
+as no real system-dependent stuff is used , (hopefully) be portable.
+
+These List describes the modes, the emulator will have someday:
+
+A: video/keyboard I/O 
+  1) curses based (no graphics, not even block-graphics(?))
+    a) raw mode: keyboard and screen are caught by watching
+       memory access to video mem / CIA I/O-Reg.
+       screen size 40x25
+    b) fast mode: many system routines caught by traps and emulated
+       by C routines in the emulator.
+       screen sizes: 40x25 with updating of video mem.
+    c) large mode (see above), screen size 80x25 
+       without updating of video mem. Just to use "normal" screen
+       size on PCs/Unixes/etc
+  2) X-based (full graphic available, may be no correct video irq timing)
+    a) raw mode (see above)
+    b) fast mode (see above)
+    c) large mode (see above)
+
+  Not yet know how to emulate simply pressed shift or ctrl keys, may be
+  key sequences on PC keyboard to emulate special stuff.
+  Same for joystick. If /dev/mouse availble, should be mapped to keyboard.
+  no paddle support.
+
+B: sound
+  if /dev/audio available, make most sounds (may be no filter, or then
+  use /dev/dsp or fm-device (don't know yet). otherwise none.
+
+C: IEC-Bus
+  no raw mode available. Disk speeders will not work. IEC routines traped
+  and emulated in C. Disks "0:",8 "1:",8 "0:",9 "1:",9 can be redirected
+  to subdirectories anywhere in the Unix directory tree.
+  Printer (device 4) will be emulated/redirected to lpr. not yet known how.
+
+D: Tape
+  no support.
+
+E: Expansion port
+  only ROM/RAM support. may be a description file, what addresses have to
+  be loaded with which ROM-File and what is RAM. Also description of
+  usage of config lines on expansion port.
+
+F: Timing
+  It is not planned to do much more than incrementing system time 
+  (1MHz) for CIAs and VIC to do some Video Interrupting (only X-based)
+

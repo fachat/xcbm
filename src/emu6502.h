@@ -1,22 +1,4 @@
 
-extern int c64;
-extern int fancy;
-extern int exrom;
-extern int game;
-extern int xwin;
-extern int wide;
-extern int color;
-extern int loram;
-extern int hiram;
-extern int charen;
-
-#define	MAXLINE		200
-
-typedef		unsigned short int	scnt;
-typedef 	unsigned char  		uchar;
-typedef 	unsigned long		cnt;
-typedef		unsigned char		byte;
-
 typedef struct CPU {
 		scnt		pc;
 		

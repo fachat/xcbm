@@ -1,11 +1,13 @@
 
 #include <stdio.h>
 
-#include "emu65.h"
+#include "types.h"
+#include "emu6502.h"
+#include "mem.h"
+#include "ccurses.h"
+
 #include "c64io.h"
 #include "c64keys.h"
-#include "ccurses.h"
-#include "mem.h"
 
 
 int timer;

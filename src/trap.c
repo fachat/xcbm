@@ -1,7 +1,8 @@
 
 #include <stdio.h>
 
-#include "emu65.h"
+#include "types.h"
+#include "emu6502.h"
 #include "log.h"
 #include "mem.h"
 

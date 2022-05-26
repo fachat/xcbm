@@ -2,10 +2,13 @@
 #include 	<stdio.h>
 
 #include  	"log.h"
-#include	"emu65.h"
+#include  	"types.h"
+#include	"emu6502.h"
 #include	"timer.h"
 #include	"emucmd.h"
 #include 	"mem.h"
+
+#define	MAXLINE	200
 
 CPU		cpu;
 

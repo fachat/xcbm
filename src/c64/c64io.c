@@ -1,7 +1,10 @@
 
 #include <string.h>
 
-#include "emu65.h"
+#include "types.h"
+#include "emu6502.h"
+
+#include "emu64.h"
 #include "timer.h"
 #include "video.h"
 #include "c64keys.h"

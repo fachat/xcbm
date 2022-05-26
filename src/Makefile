@@ -11,31 +11,26 @@ include xcbm.dep
 endif
 
 .c.o:
-	$(CC) $(CFLAGS) -c -o $*.o $<
+	$(CC) $(CFLAGS) -I. -c -o $*.o $<
 
- 
-C64SRC = 	mem.o \
-		emu65.o \
-		log.o \
-		emu6502.o \
-		c64io.o \
-		timer.o \
-		sound.o \
-		c64keys.o \
-		curses.o \
+COMMOBJ = 	curses.o \
 		trap.o \
-		iec.o \
+		emu6502.o \
+		log.o \
+		timer.o \
 		convert.o\
+		iec.o \
 
-C64HDR =	c64.h \
-		emu65.h \
-		emu6502.h \
-		log.h
+C64OBJ = 	c64/mem64.o \
+		c64/emu64.o \
+		c64/iec64.o \
+		c64/c64io.o \
+		c64/sound.o \
+		c64/c64keys.o \
 
 
-
-c64: $(C64SRC) 
-	cc  -o $(XCBMLIB)/xcbm  $(C64SRC)  $(LIBS)
+c64: $(C64OBJ) $(COMMOBJ)
+	cc  -o $(XCBMLIB)/xcbm  $(C64OBJ) $(COMMOBJ) $(LIBS)
 
 clean:
 	rm -f *.o xcbm.dep c64.log

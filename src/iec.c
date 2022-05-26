@@ -1,21 +1,25 @@
 
+
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <string.h>
 #include <ctype.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <math.h>
-#include <string.h>
 #include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
 
-#include "emu65.h"
+#include "types.h"
+#include "emu6502.h"
 #include "iec.h"
-#include "convert.h"
 #include "log.h"
+#include "convert.h"
 #include "mem.h"
+
+#define	MAXLINE		200
 
 #define atnislo()	(getbyt(0xdd00)&0x08)
 #define	iseof()		(getbyt(0x00a3)&0x80)
@@ -27,6 +31,11 @@
 #define	VCNBUF		5
 
 /**************************************************************************/
+
+device   *dev;
+
+device   *devs[16];
+
 
 typedef struct {
 		size_t		pos;		/* rw position in buf */
@@ -88,13 +97,6 @@ typedef struct {
 		vcBuf		*buf;
 } vcFile;
 
-typedef struct device {
-		int	mode;
-		int	timeout;
-		void 	(*out)(scnt, struct device*);	/* output, uses global actdev */
-		scnt 	(*get)(struct device*);	/* input, uses global actdev */
-		int	type;		/* type of device */
-} device;
 
 typedef struct {
 		device		dev;
@@ -119,98 +121,6 @@ void out_1541(scnt byte, VC1541* vc);
 scnt get_1541(VC1541 *vc);
 void close_1541(void);
 		
-#define	MODE_FREE	0	/* bus is free, next should be listen or talk */
-#define	MODE_LISTEN	1	/* received a Listen command */
-#define	MODE_TALK	2	/* received a talk command */
-#define	MODE_OPEN	3
-#define	MODE_READ	4
-#define	MODE_WRITE	5
-#define	MODE_DIR	6
-
-
-device	*dev;
-
-device	*devs[16];
-
-void bytein(scnt adr, CPU *cpu) {
-	if(!dev) {		
-		cpu->pc=0xee42;
-	} else {
-		if(dev->mode!=MODE_TALK) {
-			cpu->pc=0xee42;	
-		} else {
-			cpu->a=dev->get((void*)dev);
-			/*cpu->sr &= ~(IRQ|CARRY);*/
-			if(dev->timeout) {
-logout(0,"set timeout pc->0xee42");
-				cpu->pc=0xee42;
-			} else {
-				setbyt(0x00a4,cpu->a);
-				cpu->pc=0xee82;
-			}
-		}
-	}
-
-}
-
-void byteout(scnt adr, CPU *cpu) {
-	scnt by=getbyt(0x95);
-	scnt a= by & 0x0f;
-	scnt b= by & 0xf0;
-/*printf("byteout(adr=%04x, by=%02x, a=%02x, b=%02x, dev=%p)\n",adr,by,a,b,dev);*/
-
-	cpu->sr &= ~(IRQ|CARRY);
-	cpu->pc =0xedac;
-
-	if(atnislo()) {
-		if(b==0x20) {
-			if(dev=devs[a]) {
-				dev->mode = MODE_LISTEN;
-				dev->out(by,dev);
-			}
-		} else 
-		if(b==0x40) {
-			if(dev=devs[a]) {
-				dev->mode = MODE_TALK;	
-				dev->out(by,dev);
-			}
-		} else
-		if(dev) {
-			if(by==0x3f) {
-				dev->out(by, dev);
-				dev->mode=MODE_FREE;
-				dev=NULL;
-			} else
-			if(by==0x5f) {
-				dev->out(by, dev);
-				dev->mode=MODE_FREE;
-				dev=NULL;
-			} else
-				dev->out(by, dev);
-	    	} else {
-			cpu->pc=0xedad;	/* device not present */
-	        }
-	} else {
-		if(dev) {
-			dev->out(by,dev);
-		} else {
-			cpu->pc=0xedad;
-		}
-	}
-}
-
-void xrts(scnt adr, CPU *cpu) {
-	cpu->a=cpu->x;
-	cpu->pc=0xeeba;
-}
-
-int iec_init(void) { /* is called _after_ iec_setdrive! */
-	dev=NULL;
-	settrap(MP_KERNEL0,0xed40,byteout,NULL /*"byteout"*/ );
-	settrap(MP_KERNEL0,0xee13,bytein,NULL /*"bytein"*/ );
-	settrap(MP_KERNEL0,0xeeb3,xrts,NULL /*"xrts"*/);	/* delay loop */
-	return(0);
-}
 
 void err_1541(int ernum);
 VC1541	*vc;

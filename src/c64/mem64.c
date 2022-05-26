@@ -4,9 +4,12 @@
 #include 	<string.h>
 #include 	<errno.h>
 
-#include	"emu65.h"
+#include	"types.h"
+#include	"emu6502.h"
+#include	"emu64.h"
 #include	"log.h"
 #include 	"mem.h"
+#include 	"mem64.h"
 
 int	hiram;
 int	loram;

@@ -1,5 +1,5 @@
 
-#include "emu65.h"
+#include "types.h"
 #include "sound.h"
 
 void sid_wr(scnt reg, scnt val) {

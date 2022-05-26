@@ -1,10 +1,13 @@
 
 #include <stdlib.h>
 
+#include "types.h"
+#include "emu6502.h"
 #include "log.h"
 #include "ccurses.h"
-#include "emu65.h"
 #include "mem.h"
+
+int color = 0;		/* 0 = black/white, 1= color use for ncurses */
 
 WINDOW 	*scr;
 int update;

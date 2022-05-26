@@ -3,11 +3,14 @@
 #include	<stdlib.h>
 #include	<getopt.h>
 
-#include	"emu65.h"
+#include	"types.h"
+#include	"emu6502.h"
 #include  	"log.h"
 #include	"ccurses.h"
 #include	"iec.h"
 #include	"mem.h"
+
+#include	"emu64.h"
 #include	"c64io.h"
 #include	"video.h"
 
@@ -16,7 +19,6 @@ extern uchar prb[];
 int c64=1;		/* 0= 3032, 1= c64 */
 int exrom=0;		/* exrom (note: the exp. port has /exrom) */
 int game=0;		/* game */
-int color=0;		/* 0= black/white, 1=color use for ncurses */
 
 char *files[] = {
 	"/var/lib/xcbm", "c64kernl.rom", "c64basic.rom", "c64chars.rom",

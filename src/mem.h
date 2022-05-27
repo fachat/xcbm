@@ -47,7 +47,8 @@ typedef struct {
 
 /*****************************************************************************/
 /* Funktions- und Speicheradressen fr 6502-Speicherzugriffe */
- 
+
+extern unsigned char *mem;
 extern mt m[16];
 extern meminfo memtab[MP_NUM];
 
@@ -84,4 +85,13 @@ void (*trap6502(scnt))(scnt,CPU*);
 
 void setrd(int mempage, scnt (*func)(scnt));
 void setwr(int mempage, void (*func)(scnt,scnt));
+
+/*****************************************************************************/
+/* internals */
+
+void update_mem(int mempage);
+void mem_exit(void);
+int loadrom(char *fname, size_t offset, size_t len);
+void updatemr(int page, int newpage);
+void updatemw(int page, int newpage);
 

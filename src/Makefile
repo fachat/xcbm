@@ -20,6 +20,7 @@ COMMOBJ = 	curses.o \
 		timer.o \
 		convert.o\
 		iec.o \
+		mem.o \
 
 C64OBJ = 	c64/mem64.o \
 		c64/emu64.o \
@@ -28,12 +29,21 @@ C64OBJ = 	c64/mem64.o \
 		c64/sound.o \
 		c64/c64keys.o \
 
+PETOBJ = 	pet/petemu.o \
+#		pet/mem.o \
+#		pet/iec.o \
+#		pet/petio.o \
+#		pet/petkeys.o \
 
-c64: $(C64OBJ) $(COMMOBJ)
-	cc  -o $(XCBMLIB)/xcbm  $(C64OBJ) $(COMMOBJ) $(LIBS)
+
+xcbm4032: $(PETOBJ) $(COMMOBJ)
+	cc  -o $(XCBMLIB)/xcbm4032  $(PETOBJ) $(COMMOBJ) $(LIBS)
+
+xcbm64: $(C64OBJ) $(COMMOBJ)
+	cc  -o $(XCBMLIB)/xcbm64  $(C64OBJ) $(COMMOBJ) $(LIBS)
 
 clean:
-	rm -f $(COMMOBJ) $(C64OBJ) xcbm.dep c64.log
+	rm -f $(COMMOBJ) $(C64OBJ) $(PETOBJ) xcbm.dep c64.log
 
 dep depend:
 	cc -M -E *.c > xcbm.dep

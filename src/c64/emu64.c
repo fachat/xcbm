@@ -10,9 +10,10 @@
 #include	"iec.h"
 #include	"mem.h"
 
-#include	"emu64.h"
 #include	"c64io.h"
 #include	"video.h"
+
+#define	MAXLINE		200
 
 extern uchar prb[];
 

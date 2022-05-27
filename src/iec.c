@@ -21,10 +21,6 @@
 
 #define	MAXLINE		200
 
-#define atnislo()	(getbyt(0xdd00)&0x08)
-#define	iseof()		(getbyt(0x00a3)&0x80)
-#define	seteof()	setbyt(0x0090,getbyt(0x0090)|0x40)
-
 #define	T_VC1541	1541
 #define	VCLINE		40
 #define	VCBUF		256
@@ -117,8 +113,8 @@ typedef struct {
 		vcBuf		*errbufp;	
 } VC1541;
 
-void out_1541(scnt byte, VC1541* vc);
-scnt get_1541(VC1541 *vc);
+void out_1541(scnt byte, int isatn, VC1541* vc);
+scnt get_1541(VC1541 *vc, int *iseof);
 void close_1541(void);
 		
 
@@ -148,9 +144,8 @@ VC1541	*vc;
 int init_1541(VC1541 *v, int dev) {
 	int i;
 
-	v->dev.mode=MODE_FREE; 
-	v->dev.out =(void(*)(scnt, device*))out_1541;
-	v->dev.get =(scnt(*)(device*))get_1541;
+	v->dev.out =(void(*)(scnt, int, device*))out_1541;
+	v->dev.get =(scnt(*)(device*,int*))get_1541;
 	v->drive[0]=v->drive[1]=NULL;
 
 	for(i=0;i<16;i++) {
@@ -628,11 +623,11 @@ logout(2,"close_1541: vf=%p",vf);
 	}	
 }
 
-void out_1541(scnt byte, VC1541* vcp) {
+void out_1541(scnt byte, int isatn, VC1541* vcp) {
 	vcFile *vf;
 	vc = vcp;
-/*printf("out_1541, atn=%d\n",atnislo());*/
-	if(atnislo()) {
+/*printf("out_1541, atn=%d\n",isatn);*/
+	if(isatn) {
 	  if(!vc->atn) {
 	    vc->listen=vc->talk=0;
 	  }
@@ -701,10 +696,14 @@ logout(0,"detect cmd/err channel or open");
 	}
 }
 
-scnt get_1541(VC1541 *vcp) {
+#define	seteof()	*iseof=1
+
+scnt get_1541(VC1541 *vcp, int *iseof) {
 /* see d39b */
 	vcFile *vf;
 	scnt byte = 0;
+
+	*iseof = 0;
 
 	vc=vcp;
 	vf=&vc->bufp[vc->channel];
@@ -717,6 +716,9 @@ scnt get_1541(VC1541 *vcp) {
 	  } 
 */
 	}
+	if (vc->talk == 0) {
+	 vcp->dev.timeout=1;
+	} else  
 	if(vc->cmd) {
 	  byte=vcBuf_read(vc->errbufp);
 /*logout(0,"error chan. read %02x = %c",byte,byte);*/

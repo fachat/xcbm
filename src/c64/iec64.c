@@ -8,30 +8,29 @@
 #include "mem.h"
 
 #define atnislo()	(getbyt(0xdd00)&0x08)
-#define	iseof()		(getbyt(0x00a3)&0x80)
 #define	seteof()	setbyt(0x0090,getbyt(0x0090)|0x40)
-
 
 extern device	*dev;
 
 extern device	*devs[16];
 
 void bytein(scnt adr, CPU *cpu) {
+	int iseof = 0;
+
 	if(!dev) {		
 		cpu->pc=0xee42;
 	} else {
-		if(dev->mode!=MODE_TALK) {
-			cpu->pc=0xee42;	
-		} else {
-			cpu->a=dev->get((void*)dev);
-			/*cpu->sr &= ~(IRQ|CARRY);*/
-			if(dev->timeout) {
+		cpu->a=dev->get((void*)dev, &iseof);
+		if (iseof) {
+			seteof();
+		}
+		/*cpu->sr &= ~(IRQ|CARRY);*/
+		if(dev->timeout) {
 logout(0,"set timeout pc->0xee42");
-				cpu->pc=0xee42;
-			} else {
-				setbyt(0x00a4,cpu->a);
-				cpu->pc=0xee82;
-			}
+			cpu->pc=0xee42;
+		} else {
+			setbyt(0x00a4,cpu->a);
+			cpu->pc=0xee82;
 		}
 	}
 
@@ -49,34 +48,30 @@ void byteout(scnt adr, CPU *cpu) {
 	if(atnislo()) {
 		if(b==0x20) {
 			if(dev=devs[a]) {
-				dev->mode = MODE_LISTEN;
-				dev->out(by,dev);
+				dev->out(by, 1, dev);
 			}
 		} else 
 		if(b==0x40) {
 			if(dev=devs[a]) {
-				dev->mode = MODE_TALK;	
-				dev->out(by,dev);
+				dev->out(by, 1, dev);
 			}
 		} else
 		if(dev) {
 			if(by==0x3f) {
-				dev->out(by, dev);
-				dev->mode=MODE_FREE;
+				dev->out(by,  1, dev);
 				dev=NULL;
 			} else
 			if(by==0x5f) {
-				dev->out(by, dev);
-				dev->mode=MODE_FREE;
+				dev->out(by,  1, dev);
 				dev=NULL;
 			} else
-				dev->out(by, dev);
+				dev->out(by,  1, dev);
 	    	} else {
 			cpu->pc=0xedad;	/* device not present */
 	        }
 	} else {
 		if(dev) {
-			dev->out(by,dev);
+			dev->out(by, 0, dev);
 		} else {
 			cpu->pc=0xedad;
 		}

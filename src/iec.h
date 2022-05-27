@@ -1,13 +1,13 @@
+
 int iec_init(void);
 int iec_setdrive(int device, int drive, const char *pathname);
 
 void iec_exit(void);
 
 typedef struct device {
-                int     mode;
                 int     timeout;
-                void    (*out)(scnt, struct device*);   /* output, uses global actdev */
-                scnt    (*get)(struct device*); /* input, uses global actdev */
+                void    (*out)(scnt, int isatn, struct device*);   /* output, uses global actdev */
+                scnt    (*get)(struct device*, int *iseof); /* input, uses global actdev */
                 int     type;           /* type of device */
 } device;
 

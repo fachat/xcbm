@@ -14,7 +14,6 @@ unsigned char *mem;
 
 /*******************************************************************/
 
-meminfo memtab[MP_NUM];
 mt m[16];
 
 
@@ -67,11 +66,17 @@ void update_mem(int mempage) {
 }
 
 void setrd(int mempage, scnt (*func)(scnt)) {
+
+	logout(0, "setrd(page=%d, f=%p)", mempage, func);
+
 	memtab[mempage].mf_rd=func;
 	update_mem(mempage);
 }
 
 void setwr(int mempage, void (*func)(scnt,scnt)) {
+
+	logout(0, "setwr(page=%d, f=%p)", mempage, func);
+
 	memtab[mempage].mf_wr=func;
 	update_mem(mempage);
 }
@@ -79,7 +84,7 @@ void setwr(int mempage, void (*func)(scnt,scnt)) {
 void mem_exit(void){
 	free(mem);
 }
-	
+
 int loadrom(char *fname, size_t offset, size_t len) {
 	FILE *fp;
 	size_t nread;

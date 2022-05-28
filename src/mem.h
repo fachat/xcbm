@@ -2,7 +2,6 @@
 int mem_init(char *name[],int,int);
 
 void update_mem(int);
-void mem_setcpuport(scnt adr,scnt val);
 
 /*****************************************************************************/
 /* some needed structs */
@@ -15,6 +14,7 @@ typedef struct {
 		const char	*name;
 } trap;
 
+/* information on a memory page (4k) */
 typedef struct {
                 uchar   *mt_wr;
 		uchar	*mt_rd;
@@ -24,34 +24,29 @@ typedef struct {
                 scnt    (*mf_rd)(scnt);
 } meminfo;
 
+/* entry in the CPU's virtual address space, 16x 4k */
 typedef struct {
-                int     	rd;
-                int     	wr;
-		uchar		*vr;
-                meminfo 	i;
-} mt;
+		scnt		mask;			/* mask for special bits */
+		scnt		comp;			/* compare after mask */
+                void    	(*m_wr)(scnt,scnt);	/* if mask/comp match, use this to write */
+                scnt    	(*m_rd)(scnt);		/* is mask/comp match, use this to read */
 
-#define MP_RAM0		0	/* RAM1-15= MP_RAM0+{1-15} */
-#define	MP_KERNEL0	16	
-#define	MP_KERNEL1	17
-#define	MP_BASIC0	18
-#define	MP_BASIC1	19
-#define	MP_CHAROM	20
-#define	MP_ROML0	21
-#define	MP_ROML1	22
-#define	MP_ROMH0	23
-#define	MP_ROMH1	24
-#define	MP_IO64		25
-#define	MP_NUM		26
+                int     	rd;	/* current entry in the memtab[] array */
+                int     	wr;	/* current entry in the memtab[] array */
+                meminfo 	i;	/* copy of memtab entry */
+
+		uchar		*vr;	/* video memory address */
+} mt;
 
 
 /*****************************************************************************/
 /* Funktions- und Speicheradressen fr 6502-Speicherzugriffe */
 
 extern unsigned char *mem;
-extern mt m[16];
-extern meminfo memtab[MP_NUM];
+extern mt m[];
+extern meminfo memtab[];
 
+#if 0
 #define setbyt(a,b)     \
 {       register scnt c=(a)>>12;\
 /*logout(0,"adr=%04x, byte=%02x, mt=%p, mf=%p\n",a,b,m[c].i.mt_wr,m[c].i.mf_wr);*/\
@@ -59,15 +54,47 @@ extern meminfo memtab[MP_NUM];
         if(m[c].i.mt_wr) m[c].i.mt_wr[(a)&0xfff]=(char)(b); else\
         if(m[c].i.mf_wr) m[c].i.mf_wr(a,b);\
 }
+#endif 
 
-scnt getbyt(scnt);
+static inline scnt getbyt(scnt a) {
+	register scnt bank = a >> 12;
+
+	if (m[bank].mask && ((a & m[bank].mask) == m[bank].comp)) {
+		return m[bank].m_rd(a);
+	}
+
+        if(m[bank].i.mf_rd != NULL) {
+		//logout(0,"read address %04x gives function call at %p",(int)a,m[bank].i.mf_rd); 
+                return(m[bank].i.mf_rd(a));
+        }
+        if(m[bank].i.mt_rd != NULL) {
+		//logout(0,"read address %04x gives %02x",(int)a,(int)m[bank].i.mt_rd[a&0xfff]); 
+             	return(m[bank].i.mt_rd[a&0xfff]);
+        }
+        return(a>>8);
+
+}
+
+static inline void setbyt(scnt a, scnt b) {
+	register scnt bank =  a >> 12;
+
+	if ((m[bank].mask != 0) && ((a & m[bank].mask) == m[bank].comp)) {
+		//logout(0, "masked write (a=%04x, mask=%04x, comp=%04x, val=%02x)", a, m[bank].mask, m[bank].comp, b);
+		m[bank].m_wr(a,b);
+	}
+
+        if(m[bank].i.mf_wr != NULL) {
+		//logout(0,"write address %04x,%02x gives function call at %p",(int)a,(int)b,m[bank].i.mf_wr); 
+                m[bank].i.mf_wr(a,b);
+        }
+        if(m[bank].i.mt_wr != NULL) {
+		//logout(0,"write address %04x,%02x",(int)a,(int)b); 
+             	m[bank].i.mt_wr[a&0xfff] = b;
+        }
+}
 
 #define getvbyt(a)       (m[(a)>>12].vr[(a)&0xfff])
 
-/*
-#define getbyt(a)       (mf_rd[(a)>>12]?mf_rd[(a)>>12](a):(mt_rd[(a)>>12]?\
-        mt_rd[(a)>>12][(a)&0xfff]:(a)>>8))
-*/
 #define getadr(a)       (getbyt(a)+256*getbyt(a+1))
 
 /*****************************************************************************/

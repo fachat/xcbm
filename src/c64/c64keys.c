@@ -4,6 +4,7 @@
 #include "types.h"
 #include "emu6502.h"
 #include "mem.h"
+#include "mem64.h"
 #include "ccurses.h"
 
 #include "c64io.h"

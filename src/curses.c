@@ -126,13 +126,13 @@ void wrvid(scnt a, scnt b){
 
 void updatevideo(void) {
 	int i, val=vic_reg[24];
-	setwr(MP_RAM0+(screenadr>>12),NULL);
+	setwr((screenadr>>12),NULL);
 	screenadr=videopage+1024*(val>>4);
 	charadr=videopage+1024*(val&0x0e);
 	hiresadr=videopage+1024*(val&0x08);
 logout(0,"set videoaddresses: screen=%x, char=%x, hires=%x",
 			screenadr, charadr, hiresadr);
-	setwr(MP_RAM0+(screenadr>>12),wrvid);
+	setwr((screenadr>>12),wrvid);
 	update=0;
 	for(i=screenadr;i<screenadr+1000;i++) {
 	  wrvid(i,getvbyt(i));

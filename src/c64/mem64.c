@@ -15,6 +15,8 @@ int	hiram;
 int	loram;
 int	charen;
 
+meminfo memtab[MP_NUM];
+
 #define	seekernel()	(hiram)
 #define	seebasic()	(hiram&&loram)
 #define	seeroml()	0
@@ -32,26 +34,10 @@ int	charen;
 
 /*******************************************************************/
 
+void mem_setcpuport(scnt adr, scnt byt);
+scnt mem_getcpuport(scnt adr);
+
 int reg0,dir0;
-
-
-scnt getbyt(scnt a) {
-        register scnt c=a>>12;
-	if(!(a&0xfffe)) {
-		if(a) return(reg0);
-		else return(dir0);
-	}
-        if(m[c].i.mf_rd) {
-/*logout(0,"read address %04x gives function call at %p",(int)a,m[c].i.mf_rd); */
-                return(m[c].i.mf_rd(a));
-	}
-        if(m[c].i.mt_rd) {
-/*logout(0,"read address %04x gives %02x",(int)a,(int)m[c].i.mt_rd[a&0xfff]); */
-             return(m[c].i.mt_rd[a&0xfff]);
-	}
-        return(a>>8);
-}
-
 
 /*******************************************************************/
 
@@ -109,7 +95,9 @@ logout(0,"set loram=%d, hiram=%d, charen=%d",loram,hiram,charen);
 	}	
 }
 
-void mem_setcpuport(scnt adr, scnt byt){
+void mem_setcpuport(scnt adr, scnt byt) {
+
+	logout(0, "mem_setcpuport(a=%04x, b=%02x)", adr, byt);
 	if(adr&1) {
 		if(byt==reg0)
 			return;
@@ -120,6 +108,13 @@ void mem_setcpuport(scnt adr, scnt byt){
 		dir0=byt;
 	}
 	setmap();
+}
+
+scnt mem_getcpuport(scnt adr) {
+	if(adr&1) {
+		return reg0;
+	}
+	return dir0;
 }
 
 
@@ -155,10 +150,26 @@ void inimemvec(void){
 	memtab[MP_ROMH0].mt_rd = mem+ROMH;
 	memtab[MP_ROMH1].mt_rd = mem+ROMH+0x1000;
 
+	/* CPU virtual address space */
 	for(i=0;i<16;i++) {
-		if((i&7)==1) m[i].vr=mem+CHAROM;
-		else m[i].vr=mem+i*0x1000;
+		/* video memory address */
+		if((i&7)==1) {
+			m[i].vr=mem+CHAROM;
+		} else {
+			m[i].vr=mem+i*0x1000;
+		}
+		/* current page */
 		m[i].wr=m[i].rd=-1;
+		/* mask/comp flag */
+		if (i == 0) {
+			/* CPU registers 0/1 */
+			m[i].mask = 0xfffe;
+			m[i].comp = 0x0000;
+			m[i].m_wr = &mem_setcpuport;
+			m[i].m_rd = &mem_getcpuport;
+		} else {
+			m[i].mask = 0;
+		}
 	}
 	reg0=dir0=0;
 	setmap();

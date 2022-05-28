@@ -11,6 +11,7 @@
 #include "sound.h"
 #include "c64io.h"
 #include "mem.h"
+#include "mem64.h"
 
 typedef struct {
 		byte 	pra;

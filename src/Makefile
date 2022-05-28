@@ -11,7 +11,7 @@ include xcbm.dep
 endif
 
 .c.o:
-	$(CC) $(CFLAGS) -I. -c -o $*.o $<
+	$(CC) $(CFLAGS) -I. -g -c -o $*.o $<
 
 COMMOBJ = 	curses.o \
 		trap.o \
@@ -30,7 +30,7 @@ C64OBJ = 	c64/mem64.o \
 		c64/c64keys.o \
 
 PETOBJ = 	pet/petemu.o \
-#		pet/mem.o \
+		pet/petmem.o \
 #		pet/iec.o \
 #		pet/petio.o \
 #		pet/petkeys.o \

@@ -9,6 +9,7 @@
 #include	"ccurses.h"
 #include	"iec.h"
 #include	"mem.h"
+#include	"mem64.h"
 
 #include	"c64io.h"
 #include	"video.h"
@@ -125,7 +126,7 @@ int main(int argc, char *argv[])
 
 	iec_init();
 	iec_setdrive(8,0,".");
-settrap(MP_KERNEL1,0xfce4,NULL,"test");
+//settrap(MP_KERNEL0+1,0xfce4,NULL,"test");
 	cpu_run();
 	
 	return(er);	

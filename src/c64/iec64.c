@@ -6,6 +6,7 @@
 #include "log.h"
 #include "iec.h"
 #include "mem.h"
+#include "mem64.h"
 
 #define atnislo()	(getbyt(0xdd00)&0x08)
 #define	seteof()	setbyt(0x0090,getbyt(0x0090)|0x40)

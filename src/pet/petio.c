@@ -4,16 +4,12 @@
 #include "types.h"
 #include "emu6502.h"
 
-#include "emu64.h"
 #include "timer.h"
 #include "video.h"
 #include "keys.h"
-#include "sound.h"
-#include "c64io.h"
-#include "vicii.h"
-#include "mem.h"
-#include "mem64.h"
+#include "io.h"
 
+#if 0
 typedef struct {
 		byte 	pra;
 		byte	prb;
@@ -61,7 +57,10 @@ void cia2_wr(scnt,scnt);
 scnt cia1_rd(scnt);
 scnt cia2_rd(scnt);
 
+#endif
+
 int io_init(void) {
+#if 0
 	memset(&cia1,0,sizeof(CIA));
 	memset(&cia2,0,sizeof(CIA));
 	cia1.timera=time_register(cia1_tia,"cia1 timera");
@@ -73,10 +72,11 @@ int io_init(void) {
 	setwr(MP_IO64,io_wr);
 
 	key_init(0);
-
+#endif
 	return(0);
 }
 
+#if 0
 void io_wr(scnt adr, scnt val) {
 	register scnt a=(adr&0x0c00);
 	switch(a) {
@@ -369,4 +369,5 @@ scnt cia2_rd(scnt reg) {
         }
         return(0);
 }
-  
+#endif
+

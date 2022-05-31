@@ -21,32 +21,14 @@
 
 /*******************************************************************/
 
-
-scnt getbyt(scnt a) {
-        register scnt c=a>>12;
-        if(m[c].i.mf_rd) {
-/*logout(0,"read address %04x gives function call at %p",(int)a,m[c].i.mf_rd); */
-                return(m[c].i.mf_rd(a));
-	}
-        if(m[c].i.mt_rd) {
-/*logout(0,"read address %04x gives %02x",(int)a,(int)m[c].i.mt_rd[a&0xfff]); */
-             return(m[c].i.mt_rd[a&0xfff]);
-	}
-        return(a>>8);
-}
-
-/*******************************************************************/
+meminfo memtab[MP_NUM];
 
 void setmap(void) {
 	int i;
 
 	for(i=0;i<16;i++) {
-		if(i==14) {
-			//updatemw(i,MP_IO64);
-		} else { 
-			updatemw(i,i);
-			updatemr(i,i);
-		}
+		updatemw(i,i);
+		updatemr(i,i);
 	}
 }
 

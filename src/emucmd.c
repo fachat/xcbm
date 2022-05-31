@@ -4,7 +4,7 @@
 #include <termios.h>
 #include <unistd.h>
 */
-#include "emu65.h"
+#include "emu6502.h"
 #include "mem.h"
 
 extern struct termios saveterm;

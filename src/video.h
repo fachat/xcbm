@@ -1,16 +1,18 @@
 
 int video_init(void);
 
-int io_init(void);
-
-void colram_wr(scnt,scnt);
-
-extern uchar colram[];
-
-#define	colram_rd(a) 	colram[(a)]
-
 void video_wr(scnt,scnt);
 scnt video_rd(scnt);
 
 void setvideopage(scnt);
+
+typedef struct rgb_t {
+                int     r;
+                int     g;
+                int     b;
+                int     fg;     /* if only the 8 std colors are available */
+} rgb_t;
+
+extern int update;
+extern rgb_t rgb[16];
 

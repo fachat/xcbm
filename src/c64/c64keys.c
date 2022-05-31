@@ -8,7 +8,7 @@
 #include "ccurses.h"
 
 #include "c64io.h"
-#include "c64keys.h"
+#include "keys.h"
 
 
 int timer;

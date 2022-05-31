@@ -97,7 +97,7 @@ logout(0,"set loram=%d, hiram=%d, charen=%d",loram,hiram,charen);
 
 void mem_setcpuport(scnt adr, scnt byt) {
 
-	logout(0, "mem_setcpuport(a=%04x, b=%02x)", adr, byt);
+	//logout(0, "mem_setcpuport(a=%04x, b=%02x)", adr, byt);
 	if(adr&1) {
 		if(byt==reg0)
 			return;

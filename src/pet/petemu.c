@@ -11,7 +11,7 @@
 #include	"mem.h"
 
 #include	"petemu.h"
-//#include	"petio.h"
+#include	"io.h"
 #include	"video.h"
 
 extern uchar prb[];

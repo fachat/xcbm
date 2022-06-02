@@ -11,7 +11,7 @@
 #include	"mem.h"
 #include	"mem64.h"
 
-#include	"c64io.h"
+#include	"io.h"
 #include	"video.h"
 
 #define	MAXLINE		200

@@ -10,4 +10,5 @@
 
 #define	MP_NUM		16
 
+extern uchar *colram;
 

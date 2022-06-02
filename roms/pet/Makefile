@@ -14,7 +14,8 @@ petkernel4.rom: kernal-4.901465-22.bin
 	cat $^ > $@
 
 # BASIC4 N-keyboard, no CRTC
-petedit4.rom: edit-4-n.901447-29.bin
+#petedit4.rom: edit-4-n.901447-29.bin
+petedit4.rom: edit-4-80-n_unk.bin
 	cat $^ > $@
 
 clean:

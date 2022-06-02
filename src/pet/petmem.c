@@ -23,6 +23,8 @@
 
 meminfo memtab[MP_NUM];
 
+uchar *colram = NULL;
+
 void setmap(void) {
 	int i;
 
@@ -49,6 +51,9 @@ void inimemvec(void){
 	 	memtab[i].mt_wr=mem+i*0x1000;
 	 	memtab[i].mt_rd=mem+i*0x1000;
 	}
+	/* video + color RAM at $8800 */
+	colram = memtab[MP_VRAM].mt_wr + 0x0800;
+
 	/* KERNEL */
 	memtab[MP_KERNEL].mt_rd = mem+KERNEL;
 	/* BASIC */

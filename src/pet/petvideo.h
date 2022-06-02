@@ -1,14 +1,10 @@
 
 int video_init(void);
 
-void colram_wr(scnt,scnt);
+/* write functions for the whole 4k at $8xxx, i.e. video + col RAM */
+void vmem_wr(scnt,scnt);
 
-extern uchar colram[];
-
-#define	colram_rd(a) 	colram[(a)]
-
-void video_wr(scnt,scnt);
-scnt video_rd(scnt);
-
-void setvideopage(scnt);
+/* CRTC emulation */
+void crtc_wr(scnt, scnt);
+scnt crtc_rd(scnt);
 

@@ -6,6 +6,8 @@
 #include "log.h"
 #include "ccurses.h"
 #include "mem.h"
+#include "petmem.h"
+#include "petvideo.h"
 
 /***********************************************************************/
 /* PET video manipulation routines                                     */
@@ -14,7 +16,6 @@
 
 #include "video.h"
 
-uchar colram[2048];
 int screenadr=0x8000;
 int crtc_reg[16];
 int videopage=0;
@@ -50,10 +51,10 @@ void wrvid(scnt a, scnt b){
 
 void updatevideo(void) {
 	int i;
-	setwr((screenadr>>12),NULL);
+	setwr(MP_VRAM,NULL);
 	//val=vic_reg[24];
 	//screenadr=videopage+1024*(val>>4);
-	setwr((screenadr>>12),wrvid);
+	setwr(MP_VRAM,vmem_wr);
 	update=0;
 	for(i=screenadr;i<screenadr+scrlen;i++) {
 	  wrvid(i,getvbyt(i));
@@ -68,19 +69,32 @@ int video_init(){
 	update=0;
 	for(i=0;i<16;i++) crtc_reg[i]=0;
 	screenadr=0x8000;
-	video_wr(33,0);
+//	crtc_wr(33,0);
+
+	setwr(MP_VRAM, vmem_wr);
+
+	updatevideo();
 	return(0);
 }
 
-void colram_wr(scnt adr, scnt val) {
-	colram[adr]=val&0x0f;
-
+static inline void colram_wr(scnt adr, scnt val) {
 	if(color && adr<1000) {
 	  wrvid(adr+screenadr,getvbyt(adr+screenadr));
 	}
 }
 
-void video_wr(scnt xreg,scnt val ) {
+void vmem_wr(scnt addr,scnt val ) {
+	register scnt a = addr & 0x0fff;
+
+	if (a & 0x800) {
+		// write col RAM
+		colram_wr(addr, val);
+	} else {
+		wrvid(addr, val);
+	}
+}
+
+void crtc_wr(scnt xreg,scnt val ) {
 #if 0
 	int i;
 	vic_reg[xreg]=val;
@@ -103,7 +117,7 @@ void video_wr(scnt xreg,scnt val ) {
 #endif
 }
 
-scnt video_rd(scnt xreg) {
+scnt crtc_rd(scnt xreg) {
 #if 0
 	return(xreg==18?0:vic_reg[xreg]);
 #endif

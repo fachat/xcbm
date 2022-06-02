@@ -82,14 +82,13 @@ static inline void setbyt(scnt a, scnt b) {
 		//logout(0, "masked write (a=%04x, mask=%04x, comp=%04x, val=%02x)", a, m[bank].mask, m[bank].comp, b);
 		m[bank].m_wr(a,b);
 	}
-
-        if(m[bank].i.mf_wr != NULL) {
-		//logout(0,"write address %04x,%02x gives function call at %p",(int)a,(int)b,m[bank].i.mf_wr); 
-                m[bank].i.mf_wr(a,b);
-        }
         if(m[bank].i.mt_wr != NULL) {
 		//logout(0,"write address %04x,%02x",(int)a,(int)b); 
              	m[bank].i.mt_wr[a&0xfff] = b;
+        }
+        if(m[bank].i.mf_wr != NULL) {
+		//logout(0,"write address %04x,%02x gives function call at %p",(int)a,(int)b,m[bank].i.mf_wr); 
+                m[bank].i.mf_wr(a,b);
         }
 }
 

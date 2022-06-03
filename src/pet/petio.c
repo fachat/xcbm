@@ -9,39 +9,12 @@
 #include "keys.h"
 #include "io.h"
 
-#if 0
-typedef struct {
-		byte 	pra;
-		byte	prb;
-		byte	ddra;
-		byte	ddrb;
-		byte	talo;
-		byte	tahi;
-		byte	tblo;
-		byte	tbhi;
-		byte	tod_tenth;
-		byte	tod_sec;
-		byte	tod_min;
-		byte	tod_hr;
-		byte	sdr;
-		byte	icr;
-		byte 	cra;
-		byte	crb;
+#include "pia.h"
 
-		byte	pra_w;
-		byte	prb_w;
-		byte	talo_w;
-		byte	tahi_w;
-		byte	tblo_w;
-		byte	tbhi_w;
-		byte	imr;
-		byte	al_tenth;
-		byte	al_sec;
-		byte	al_min;
-		byte	al_hr;
-		int	timera;
-		int 	timerb;
-} CIA;
+PIA pia1;
+PIA pia2;
+
+#if 0
 
 void	io_wr(scnt,scnt);
 scnt	io_rd(scnt);
@@ -59,7 +32,49 @@ scnt cia2_rd(scnt);
 
 #endif
 
+// PIA1
+//
+// port A:
+// 	0-3: keyboard row select out
+// 	4: cassette #1 switch in
+// 	5: cassette #2 switch in
+// 	6: EOI in
+// 	7: DIAG in
+//
+// CA1:	Cassette #1 read in
+// CA2: EOI out
+//
+// port B:
+// 	0-7: keyboard col input
+//
+// CB1: vertical drive in (interrupt generator)
+// CB2: cassette #1 motor out
+//
+
+static uchar pia1_get_porta(uchar origdata) {
+}
+
+static void pia1_set_porta(uchar data, uchar dir) {
+}
+
+static void pia1_set_ca2(uchar flag) {
+}
+
+static uchar pia1_get_portb(uchar origdata) {
+}
+
+
 int io_init(void) {
+
+	pia_init(&pia1);
+	pia_init(&pia2);
+
+	pia1.get_port_a_in = pia1_get_porta;
+	pia1.set_port_a_out = pia1_set_porta;
+	pia1.set_ca2_out = pia1_set_ca2;
+
+	pia1.get_port_b_in = pia1_get_portb;
+
 #if 0
 	memset(&cia1,0,sizeof(CIA));
 	memset(&cia2,0,sizeof(CIA));
@@ -67,9 +82,6 @@ int io_init(void) {
 	cia1.timerb=time_register(cia1_tib,"cia1 timerb");
 	cia2.timera=time_register(cia2_tia,"cia2 timera");
 	cia2.timerb=time_register(cia2_tib,"cia2 timerb");
-
-	setrd(MP_IO64,io_rd);
-	setwr(MP_IO64,io_wr);
 
 	key_init(0);
 #endif

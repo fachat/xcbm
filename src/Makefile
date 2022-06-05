@@ -36,6 +36,7 @@ PETOBJ = 	pet/petemu.o \
 		pet/petio.o \
 		pet/petvideo.o \
 		pia.o \
+		via.o \
 #		pet/petkeys.o \
 
 $(XCBMLIB):

@@ -35,13 +35,16 @@ PETOBJ = 	pet/petemu.o \
 		pet/petieee.o \
 		pet/petio.o \
 		pet/petvideo.o \
+		pia.o \
 #		pet/petkeys.o \
 
+$(XCBMLIB):
+	test -d $(XCBMLIB) || mkdir $(XCBMLIB)
 
-xcbm4032: $(PETOBJ) $(COMMOBJ)
+xcbm4032: $(XCBMLIB) $(PETOBJ) $(COMMOBJ)
 	cc  -o $(XCBMLIB)/xcbm4032  $(PETOBJ) $(COMMOBJ) $(LIBS)
 
-xcbm64: $(C64OBJ) $(COMMOBJ)
+xcbm64: $(XCBMLIB) $(C64OBJ) $(COMMOBJ)
 	cc  -o $(XCBMLIB)/xcbm64  $(C64OBJ) $(COMMOBJ) $(LIBS)
 
 clean:

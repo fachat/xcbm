@@ -1,4 +1,25 @@
 
+
+#define	PIA_PA	0
+#define	PIA_CRA	1
+#define	PIA_PB	2
+#define	PIA_CRB	3
+
+/* binary constances are only an extension to GCC, so hex here */
+#define	PIA_CR_IRQ1	0x80
+#define	PIA_CR_IRQ2	0x40
+#define	PIA_CR_CX2	0x20
+#define	PIA_CR_CX2OUT	0x10	/* output bit 3 when set, strobe otherwise */
+#define	PIA_CR_CX2SD	0x08	/* strobe or data */
+#define	PIA_CR_DATA	0x04
+
+#define	PIA_CX2_LOW	0
+#define	PIA_CX2_HIGH	1
+#define	PIA_CX2_INPUT	2
+
+#define	PIA_CX1_LOW	0
+#define	PIA_CX1_HIGH	1
+
 typedef struct PIA {
 	// instance-specific functions that need to be set per instance
 	//
@@ -29,7 +50,7 @@ typedef struct PIA {
 	uchar ctrl_b;
 	uchar last_cb1;
 	uchar last_cb2;
-}
+} PIA;
 
 // initialize a PIA
 // sets all(!) fields. read/write_port_* must be set afterwards

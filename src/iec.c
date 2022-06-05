@@ -600,7 +600,10 @@ logout(0,"open file %s gives fd=%d",filename,vf->f.fd);
 
 void write_1541(vcFile *vf) {
 logout(2,"write_1541(vcFile *vf=%p)",vf);
-	write(vf->f.fd, vf->buf->buf, vf->buf->pos);
+	int r = write(vf->f.fd, vf->buf->buf, vf->buf->pos);
+	if (r<0) {
+		logout(0, "Write error: %s", strerror(errno));
+	}
 	vf->buf->len=vf->buf->pos=0;
 }
 

@@ -9,8 +9,9 @@
 #include	"log.h"
 #include 	"mem.h"
 #include 	"petmem.h"
+#include 	"petio.h"
 
-#define	MAXLINE		200
+#define	MAXLINE	200
 	
 #define		VRAM	0x8000
 #define 	KERNEL	(MP_KERNEL*4096l)
@@ -64,9 +65,24 @@ void inimemvec(void){
 	memtab[MP_EDIT].mt_rd = mem+EDITOR;
 
 	for(i=0;i<16;i++) {
-		if(i==8) m[i].vr=mem+VRAM;
-		else m[i].vr=NULL;
+		// video memory address */
+		if(i==8) {
+			m[i].vr=mem+VRAM;
+		} else {
+			m[i].vr=NULL;
+		}
+		// current page
 		m[i].wr=m[i].rd=-1;
+		// mask/comp flags
+		if (i == 14) {
+			// I/O memory space
+			m[i].mask = 0xff00;
+			m[i].comp = 0xe800;
+			m[i].m_wr = &io_wr;
+			m[i].m_rd = &io_rd;
+		} else {
+			m[i].mask = 0;
+		}
 	}
 	setmap();
 }

@@ -108,6 +108,11 @@ static inline void set_alarm_clock_diff(alarm_t *alarm, int addtime) {
 	set_alarm_clock(alarm, alarm->context->clk + addtime);
 }
 
+static inline void set_alarm_clock_plus(alarm_t *alarm, int addtime) {
+	
+	set_alarm_clock(alarm, alarm->clk + addtime);
+}
+
 static inline void clr_alarm_clock(alarm_t *alarm) {
 	set_alarm_clock(alarm, CLOCK_MAX);
 }

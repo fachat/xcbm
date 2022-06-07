@@ -1,6 +1,7 @@
 
 #include <string.h>
 
+#include "log.h"
 #include "types.h"
 #include "pia.h"
 
@@ -106,7 +107,9 @@ uchar pia_rd(PIA *pia, uchar reg) {
 }
 
 // extern trigger to set CA1 / CA2 input state
-void pia_ca1(PIA *pia, uchar flag);
+void pia_ca1(PIA *pia, uchar flag) {
+	logout(0, "set pia1 CA1 to %d", flag);
+}
 
 void pia_ca2(PIA *pia, uchar flag);
 

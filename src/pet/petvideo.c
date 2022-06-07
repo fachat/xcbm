@@ -10,6 +10,7 @@
 #include "mem.h"
 #include "petmem.h"
 #include "petvideo.h"
+#include "petio.h"
 
 /***********************************************************************/
 /* PET video manipulation routines                                     */
@@ -65,8 +66,39 @@ void updatevideo(void) {
 /*	touchwin(scr);*/
 	refresh();
 }
+
+void set_vdrive_cb(struct alarm_s *alarm, CLOCK current);
+void clr_vdrive_cb(struct alarm_s *alarm, CLOCK current);
+
+alarm_t set_vdrive = {
+	"Set VDRIVE",
+	NULL,
+	set_vdrive_cb,
+	NULL,
+	CLOCK_MAX
+};
+
+alarm_t clr_vdrive = {
+	"Clear VDRIVE",
+	NULL,
+	clr_vdrive_cb,
+	NULL,
+	CLOCK_MAX
+};
+
+void set_vdrive_cb(struct alarm_s *alarm, CLOCK current) {
+	io_set_vdrive(1);
+	set_alarm_clock_plus(&set_vdrive, ((CPU*)set_vdrive.data)->cyclesperframe);
+}
+
+void clr_vdrive_cb(struct alarm_s *alarm, CLOCK current) {
+	io_set_vdrive(0);
+	set_alarm_clock_plus(&clr_vdrive, ((CPU*)clr_vdrive.data)->cyclesperframe);
+}
+
+
 	
-int video_init(){
+int video_init(CPU *cpu){
 	int i;
 	update=0;
 	for(i=0;i<16;i++) crtc_reg[i]=0;
@@ -74,6 +106,14 @@ int video_init(){
 //	crtc_wr(33,0);
 
 	setwr(MP_VRAM, vmem_wr);
+
+	// 128 cycles VDRIVE pulse
+	set_vdrive.data = cpu;
+	alarm_register(&cpu->actx, &set_vdrive);
+	set_alarm_clock(&set_vdrive, 0);
+	clr_vdrive.data = cpu;
+	alarm_register(&cpu->actx, &clr_vdrive);
+	set_alarm_clock(&clr_vdrive, 128);
 
 	updatevideo();
 	return(0);

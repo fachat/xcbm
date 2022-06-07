@@ -50,6 +50,10 @@ static uchar pia1_get_portb(uchar origdata) {
 	return 0xff;
 }
 
+void io_set_vdrive(uchar flag) {
+	pia_ca1(&pia1, flag ? PIA_CX1_HIGH : PIA_CX1_LOW);
+}
+
 // PIA2
 //
 // port A:

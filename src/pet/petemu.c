@@ -100,14 +100,16 @@ int main(int argc, char *argv[])
 
 	mem_init(files,0,0);
 	cur_init();
-	video_init();
+
+	CPU *cpu = cpu_init(1000000, 16);
+
+	video_init(cpu);
 	io_init();	
 
 	iec_init();
 	iec_setdrive(8,0,".");
 //settrap(MP_KERNEL1,0xfce4,NULL,"test");
 
-	cpu_init(1000000, 16);
 
 	// 200% speed for now
 	speed_set_percent(200);

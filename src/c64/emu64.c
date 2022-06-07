@@ -123,15 +123,16 @@ int main(int argc, char *argv[])
 	
 	mem_init(files,0,0);
 	cur_init();
-	video_init();
+
+	// PAL
+	CPU *cpu = cpu_init(985248, 20);
+
+	video_init(cpu);
 	io_init();	
 
 	iec_init();
 	iec_setdrive(8,0,".");
 //settrap(MP_KERNEL0+1,0xfce4,NULL,"test");
-
-	// PAL
-	cpu_init(985248, 20);
 
 	speed_set_percent(100);
 

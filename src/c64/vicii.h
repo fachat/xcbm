@@ -1,6 +1,4 @@
 
-int video_init(void);
-
 void colram_wr(scnt,scnt);
 
 extern uchar colram[];

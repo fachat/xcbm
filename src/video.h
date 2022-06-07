@@ -1,5 +1,5 @@
 
-int video_init(void);
+int video_init(CPU *cpu);
 
 void video_wr(scnt,scnt);
 scnt video_rd(scnt);

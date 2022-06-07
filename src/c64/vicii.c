@@ -72,7 +72,7 @@ logout(0,"videopage=%x",videopage);
 }
 
 
-int video_init(){
+int video_init(CPU *cpu){
 	int i;
 	update=0;
 	for(i=0;i<48;i++) vic_reg[i]=0;

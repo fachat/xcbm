@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "types.h"
+#include "alarm.h"
 #include "emu6502.h"
 
 #include "timer.h"

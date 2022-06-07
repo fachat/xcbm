@@ -3,10 +3,12 @@
 
 #include  	"log.h"
 #include  	"types.h"
+#include  	"alarm.h"
 #include	"emu6502.h"
 #include	"timer.h"
 #include	"emucmd.h"
 #include 	"mem.h"
+#include 	"speed.h"
 
 #define	MAXLINE	200
 
@@ -139,6 +141,17 @@ void cpu_reset(CPU *cpu){
 	err=0;
 }
 
+CPU *cpu_init(int cyclespersec, int msperframe) {
+
+	alarm_context_init(&cpu.actx, "main cpu");
+
+	speed_init(&cpu, cyclespersec, msperframe);
+
+	cpu_reset(&cpu);
+	return &cpu;
+}
+
+// TODO: add time offset to getbyt/getadr, so fetches are done at correct cycle
  
 #define azp(a)		getbyt(a+1)
 #define azpx(a)		((getbyt(a+1)+cpu.x)&0xff)
@@ -193,6 +206,8 @@ void cpu_reset(CPU *cpu){
 #define phpc()		phbyt(cpu.pc/256);phbyt(cpu.pc&0xff)
 #define plpc()		cpu.pc=plbyt();cpu.pc+=256*plbyt()
 
+#define	next(a)		advance_clock(&cpu.actx, (a))
+
 void ill(){
 	err=1;
 	logout(4,"Illegal Intruction %02x %02x %02x at adress %04x\n",
@@ -212,12 +227,14 @@ logout(0,"brk @ $%04x",cpu.pc);
 	phpc();
 	phbyt(cpu.sr);
 	cpu.pc=getadr(0xfffe);
+	next(7);	// clock cycles;
 }
 
 void php(){
 	cpu2struct(&cpu);
 	phbyt(cpu.sr);
 	cpu.pc++;
+	next(3);	// clock cycles;
 }
 
 void jsr_abs(){
@@ -225,6 +242,7 @@ void jsr_abs(){
 	cpu.pc+=2;
 	phpc();
 	cpu.pc=a;
+	next(6);	// clock cycles;
 }
 
 void rti(){
@@ -232,98 +250,118 @@ void rti(){
 	plpc();
 	cpu.pc++;
 	struct2cpu(&cpu);
+	next(6);	// clock cycles;
 }
 
 void pha(){
 	phbyt(cpu.a);
 	cpu.pc++;
+	next(6);	// clock cycles;
 }
 
 void rts(){
 	plpc();
 	cpu.pc++;
+	next(6);
 }
 
 void pla(){
 	register scnt a=cpu.a=plbyt();
 	setnz(a);
 	cpu.pc++;
+	next(4);
 }
 
 void plp(){
 	cpu.sr=plbyt();
 	struct2cpu(&cpu);
 	cpu.pc+=1;
+	next(4);
 }
 
 void clc(){
 	aclc();
 	cpu.pc+=1;
+	next(2);
 }
 void cli(){
 	acli();
 	cpu.pc++;
+	next(2);
 }
 void sei(){
 	asei();
 	cpu.pc+=1;
+	next(2);
 }
 void clv(){
 	aclv();
 	cpu.pc+=1;
+	next(2);
 }
 void cld(){
 	acld();
 	cpu.pc+=1;
+	next(2);
 }
 void sed(){
 	ased();
 	cpu.pc+=1;
+	next(2);
 }
 void sec(){
 	asec();
 	cpu.pc+=1;
+	next(2);
 }
 
 void ora_indx(){
 	register scnt a=cpu.a|=indx(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(6);
 }
 void ora_zp(){
 	register scnt a=cpu.a|=zp(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(3);
 }
 void ora_imm(){
 	register scnt a=cpu.a|=imm(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(2);
 }
 void ora_abs(){
 	register scnt a=cpu.a|=abs(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);
 }
 void ora_indy(){
 	register scnt a=cpu.a|=indy(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(5); 	// TODO: page crossing
 }
 void ora_zpx(){
 	register scnt a=cpu.a|=zpx(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(4);
 }
 void ora_absy(){
 	register scnt a=cpu.a|=absy(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);	// TODO: page crossing
 }
 void ora_absx(){
 	register scnt a=cpu.a|=absx(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);	// TODO: page crossing
 }
 
 #define asl_x(len) \
@@ -341,63 +379,76 @@ void asl_acc(){
 	setnz(o);
 	cpu.a=o;
 	cpu.pc+=1;
+	next(2);
 }
 void asl_zp(){
 	register scnt a=azp(cpu.pc);
 	asl_x(2);
+	next(5);
 }
 void asl_abs(){
 	register scnt a=aabs(cpu.pc);
 	asl_x(3);
+	next(6);
 }
 void asl_zpx(){
 	register scnt a=azpx(cpu.pc);
 	asl_x(2);
+	next(6);
 }
 void asl_absx(){
 	register scnt a=aabsx(cpu.pc);
 	asl_x(3);
+	next(7);
 }
 
 void and_indx(){
 	register scnt a=cpu.a&=indx(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(6);
 }
 void and_zp(){
 	register scnt a=cpu.a&=zp(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(3);
 }
 void and_imm(){
 	register scnt a=cpu.a&=imm(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(2);
 }
 void and_abs(){
 	register scnt a=cpu.a&=abs(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);
 }
 void and_indy(){
 	register scnt a=cpu.a&=indy(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(5);	// TODO page crossing
 }
 void and_zpx(){
 	register scnt a=cpu.a&=zpx(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(4);
 }
 void and_absy(){
 	register scnt a=cpu.a&=absy(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);	// TODO page crossing
 }
 void and_absx(){
 	register scnt a=cpu.a&=absx(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);	// TODO page crossing
 }
 
 #define rol_x(len) \
@@ -411,18 +462,22 @@ void and_absx(){
 void rol_zp(){
 	register scnt a=azp(cpu.pc);
 	rol_x(2);
+	next(5);
 }
 void rol_abs(){
 	register scnt a=aabs(cpu.pc);
 	rol_x(3);
+	next(6);
 }
 void rol_zpx(){
 	register scnt a=azpx(cpu.pc);
 	rol_x(2);
+	next(6);
 }
 void rol_absx(){
 	register scnt a=aabsx(cpu.pc);
 	rol_x(3);
+	next(7);
 }
 void rol_acc(){
 	register scnt o=(cpu.a<<1)+carry1();
@@ -431,6 +486,7 @@ void rol_acc(){
 	setnz(o);
 	cpu.a=o;
 	cpu.pc+=1;
+	next(2);
 }
 
 void bit_zp(){
@@ -438,124 +494,160 @@ void bit_zp(){
 	zero=!(cpu.a&o);
 	setnv(o);
 	cpu.pc+=2;
+	next(3);
 }
 void bit_abs(){
 	register scnt o=abs(cpu.pc);
 	zero=!(cpu.a&o);
 	setnv(o);
 	cpu.pc+=3;
+	next(4);
 }
 
 void bpl(){
 	register scnt a=imm(cpu.pc);
-	if(!neg()) 
+	if(!neg()) {
 		cpu.pc=cpu.pc+a+2-256*(a>127);
-	else
+		next(3);	// TODO page xing
+	} else {
 		cpu.pc+=2;
+		next(2);
+	}
 }
 
 void bmi(){
 	register scnt a=imm(cpu.pc);
-	if(neg()) 
+	if(neg()) {
 		cpu.pc=cpu.pc+a+2-256*(a>127);
-	else
+		next(3);	// TODO page xing
+	} else {
 		cpu.pc+=2;
+		next(2);
+	}
 }
 
 void bvc(){
 	register scnt a=imm(cpu.pc);
-	if(!overfl()) 
+	if(!overfl()) {
 		cpu.pc=cpu.pc+a+2-256*(a>127);
-	else
+		next(3);	// TODO page xing
+	} else {
 		cpu.pc+=2;
+		next(2);
+	}
 }
 
 void bvs(){
 	register scnt a=imm(cpu.pc);
-	if(overfl()) 
+	if(overfl()) {
 		cpu.pc=cpu.pc+a+2-256*(a>127);
-	else
+		next(3);	// TODO page xing
+	} else {
 		cpu.pc+=2;
+		next(2);
+	}
 }
 
 void bcc(){
 	register scnt a=imm(cpu.pc);
-	if(!carry()) 
+	if(!carry()) {
 		cpu.pc=cpu.pc+a+2-256*(a>127);
-	else
+		next(3);	// TODO page xing
+	} else {
 		cpu.pc+=2;
+		next(2);
+	}
 }
 
 void bcs(){
 	register scnt a=imm(cpu.pc);
-	if(carry()) 
+	if(carry()) {
 		cpu.pc=cpu.pc+a+2-256*(a>127);
-	else
+		next(3);	// TODO page xing
+	} else {
 		cpu.pc+=2;
+		next(2);
+	}
 }
 
 void bne(){
 	register scnt a=imm(cpu.pc);
-	if(!zero()) 
+	if(!zero()) {
 		cpu.pc=cpu.pc+a+2-256*(a>127);
-	else
+		next(3);	// TODO page xing
+	} else {
 		cpu.pc+=2;
+		next(2);
+	}
 }
 
 void beq(){
 	register scnt a=imm(cpu.pc);
-	if(zero()) 
+	if(zero()) {
 		cpu.pc=cpu.pc+a+2-256*(a>127);
-	else
+		next(3);	// TODO page xing
+	} else {
 		cpu.pc+=2;
+		next(2);
+	}
 }
 
 void jmp_abs(){
 	cpu.pc=aabs(cpu.pc);
+	next(3);
 }
 void jmp_absi(){
 	cpu.pc=aabsi(cpu.pc);
+	next(5);
 }
 
 void eor_indx(){
 	register scnt a=cpu.a^=indx(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(6);
 }
 void eor_zp(){
 	register scnt a=cpu.a^=zp(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(3);
 }
 void eor_imm(){
 	register scnt a=cpu.a^=imm(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(2);
 }
 void eor_abs(){
 	register scnt a=cpu.a^=abs(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);
 }
 void eor_indy(){
 	register scnt a=cpu.a^=indy(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(5);	// TODO page xing
 }
 void eor_zpx(){
 	register scnt a=cpu.a^=zpx(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(4);
 }
 void eor_absy(){
 	register scnt a=cpu.a^=absy(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);	// TODO page xing
 }
 void eor_absx(){
 	register scnt a=cpu.a^=absx(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);	// TODO page xing
 }
 
 #define lsr_x(len) \
@@ -569,18 +661,22 @@ void eor_absx(){
 void lsr_zp(){
 	register scnt a=azp(cpu.pc);
 	lsr_x(2);
+	next(5);
 }
 void lsr_zpx(){
 	register scnt a=azpx(cpu.pc);
 	lsr_x(2);
+	next(6);
 }
 void lsr_abs(){
 	register scnt a=aabs(cpu.pc);
 	lsr_x(3);
+	next(6);
 }
 void lsr_absx(){
 	register scnt a=aabsx(cpu.pc);
 	lsr_x(3);
+	next(7);
 }
 void lsr_acc(){
 	register scnt o=cpu.a;
@@ -589,6 +685,7 @@ void lsr_acc(){
 	setnz(o);
 	cpu.a=o;
 	cpu.pc++;
+	next(2);
 }
 
 #define ror_x(len) \
@@ -602,18 +699,22 @@ void lsr_acc(){
 void ror_zp(){
 	register scnt a=azp(cpu.pc);
 	ror_x(2);
+	next(5);
 }
 void ror_zpx(){
 	register scnt a=azpx(cpu.pc);
 	ror_x(2);
+	next(6);
 }
 void ror_abs(){
 	register scnt a=aabs(cpu.pc);
 	ror_x(3);
+	next(6);
 }
 void ror_absx(){
 	register scnt a=aabsx(cpu.pc);
 	ror_x(3);
+	next(7);
 }
 void ror_acc(){
 	register scnt o=cpu.a+(carry1()?256:0);
@@ -622,6 +723,7 @@ void ror_acc(){
 	setnz(o);
 	cpu.a=o;
 	cpu.pc+=1;
+	next(2);
 }
 
 #define adc_x(len) 	\
@@ -651,237 +753,286 @@ void ror_acc(){
 void adc_indx(){
 	register scnt a=indx(cpu.pc);
 	adc_x(2);
+	next(6);
 }
 void adc_zp(){
 	register scnt a=zp(cpu.pc);
 	adc_x(2);
+	next(3);
 }
 void adc_imm(){
 	register scnt a=imm(cpu.pc);
 	adc_x(2);
+	next(2);
 }
 void adc_abs(){
 	register scnt a=abs(cpu.pc);
 	adc_x(3);
+	next(4);
 }
 void adc_indy(){
 	register scnt a=indy(cpu.pc);
 	adc_x(2);
+	next(5);	// TODO page xing
 }
 void adc_zpx(){
 	register scnt a=zpx(cpu.pc);
 	adc_x(2);
+	next(4);
 }
 void adc_absy(){
 	register scnt a=absy(cpu.pc);
 	adc_x(3);
+	next(4);	// TODO page xing
 }
 void adc_absx(){
 	register scnt a=absx(cpu.pc);
 	adc_x(3);
+	next(4);	// TODO page xing
 }
 
 void sta_indx(){
 	setbyt(aindx(cpu.pc),cpu.a);
 	cpu.pc+=2;
+	next(6);
 }
 void sty_zp(){
 	setbyt(azp(cpu.pc),cpu.y);
 	cpu.pc+=2;
+	next(3);
 }
 void sta_zp(){
 	setbyt(azp(cpu.pc),cpu.a);
 	cpu.pc+=2;
+	next(3);
 }
 void stx_zp(){
 	setbyt(azp(cpu.pc),cpu.x);
 	cpu.pc+=2;
+	next(3);
 }
 void sty_abs(){
 	setbyt(aabs(cpu.pc),cpu.y);
 	cpu.pc+=3;
+	next(4);
 }
 void sta_abs(){
 	setbyt(aabs(cpu.pc),cpu.a);
 	cpu.pc+=3;
+	next(4);
 }
 void stx_abs(){
 	setbyt(aabs(cpu.pc),cpu.x);
 	cpu.pc+=3;
+	next(4);
 }
 void sta_indy(){
 	setbyt(aindy(cpu.pc),cpu.a);
 	cpu.pc+=2;
+	next(6);
 }
 void sty_zpx(){
 	setbyt(azpx(cpu.pc),cpu.y);
 	cpu.pc+=2;
+	next(4);
 }
 void sta_zpx(){
 	setbyt(azpx(cpu.pc),cpu.a);
 	cpu.pc+=2;
+	next(4);
 }
 void stx_zpy(){
 	setbyt(azpy(cpu.pc),cpu.x);
 	cpu.pc+=2;
+	next(4);
 }
 void sta_absy(){
 	setbyt(aabsy(cpu.pc),cpu.a);
 	cpu.pc+=3;
+	next(5);
 }
 void sta_absx(){
 	setbyt(aabsx(cpu.pc),cpu.a);
 	cpu.pc+=3;
+	next(5);
 }
 
 void tya(){
 	register scnt a=cpu.a=cpu.y;
 	setnz(a);
 	cpu.pc++;
+	next(2);
 }
 
 void txa(){
 	register scnt a=cpu.a=cpu.x;
 	setnz(a);
 	cpu.pc++;
+	next(2);
 }
 
 void txs(){
 	cpu.sp=cpu.x;
 	cpu.pc++;
+	next(2);
 }
 
 void tay(){
 	register scnt a=cpu.y=cpu.a;
 	setnz(a);
 	cpu.pc++;
+	next(2);
 }
 
 void tax(){
 	register scnt a=cpu.x=cpu.a;
 	setnz(a);
 	cpu.pc++;
+	next(2);
 }
 
 void tsx(){
 	register scnt a=cpu.x=cpu.sp;
 	setnz(a);
 	cpu.pc++;
+	next(2);
 }
 
 void ldy_imm(){
 	register scnt a=cpu.y=imm(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(2);
 }
 void lda_indx(){
 	register scnt a=cpu.a=indx(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(6);
 }
 void ldx_imm(){
 	register scnt a=cpu.x=imm(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(2);
 }
 void ldy_zp(){
 	register scnt a=cpu.y=zp(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(3);
 }
 void lda_zp(){
 	register scnt a=cpu.a=zp(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(3);
 }
 void ldx_zp(){
 	register scnt a=cpu.x=zp(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(3);
 }
 void lda_imm(){
 	register scnt a=cpu.a=imm(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(2);
 }
 void ldy_abs(){
 	register scnt a=cpu.y=abs(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);
 }
 void lda_abs(){
 	register scnt a=cpu.a=abs(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);
 }
 void ldx_abs(){
 	register scnt a=cpu.x=abs(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);
 }
 void lda_indy(){
 	register scnt a=cpu.a=indy(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(5);	// TODO page xing
 }
 void ldy_zpx(){
 	register scnt a=cpu.y=zpx(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(4);
 }
 void lda_zpx(){
 	register scnt a=cpu.a=zpx(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(4);
 }
 void ldx_zpy(){
 	register scnt a=cpu.x=zpy(cpu.pc);
 	setnz(a);
 	cpu.pc+=2;
+	next(4);
 }
 void lda_absy(){
 	register scnt a=cpu.a=absy(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);	// TODO page xing
 }
 void ldy_absx(){
 	register scnt a=cpu.y=absx(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);	// TODO page xing
 }
 void lda_absx(){
 	register scnt a=cpu.a=absx(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);	// TODO page xing
 }
 void ldx_absy(){
 	register scnt a=cpu.x=absy(cpu.pc);
 	setnz(a);
 	cpu.pc+=3;
+	next(4);	// TODO page xing
 }
 
 void iny(){
 	register scnt a=cpu.y=(cpu.y+1)&0xff;
 	setnz(a);
 	cpu.pc++;
+	next(2);
 }
 
 void dex(){
 	register scnt a=cpu.x=(cpu.x-1)&0xff;
 	setnz(a);
 	cpu.pc++;
+	next(2);
 }
 
 void inx(){
 	register scnt a=cpu.x=(cpu.x+1)&0xff;
 	setnz(a);
 	cpu.pc++;
+	next(2);
 }
 
 void dey(){
 	register scnt a=cpu.y=(cpu.y-1)&0xff;
 	setnz(a);
 	cpu.pc++;
+	next(2);
 }
 
 #define madd(offset,len) \
@@ -893,35 +1044,43 @@ void dey(){
 void dec_zp(){
 	register scnt a=azp(cpu.pc);
 	madd(-1,2);
+	next(5);
 }
 void dec_zpx(){
 	register scnt a=azpx(cpu.pc);
 	madd(-1,2);
+	next(6);
 }
 void dec_abs(){
 	register scnt a=aabs(cpu.pc);
 	madd(-1,3);
+	next(6);
 }
 void dec_absx(){
 	register scnt a=aabsx(cpu.pc);
 	madd(-1,3);
+	next(7);
 }
 
 void inc_zp(){
 	register scnt a=azp(cpu.pc);
 	madd(1,2);
+	next(5);
 }
 void inc_zpx(){
 	register scnt a=azpx(cpu.pc);
 	madd(1,2);
+	next(6);
 }
 void inc_abs(){
 	register scnt a=aabs(cpu.pc);
 	madd(1,3);
+	next(6);
 }
 void inc_absx(){
 	register scnt a=aabsx(cpu.pc);
 	madd(1,3);
+	next(7);
 }
 
 void cpy_imm(){
@@ -929,84 +1088,98 @@ void cpy_imm(){
 	setc2(a);
 	setnza(a);
 	cpu.pc+=2;
+	next(2);
 }
 void cmp_indx(){
 	register scnt a=cpu.a-indx(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=2;
+	next(6);
 }
 void cpy_zp(){
 	register scnt a=cpu.y-zp(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=2;
+	next(3);
 }
 void cmp_zp(){
 	register scnt a=cpu.a-zp(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=2;
+	next(3);
 }
 void cmp_imm(){
 	register scnt a=cpu.a-imm(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=2;
+	next(2);
 }
 void cpy_abs(){
 	register scnt a=cpu.y-abs(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=3;
+	next(4);
 }
 void cmp_abs(){
 	register scnt a=cpu.a-abs(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=3;
+	next(4);
 }
 void cmp_indy(){
 	register scnt a=cpu.a-indy(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=2;
+	next(5);	// TODO page xing
 }
 void cmp_zpx(){
 	register scnt a=cpu.a-zpx(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=2;
+	next(4);
 }
 void cmp_absy(){
 	register scnt a=cpu.a-absy(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=3;
+	next(4);	// TODO page xing
 }
 void cmp_absx(){
 	register scnt a=cpu.a-absx(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=3;
+	next(4);	// TODO page xing
 }
 void cpx_imm(){
 	register scnt a=cpu.x-imm(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=2;
+	next(2);
 }
 void cpx_zp(){
 	register scnt a=cpu.x-zp(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=2;
+	next(3);
 }
 void cpx_abs(){
 	register scnt a=cpu.x-abs(cpu.pc);
 	setc2(a);
 	setnza(a);
 	cpu.pc+=3;
+	next(4);
 }
 
 #define sbc_x(len) \
@@ -1031,34 +1204,42 @@ void cpx_abs(){
 void sbc_indx(){
 	register scnt a=indx(cpu.pc);
 	sbc_x(2);
+	next(6);
 }
 void sbc_zp(){
 	register scnt a=zp(cpu.pc);
 	sbc_x(2);
+	next(3);
 }
 void sbc_imm(){
 	register scnt a=imm(cpu.pc);
 	sbc_x(2);
+	next(2);
 }
 void sbc_abs(){
 	register scnt a=abs(cpu.pc);
 	sbc_x(3);
+	next(4);
 }
 void sbc_indy(){
 	register scnt a=indy(cpu.pc);
 	sbc_x(2);
+	next(5);	// TODO page xing
 }
 void sbc_zpx(){
 	register scnt a=zpx(cpu.pc);
 	sbc_x(2);
+	next(4);
 }
 void sbc_absy(){
 	register scnt a=absy(cpu.pc);
 	sbc_x(3);
+	next(4);	// TODO page xing
 }
 void sbc_absx(){
 	register scnt a=absx(cpu.pc);
 	sbc_x(3);
+	next(4);	// TODO page xing
 }
 
 void (*sim[256])(void)=

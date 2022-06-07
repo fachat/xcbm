@@ -4,6 +4,7 @@
 #include	<getopt.h>
 
 #include	"types.h"
+#include	"alarm.h"
 #include	"emu6502.h"
 #include  	"log.h"
 #include	"ccurses.h"

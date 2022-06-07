@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "types.h"
+#include "alarm.h"
 #include "emu6502.h"
 #include "mem.h"
 #include "mem64.h"

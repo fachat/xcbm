@@ -5,6 +5,7 @@
 #include 	<errno.h>
 
 #include	"types.h"
+#include	"alarm.h"
 #include	"emu6502.h"
 #include	"emu64.h"
 #include	"log.h"

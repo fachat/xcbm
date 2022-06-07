@@ -8,6 +8,11 @@ typedef struct CPU {
 		scnt		y;
 
 		scnt		sr;
+
+		alarm_context_t	actx;
+		alarm_t		speed;
+		int		msperframe;
+		int		cyclesperframe;
 } CPU;
 
 extern 	int	hirq;
@@ -24,7 +29,7 @@ extern 	int 	traplines;
 #define	ZERO		2
 #define	CARRY		1
 
-int cpu_init(void);	/* init trap etc */
+CPU *cpu_init(int cyclespersec, int msperframe);	/* init trap etc */
 int cpu_run(void);	/* start execution at RESET address */
 
 /* Counter-Verwaltung fÅr im CPU-Takt taktende Counter */

@@ -4,7 +4,7 @@ CFLAGS = -g -O5 -finline-functions -Wall -pedantic -Wno-parentheses
 
 LIBS = -lc -lncurses -lm
 
-all: c64
+all: xcbm64 xcbm4032
 
 ifeq (xcbm.dep,$(wildcard xcbm.dep))
 include xcbm.dep

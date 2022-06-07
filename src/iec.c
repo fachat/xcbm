@@ -12,11 +12,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "log.h"
 #include "types.h"
 #include "alarm.h"
 #include "emu6502.h"
 #include "iec.h"
-#include "log.h"
 #include "convert.h"
 #include "mem.h"
 

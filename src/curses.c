@@ -1,10 +1,11 @@
 
 #include <stdlib.h>
+#include <string.h>
 
+#include "log.h"
 #include "types.h"
 #include "alarm.h"
 #include "emu6502.h"
-#include "log.h"
 #include "ccurses.h"
 #include "video.h"
 
@@ -80,4 +81,22 @@ void cur_exit(void) {
 	endwin();
 }
 
+
+void video_set_status_line(const char *line) {
+
+        int i = 0;
+        int l = strlen(line);
+
+	update = 0;
+
+        for (i = 0; i < l; i++) {
+                mvaddch(25,i,line[i]);
+        }
+        for (;i < 80; i++) {
+                mvaddch(25, i, 32);     // fill with space
+        }
+
+	update = 1;
+	refresh();
+}
 

@@ -6,6 +6,8 @@ scnt video_rd(scnt);
 
 void setvideopage(scnt);
 
+void video_set_status_line(const char *line);
+
 typedef struct rgb_t {
                 int     r;
                 int     g;

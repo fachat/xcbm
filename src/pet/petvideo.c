@@ -1,10 +1,11 @@
 
 #include <stdlib.h>
+#include <string.h>
 
+#include "log.h"
 #include "types.h"
 #include "alarm.h"
 #include "emu6502.h"
-#include "log.h"
 #include "ccurses.h"
 #include "mem.h"
 #include "petmem.h"
@@ -94,6 +95,7 @@ void vmem_wr(scnt addr,scnt val ) {
 		wrvid(addr, val);
 	}
 }
+
 
 void crtc_wr(scnt xreg,scnt val ) {
 #if 0

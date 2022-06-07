@@ -3,10 +3,10 @@
 #include	<stdlib.h>
 #include	<getopt.h>
 
+#include  	"log.h"
 #include	"types.h"
 #include	"alarm.h"
 #include	"emu6502.h"
-#include  	"log.h"
 #include	"ccurses.h"
 #include	"iec.h"
 #include	"mem.h"
@@ -14,6 +14,7 @@
 
 #include	"io.h"
 #include	"video.h"
+#include	"speed.h"
 
 #define	MAXLINE		200
 
@@ -128,6 +129,12 @@ int main(int argc, char *argv[])
 	iec_init();
 	iec_setdrive(8,0,".");
 //settrap(MP_KERNEL0+1,0xfce4,NULL,"test");
+
+	// PAL
+	cpu_init(985248, 20);
+
+	speed_set_percent(100);
+
 	cpu_run();
 	
 	return(er);	

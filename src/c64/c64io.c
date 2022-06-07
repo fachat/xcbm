@@ -1,6 +1,7 @@
 
 #include <string.h>
 
+#include "log.h"
 #include "types.h"
 #include "alarm.h"
 #include "emu6502.h"

@@ -4,11 +4,11 @@
 #include 	<string.h>
 #include 	<errno.h>
 
+#include	"log.h"
 #include	"types.h"
 #include	"alarm.h"
 #include	"emu6502.h"
 #include	"emu64.h"
-#include	"log.h"
 #include 	"mem.h"
 #include 	"mem64.h"
 

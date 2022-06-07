@@ -18,6 +18,7 @@
 #include	"petemu.h"
 #include	"io.h"
 #include	"video.h"
+#include	"speed.h"
 
 
 extern uchar prb[];
@@ -27,23 +28,6 @@ char *files[] = {
 	"/var/lib/xcbm", "petkernel4.rom", "petbasic4.rom", "petedit4.rom"
 }; 
 
-void main_speed_ctrl(alarm_t *alarm, CLOCK current) {
-
-	long ms; // Milliseconds
-	time_t s;  // Seconds
-	struct timespec spec;
-
-	clock_gettime(CLOCK_MONOTONIC, &spec);
-
-	s  = spec.tv_sec;
-	ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-	if (ms > 999) {
-		s++;
-		ms = 0;
-	}
-
-	logout(0, "speed ctrl: clock=%lu, ms=%ld.%03d", current, s, ms);
-}
 
 void usage(void) {
 	printf(
@@ -124,6 +108,9 @@ int main(int argc, char *argv[])
 //settrap(MP_KERNEL1,0xfce4,NULL,"test");
 
 	cpu_init(1000000, 16);
+
+	// 200% speed for now
+	speed_set_percent(200);
 
 	cpu_run();
 	

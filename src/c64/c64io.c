@@ -74,8 +74,6 @@ int io_init(void) {
 	setrd(MP_IO64,io_rd);
 	setwr(MP_IO64,io_wr);
 
-	key_init(0);
-
 	return(0);
 }
 

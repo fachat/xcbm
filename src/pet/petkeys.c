@@ -1,40 +1,50 @@
 
 #include <stdio.h>
 
+#include "log.h"
 #include "types.h"
+#include "alarm.h"
 #include "emu6502.h"
 #include "mem.h"
-#include "mem64.h"
 #include "ccurses.h"
 
-#include "c64io.h"
 #include "keys.h"
 
 
 int timer;
-int mode;
 
-uchar pra[16];
+//uchar pra[16];
 uchar prb[256];
 
+// single key press definition - when what row is selected,
+// which cols should be set
 typedef struct {
 	uchar 	row;
 	uchar	col;
 } keys;
 
+// definition of the keys to use for the host key
+// cnt = number of simultanous key presses
+// keys[] is the list of keys to be pressed
 typedef struct { 
 	int 	cnt;
 	keys	k[4];	
 } keytab;
 
+// extended key map
+// contains the host key, plus the keytab entry
+// to be searched for non-standard characters
 typedef struct {
 	int key;
 	keytab 	k;
 } xkeytab;
 
+// number of extended key map entries
 #define	ANZXKEYS	21	
 
+// extended keymap entry
 xkeytab xkeys[];
+// key table - 128 entries, addressed by index
 keytab ktab[];
 
 #define	KEYTIMER	10000	/* each (simulated) ms */
@@ -42,33 +52,32 @@ keytab ktab[];
 void key_exit(void);
 void key_irq(scnt,CPU* /*int*/);
 
-void key_init(int keymode) {
-	int i;
-	
-	mode=keymode;
-/*
-	timer=time_register(key_irq);
 
-	time_setval(timer,KEYTIMER);
-	time_seton(timer);
-*/
-	settrap(MP_KERNEL0,0xea31,key_irq,NULL /*"keytrap"*/ );
-	for(i=0;i<256;i++) { prb[i]=0xff; pra[i]=0xff; }
+uchar key_read_cols(uchar row) {
+	return prb[row];
 }
 
 void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
+
 	static int xflag;
 	uchar rows;
 	chtype key;
 	keytab *k = NULL;
 	scnt i;	
-/*	time_setval(timer, KEYTIMER);*/
 
+	//logout(0, "checking for key");
+
+	// do we have a character in curses?
 	if((key=getch())!=ERR) {	 	/* read a char */
+
+		logout(0, "get key %d", key);
+
 		if(key<128) {
+			// standard chars 0-127
 			k=&ktab[key];
 		} else 
 		if(key>255) {
+			// evaluate extended char table
 			for(i=0;i<ANZXKEYS;i++) {
 				if(xkeys[i].key==key) {
 					k=&(xkeys[i].k);
@@ -76,7 +85,9 @@ void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
 				}
 			}
 		}
+		// do we have a translation?
 		if(k) {	
+			// yes. so combine all key presses
 	 		rows=0;
 			for (i=0; i<4; i++) {
 				rows|=k->k[i].row;
@@ -99,11 +110,41 @@ void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
 		}
 	} else {				/* no char */
 		if(!xflag) {
-			for(i=0;i<256;i++) prb[i]=0xff;
+			for(i=0;i<256;i++) {
+				prb[i]=0xff;
+			}
 			xflag=1;
 		}
 	}	
 }
+
+void key_alarm_cb(struct alarm_s *alarm, CLOCK current) {
+
+	key_irq(0, NULL);
+
+	// every 40ms
+	set_alarm_clock_plus(alarm, 40000);
+}
+
+static alarm_t key_alarm = {
+	"keyboard",
+	NULL,
+	key_alarm_cb,
+	NULL,
+	CLOCK_MAX
+};
+
+void key_init(CPU *cpu) {
+	int i;
+	
+	for(i=0;i<256;i++) { 
+		prb[i]=0xff; 
+	}
+
+	alarm_register(&cpu->actx, &key_alarm);
+	set_alarm_clock(&key_alarm, 0);
+}
+
 
 #define	FREE	{ 0,0 }
 

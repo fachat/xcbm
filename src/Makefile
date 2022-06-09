@@ -36,6 +36,7 @@ PETOBJ = 	pet/petemu.o \
 		pet/petieee.o \
 		pet/petio.o \
 		pet/petvideo.o \
+		pet/petkeys.o \
 		pia.o \
 		via.o \
 #		pet/petkeys.o \

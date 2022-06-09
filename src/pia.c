@@ -90,7 +90,6 @@ uchar pia_rd(PIA *pia, uchar reg) {
 
 	reg = reg & 0x03;
 	
-	//logout(0, "%s read from reg %02x", pia->name, reg);
 
 	switch(reg) {
 	case 0:
@@ -130,6 +129,8 @@ uchar pia_rd(PIA *pia, uchar reg) {
 		rv = pia->ctrl_b;	
 		break;
 	}
+
+	logout(0, "%s read from reg %02x as %02x", pia->name, reg, rv);
 	return rv;
 }
 
@@ -192,10 +193,6 @@ void pia_init(PIA *p, const char *name) {
 	memset(p, 0, sizeof(PIA));
 
 	p->name = name;
-
-	// DDR as input
-	p->ddir_a = 0xff;
-	p->ddir_b = 0xff;
 
 	// all Cxy are input
 	p->last_ca1 = 1;

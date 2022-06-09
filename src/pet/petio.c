@@ -37,18 +37,28 @@
 
 PIA pia1;
 
+static uchar key_row = 0;
+
 static uchar pia1_get_porta(uchar origdata) {
-	return 0xff;
+	return 0xf0 | key_row;
 }
 
 static void pia1_set_porta(uchar data, uchar dir) {
+
+	// all input pins read as high
+	key_row = (data | ~dir) & 0x0f;
 }
 
 static void pia1_set_ca2(uchar flag) {
 }
 
 static uchar pia1_get_portb(uchar origdata) {
-	return 0xff;
+
+	uchar rv = key_read_cols(key_row);
+	
+	logout(0, "PIA1 read port B on row=%d as %02x", key_row, rv);
+
+	return rv;
 }
 
 void io_set_vdrive(uchar flag) {
@@ -161,10 +171,6 @@ int io_init(void) {
 	via.set_interrupt = cpu_set_irq;
 	via.int_num = VIA_INT_MASK;
 
-	// ----------
-#if 0
-	key_init(0);
-#endif
 	return(0);
 }
 

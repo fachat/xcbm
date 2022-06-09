@@ -14,7 +14,6 @@
 
 
 int timer;
-int mode;
 
 uchar pra[256];
 uchar prb[256];
@@ -44,10 +43,9 @@ keytab ktab[];
 void key_exit(void);
 void key_irq(scnt,CPU* /*int*/);
 
-void key_init(int keymode) {
+void key_init(CPU *cpu) {
 	int i;
 	
-	mode=keymode;
 /*
 	timer=time_register(key_irq);
 

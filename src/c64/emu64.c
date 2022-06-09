@@ -15,6 +15,7 @@
 #include	"io.h"
 #include	"video.h"
 #include	"speed.h"
+#include	"keys.h"
 
 #define	MAXLINE		200
 
@@ -128,6 +129,7 @@ int main(int argc, char *argv[])
 	CPU *cpu = cpu_init(985248, 20);
 
 	video_init(cpu);
+	key_init(cpu);
 	io_init();	
 
 	iec_init();

@@ -12,6 +12,8 @@
 #define	PIA_CR_CX2OUT	0x10	/* output bit 3 when set, strobe otherwise */
 #define	PIA_CR_CX2SD	0x08	/* strobe or data */
 #define	PIA_CR_DATA	0x04
+#define	PIA_CR_IRQ1POS	0x02
+#define	PIA_CR_IRQ1EN	0x01
 
 #define	PIA_CX2_LOW	0
 #define	PIA_CX2_HIGH	1
@@ -50,11 +52,18 @@ typedef struct PIA {
 	uchar ctrl_b;
 	uchar last_cb1;
 	uchar last_cb2;
+
+	// management
+
+	const char * name;
+
+	void (*set_interrupt)(scnt int_num, uchar flag);
+	scnt int_num;
 } PIA;
 
 // initialize a PIA
 // sets all(!) fields. read/write_port_* must be set afterwards
-void pia_init(PIA *);
+void pia_init(PIA *, const char *name);
 
 // read/write to PIA registers by the CPU
 void pia_wr(PIA *pia, uchar reg, uchar val);

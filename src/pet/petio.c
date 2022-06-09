@@ -11,6 +11,7 @@
 #include "keys.h"
 #include "io.h"
 
+#include "petio.h"
 #include "pia.h"
 #include "via.h"
 
@@ -51,7 +52,7 @@ static uchar pia1_get_portb(uchar origdata) {
 }
 
 void io_set_vdrive(uchar flag) {
-	pia_ca1(&pia1, flag ? PIA_CX1_HIGH : PIA_CX1_LOW);
+	pia_cb1(&pia1, flag ? PIA_CX1_HIGH : PIA_CX1_LOW);
 }
 
 // PIA2
@@ -121,17 +122,23 @@ static void via_set_portb(uchar data, uchar dir) {
 
 int io_init(void) {
 
+	// ----------
 	// PIA1
-	pia_init(&pia1);
+	pia_init(&pia1, "PIA1");
 
 	pia1.get_port_a_in = pia1_get_porta;
 	pia1.set_port_a_out = pia1_set_porta;
 	pia1.set_ca2_out = pia1_set_ca2;
 
 	pia1.get_port_b_in = pia1_get_portb;
+	
+	// interrupts
+	pia1.set_interrupt = cpu_set_irq;
+	pia1.int_num = PIA1_INT_MASK;
 
+	// ----------
 	// PIA2
-	pia_init(&pia2);
+	pia_init(&pia2, "PIA2");
 
 	// IEEE data
 	pia2.get_port_a_in = pia2_get_porta;
@@ -139,12 +146,22 @@ int io_init(void) {
 	pia2.set_ca2_out = pia2_set_ca2;
 	pia2.set_cb2_out = pia2_set_cb2;
 
+	// interrupts
+	pia2.set_interrupt = cpu_set_irq;
+	pia2.int_num = PIA2_INT_MASK;
+
+	// ----------
 	// VIA
 	via_init(&via);
 
 	via.get_port_b_in = via_get_portb;
 	via.set_port_b_out = via_set_portb;
 
+	// interrupts
+	via.set_interrupt = cpu_set_irq;
+	via.int_num = VIA_INT_MASK;
+
+	// ----------
 #if 0
 	key_init(0);
 #endif
@@ -153,18 +170,20 @@ int io_init(void) {
 
 void io_wr(scnt adr, scnt val) {
 
+	//logout(0, "io_wr %02x to %04x", val, adr);
+
 	register uchar a = (adr & 0xf0);
 	switch(a) {
-	case 1:
-		pia_wr(&pia1, a, val);
+	case 0x10:
+		pia_wr(&pia1, adr, val);
 		break;
-	case 2:
-		pia_wr(&pia2, a, val);
+	case 0x20:
+		pia_wr(&pia2, adr, val);
 		break;
-	case 4: 
-		via_wr(&via, a, val);
+	case 0x40: 
+		via_wr(&via, adr, val);
 		break;
-	case 8:
+	case 0x80:
 		// todo CRTC
 		break;
 	}
@@ -172,15 +191,17 @@ void io_wr(scnt adr, scnt val) {
 
 scnt io_rd(scnt adr) {
 
+	//logout(0, "io_rd from %04x", adr);
+
 	register uchar a = (adr & 0xf0);
 	switch(a) {
-	case 1:
+	case 0x10:
 		return pia_rd(&pia1, adr);
-	case 2:
+	case 0x20:
 		return pia_rd(&pia2, adr);
-	case 4:
+	case 0x40:
 		return via_rd(&via, adr);
-	case 8:
+	case 0x80:
 		// todo CRTC
 	default:
 		return adr >> 8;

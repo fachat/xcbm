@@ -50,6 +50,9 @@ typedef struct {
 	// interrupt
 	uchar ifr;
 	uchar ier;
+
+        void (*set_interrupt)(scnt int_num, uchar flag);
+        scnt int_num;
 } VIA;
 
 // initialize a VIA

@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <ctype.h>
 
 #include "log.h"
 #include "types.h"
@@ -13,8 +14,9 @@
 
 int timer;
 
-//uchar pra[16];
-uchar prb[256];
+#define	NUM_ROWS	16
+
+uchar prb[NUM_ROWS];
 
 // single key press definition - when what row is selected,
 // which cols should be set
@@ -70,7 +72,7 @@ void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
 	// do we have a character in curses?
 	if((key=getch())!=ERR) {	 	/* read a char */
 
-		logout(0, "get key %d", key);
+		logout(0, "get key %d (%c)", key, isprint(key)?key:'.');
 
 		if(key<128) {
 			// standard chars 0-127
@@ -85,24 +87,34 @@ void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
 				}
 			}
 		}
+
 		// do we have a translation?
 		if(k) {	
-			// yes. so combine all key presses
+			// yes. so handle it
+
+			// 1. combine rows for all keys as mask
+			// (just an optimization for the next step)
 	 		rows=0;
-			for (i=0; i<4; i++) {
+			for (i=0; i<k->cnt; i++) {
 				rows|=k->k[i].row;
 			}
-			for(i=0;i<256;i++) {
+			// iterate over all NUM_ROWS combinations of rows
+			for(i=0;i<NUM_ROWS;i++) {
 				uchar cols=0xff;
-				if((~i)&rows) {
+				// is any of the 8 rows (8 bits in 256 iterations) set?
+				// note: with PET's 10 rows maybe not needed optimization
+				if(1) { //(~i)&rows) {
+					// yes, check which cols to set
 					scnt j=0;
-					while(j<4) {
-						if((~i)&k->k[j].row)
-							cols&=k->k[j].col;
+					while(j<k->cnt) {
+						//if((~i)&k->k[j].row)
+						if(i == k->k[j].row)
+							cols &= k->k[j].col;
 						j++;
 					}
 					prb[i]=cols;
 				} else  {
+					// no, set with $ff
 					prb[i]=0xff;
 				}
 			}
@@ -110,7 +122,7 @@ void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
 		}
 	} else {				/* no char */
 		if(!xflag) {
-			for(i=0;i<256;i++) {
+			for(i=0;i<NUM_ROWS;i++) {
 				prb[i]=0xff;
 			}
 			xflag=1;
@@ -137,7 +149,7 @@ static alarm_t key_alarm = {
 void key_init(CPU *cpu) {
 	int i;
 	
-	for(i=0;i<256;i++) { 
+	for(i=0;i<NUM_ROWS;i++) { 
 		prb[i]=0xff; 
 	}
 
@@ -148,123 +160,138 @@ void key_init(CPU *cpu) {
 
 #define	FREE	{ 0,0 }
 
-#define	K_1	{ 0x80,	0xfe }
-#define ARROWL	{ 0x80,	0xfd }
-#define	CTRL	{ 0x80,	0xfb }
-#define	K_2	{ 0x80,	0xf7 }
-#define	SPC	{ 0x80,	0xef }
-#define	CBM	{ 0x80, 0xdf }
-#define	K_Q	{ 0x80,	0xbf }
-#define	STP	{ 0x80, 0x7f }
+#define	K_1	{ 6,	0xbf }
+#define ARROWL	{ 0,	0xdf }
+//#define	CTRL	{ 0x80,	0xfb }
+#define	K_2	{ 7,	0xbf }
+#define	SPC	{ 9,	0xfb }
+//#define	CBM	{ 0x80, 0xdf }
+#define	K_Q	{ 2,	0xfe }
+#define	STP	{ 9, 	0xef }
 
-#define	POUND	{ 0x40,	0xfe }
-#define	ASTER	{ 0x40, 0xfd }
-#define	SEMIC	{ 0x40, 0xfb }
-#define	CLR	{ 0x40,	0xf7 }
-#define	SHIFTR	{ 0x40, 0xef }
-#define	EQUAL	{ 0x40, 0xdf }
-#define POWER	{ 0x40, 0xbf }
-#define	DIVIDE	{ 0x40, 0x7f }
+//#define	POUND	{ 0x40,	0xfe }
+#define	BACKSLASH { 1,	0xf7 }
+#define	ASTER	{ 5, 	0x7f }
+#define	SEMIC	{ 6, 	0xef }
+#define	HOME	{ 0,	0xbf }
+#define	SHIFTR	{ 8,	0xdf }
+#define	EQUAL	{ 9, 	0x7f }
+//#define POWER	{ 5, 	0x7f }
+#define	DIVIDE	{ 3,	0x7f }
 
-#define	ADD	{ 0x20, 0xfe }
-#define	K_P	{ 0x20,	0xfd }
-#define	K_L	{ 0x20,	0xfb }
-#define	DASH	{ 0x20,	0xf7 }
-#define	DOT	{ 0x20, 0xef }
-#define	COLON	{ 0x20, 0xdf }
-#define	AT	{ 0x20, 0xbf }
-#define	COMMA	{ 0x20, 0x7f }
+#define	ADD	{ 7, 	0x7f }
+#define	K_P	{ 3,	0xef }
+#define	K_L	{ 4,	0xef }
+#define	DASH	{ 3,	0x7f }
+#define	DOT	{ 9, 	0xbf }
+#define	COLON	{ 5, 	0xef }
+#define	AT	{ 8, 	0xfd }
+#define	COMMA	{ 7, 	0xf7 }
 
-#define	K_9	{ 0x10,	0xfe }
-#define	K_I	{ 0x10,	0xfd }
-#define	K_J	{ 0x10,	0xfb }
-#define	K_0	{ 0x10,	0xf7 }
-#define	K_M	{ 0x10,	0xef }
-#define	K_K	{ 0x10,	0xdf }
-#define	K_O	{ 0x10,	0xbf }
-#define	K_N	{ 0x10,	0x7f }
+#define	HASH	{ 0, 	0xfd }
+#define	EXCL	{ 0, 	0xfe }
+#define	QUOTE	{ 1, 	0xfe }
+#define	DOLLAR	{ 1, 	0xfd }
+#define	PERCENT	{ 0, 	0xfb }
+#define	AMP	{ 0, 	0xf7 }
+#define	SQUOTE	{ 1, 	0xfb }
+#define	BROPEN	{ 0, 	0xef }
+#define	BRCLOSE	{ 1, 	0xef }
+#define	UPARR	{ 2, 	0xdf }
+#define	LESS	{ 9, 	0xf7 }
+#define	MORE	{ 8, 	0xef }
+#define	QUEST	{ 7, 	0xef }
 
-#define	K_7	{ 0x08,	0xfe }
-#define	K_Y	{ 0x08,	0xfd }
-#define	K_G	{ 0x08,	0xfb }
-#define	K_8	{ 0x08,	0xf7 }
-#define	K_B	{ 0x08,	0xef }
-#define	K_H	{ 0x08,	0xdf }
-#define	K_U	{ 0x08,	0xbf }
-#define	K_V	{ 0x08,	0x7f }
+#define	K_9	{ 2,	0x7f }
+#define	K_I	{ 3,	0xf7 }
+#define	K_J	{ 4,	0xf7 }
+#define	K_0	{ 8,	0xbf }
+#define	K_M	{ 6,	0xf7 }
+#define	K_K	{ 5,	0xf7 }
+#define	K_O	{ 2,	0xef }
+#define	K_N	{ 7,	0xfb }
 
-#define	K_5	{ 0x04,	0xfe }
-#define	K_R	{ 0x04,	0xfd }
-#define	K_D	{ 0x04,	0xfb }
-#define	K_6	{ 0x04,	0xf7 }
-#define	K_C	{ 0x04,	0xef }
-#define	K_F	{ 0x04,	0xdf }
-#define	K_T	{ 0x04,	0xbf }
-#define	K_X	{ 0x04,	0x7f }
+#define	K_7	{ 2,	0xbf }
+#define	K_Y	{ 3,	0xfb }
+#define	K_G	{ 4,	0xfb }
+#define	K_8	{ 3,	0xbf }
+#define	K_B	{ 6,	0xfb }
+#define	K_H	{ 5,	0xfb }
+#define	K_U	{ 2,	0xf7 }
+#define	K_V	{ 7,	0xfd }
 
-#define	K_3	{ 0x02,	0xfe }
-#define	K_W	{ 0x02,	0xfd }
-#define	K_A	{ 0x02, 0xfb }
-#define	K_4	{ 0x02,	0xf7 }
-#define	K_Z	{ 0x02,	0xef }
-#define	K_S	{ 0x02,	0xdf }
-#define	K_E	{ 0x02,	0xbf }
-#define	SHIFTL	{ 0x02,	0x7f }
+#define	K_5	{ 5,	0xbf }
+#define	K_R	{ 3,	0xfd }
+#define	K_D	{ 4,	0xfd }
+#define	K_6	{ 4,	0x7f }
+#define	K_C	{ 6,	0xfd }
+#define	K_F	{ 5,	0xfd }
+#define	K_T	{ 2,	0xfb }
+#define	K_X	{ 7,	0xfe }
 
-#define	DEL	{ 0x01,	0xfe }
-#define	CR	{ 0x01, 0xfd }
-#define	CRSRR	{ 0x01,	0xfb }
-#define	K_F7	{ 0x01,	0xf7 }
-#define	K_F1	{ 0x01,	0xef }
-#define	K_F3	{ 0x01,	0xdf }
-#define	K_F5	{ 0x01,	0xbf }
-#define	CRSRD	{ 0x01,	0x7f }
+#define	K_3	{ 6,	0x7f }
+#define	K_W	{ 3,	0xfe }
+#define	K_A	{ 4, 	0xfe }
+#define	K_4	{ 4,	0xbf }
+#define	K_Z	{ 6,	0xfe }
+#define	K_S	{ 5,	0xfe }
+#define	K_E	{ 2,	0xfd }
+#define	SHIFTL	{ 8,	0xfe }
+
+#define	DEL	{ 1,	0x7f }
+#define	CR	{ 6, 	0xdf }
+#define	CRSRR	{ 0,	0x7f }
+//#define	K_F7	{ 0x01,	0xf7 }
+//#define	K_F1	{ 0x01,	0xef }
+//#define	K_F3	{ 0x01,	0xdf }
+//#define	K_F5	{ 0x01,	0xbf }
+#define	CRSRD	{ 1,	0xbf }
 
 keytab ktab[128] = {
-/* ^@	*/ { 2,	{ CTRL, AT }},
-/* ^A	*/ { 2, { CTRL, K_A }},
-/* ^B	*/ { 2, { CTRL, K_B }},
-/* ^C	*/ { 2, { CTRL, K_C }},
-/* ^D 	*/ { 2, { CTRL, K_D }},
-/* ^E 	*/ { 2, { CTRL, K_E }},
-/* ^F	*/ { 2, { CTRL, K_F }},
-/* ^G	*/ { 2, { CTRL, K_G }},
-/* ^H	*/ { 2, { CTRL, K_H }},
-/* ^I	*/ { 2, { CTRL, K_I }},
+/* ^@	*/ { 0 }, //2,	{ CTRL, AT }},
+/* ^A	*/ { 0 }, //2, { CTRL, K_A }},
+/* ^B	*/ { 0 }, //2, { CTRL, K_B }},
+/* ^C	*/ { 0 }, //2, { CTRL, K_C }},
+/* ^D 	*/ { 1, { STP } }, //2, { CTRL, K_D }}, // replacement for STOP
+/* ^E 	*/ { 0 }, //2, { CTRL, K_E }},
+/* ^F	*/ { 0 }, //2, { CTRL, K_F }},
+/* ^G	*/ { 0 }, //2, { CTRL, K_G }},
+/* ^H	*/ { 0 }, //2, { CTRL, K_H }},
+/* ^I	*/ { 0 }, //2, { CTRL, K_I }},
 /* ^J	*/ { 1, { CR }}, 	/*{ 2, { CTRL, K_J }},*/
-/* ^K	*/ { 2, { CTRL, K_K }},
-/* ^L	*/ { 2, { CTRL, K_L }},
-/* ^M	*/ { 2, { CTRL, K_M }},
-/* ^N	*/ { 2, { CTRL, K_N }},
-/* ^O	*/ { 2, { CTRL, K_O }},
-/* ^P	*/ { 2, { CTRL, K_P }},
-/* ^Q	*/ { 2, { CTRL, K_Q }},
-/* ^R	*/ { 2, { CTRL, K_R }},
-/* ^S	*/ { 2, { CTRL, K_S }},
-/* ^T	*/ { 2, { CTRL, K_T }},
-/* ^U	*/ { 2, { CTRL, K_U }},
-/* ^V	*/ { 2, { CTRL, K_V }},
-/* ^W	*/ { 2, { CTRL, K_W }},
-/* ^X	*/ { 2, { CTRL, K_X }},
-/* ^Y	*/ { 2, { CTRL, K_Y }},
-/* ^Z	*/ { 2, { CTRL, K_Z }},
+/* ^K	*/ { 0 }, //2, { CTRL, K_K }},
+/* ^L	*/ { 0 }, //2, { CTRL, K_L }},
+/* ^M	*/ { 1, { CR }},	//{ 0 }, //2, { CTRL, K_M }},
+/* ^N	*/ { 0 }, //2, { CTRL, K_N }},
+/* ^O	*/ { 0 }, //2, { CTRL, K_O }},
+/* ^P	*/ { 0 }, //2, { CTRL, K_P }},
+/* ^Q	*/ { 0 }, //2, { CTRL, K_Q }},
+/* ^R	*/ { 0 }, //2, { CTRL, K_R }},
+/* ^S	*/ { 0 }, //2, { CTRL, K_S }},
+/* ^T	*/ { 0 }, //2, { CTRL, K_T }},
+/* ^U	*/ { 0 }, //2, { CTRL, K_U }},
+/* ^V	*/ { 0 }, //2, { CTRL, K_V }},
+/* ^W	*/ { 0 }, //2, { CTRL, K_W }},
+/* ^X	*/ { 0 }, //2, { CTRL, K_X }},
+/* ^Y	*/ { 0 }, //2, { CTRL, K_Y }},
+/* ^Z	*/ { 0 }, //2, { CTRL, K_Z }},
 
-/* 0x1b	*/ { 2, { CTRL, COLON }},
-/* 0x1c	*/ { 2, { CTRL, K_3 }},
+/* 0x1b	*/ { 0 }, //2, { CTRL, COLON }},
+/* 0x1c	*/ { 0 }, //2, { CTRL, K_3 }},
 /* 0x1d	*/ { 1, { CRSRR }},
-/* 0x1e	*/ { 2, { CTRL, K_6 }},
-/* 0x1f	*/ { 2, { CTRL, K_7 }},
+/* 0x1e	*/ { 0 }, //2, { CTRL, K_6 }},
+/* 0x1f	*/ { 0 }, //2, { CTRL, K_7 }},
 
 /* ' ' 	*/ { 1, { SPC }},
-/* '!'	*/ { 2, { SHIFTL, K_1 }},
-/* '"'	*/ { 2, { SHIFTL, K_2 }},
-/* '#' 	*/ { 2, { SHIFTL, K_3 }},
-/* '$' 	*/ { 2, { SHIFTL, K_4 }},
-/* '%'	*/ { 2, { SHIFTL, K_5 }},
-/* '&'	*/ { 2, { SHIFTL, K_6 }},
-/* ''	*/ { 2, { SHIFTL, K_7 }},
-/* '(' 	*/ { 2, { SHIFTL, K_8 }},
-/* ')'	*/ { 2, { SHIFTL, K_9 }},
+/* '!'	*/ { 1, { EXCL }},
+/* '"'	*/ { 1, { QUOTE }},
+/* '#' 	*/ { 1, { HASH }},
+/* '$' 	*/ { 1, { DOLLAR }},
+/* '%'	*/ { 1, { PERCENT }},
+/* '&'	*/ { 1, { AMP }},
+/* ''	*/ { 1, { SQUOTE }},
+/* '(' 	*/ { 1, { BROPEN }},
+/* ')'	*/ { 1, { BRCLOSE }},
 /* '*'	*/ { 1, { ASTER }},
 /* '+'	*/ { 1, { ADD }},
 /* ','	*/ { 1, { COMMA }},
@@ -283,10 +310,10 @@ keytab ktab[128] = {
 /* 9	*/ { 1, { K_9 }},
 /* ':'	*/ { 1, { COLON }},
 /* ';'	*/ { 1, { SEMIC }},
-/* '<'	*/ { 2, { SHIFTL, COMMA }},
+/* '<'	*/ { 1, { LESS }},
 /* '=' 	*/ { 1, { EQUAL }},
-/* '>'	*/ { 2, { SHIFTL, DOT }},
-/* '?'	*/ { 2, { SHIFTL, DIVIDE }},
+/* '>'	*/ { 1, { MORE }},
+/* '?'	*/ { 1, { QUEST }},
 
 /* '@'	*/ { 1, { AT }},
 /* A	*/ { 2, { SHIFTR , K_A }},
@@ -317,9 +344,9 @@ keytab ktab[128] = {
 /* A	*/ { 2, { SHIFTR , K_Z }},
 
 /* '['	*/ { 2, { SHIFTR, COLON }},
-/* '\'	*/ { 1, { POUND }},
+/* '\'	*/ { 1, { BACKSLASH }},
 /* ']'	*/ { 2, { SHIFTR, SEMIC }},
-/* '^'	*/ { 1, { POWER }},
+/* '^'	*/ { 1, { UPARR }},
 /* '_'	*/ { 1, { ARROWL }},
 
 /* '§'	*/ { 0 }, 
@@ -353,7 +380,7 @@ keytab ktab[128] = {
 /* '{'	*/ { 0 },
 /* '|'	*/ { 0 },
 /* '}'	*/ { 0 },
-/* '~'	*/ { 2, { SHIFTR, POWER }},
+/* '~'	*/ { 2, { SHIFTR, UPARR }},
 /* 0x7f */ { 0 }
 };
 
@@ -362,17 +389,17 @@ xkeytab xkeys[ANZXKEYS] = {
 	{ KEY_DOWN,	{ 1, { CRSRD }}},
 	{ KEY_LEFT,	{ 2, { SHIFTL, CRSRR }}},
 	{ KEY_RIGHT,	{ 1, { CRSRR }}},
-	{ KEY_F(1),	{ 1, { K_F1 }}},
-	{ KEY_F(2),	{ 2, { K_F1, SHIFTL }}},
-	{ KEY_F(3),	{ 1, { K_F3 }}},
-	{ KEY_F(4),	{ 2, { K_F3, SHIFTL }}},
-	{ KEY_F(5),	{ 1, { K_F5 }}},
-	{ KEY_F(6),	{ 2, { K_F5, SHIFTL }}},
-	{ KEY_F(7),	{ 1, { K_F7 }}},
-	{ KEY_F(8),	{ 2, { K_F7, SHIFTL }}},
-	{ KEY_HOME,	{ 1, { CLR }}},
-	{ KEY_SHOME,	{ 2, { SHIFTR, CLR }}},
-	{ KEY_CLEAR,	{ 2, { SHIFTL, CLR }}},
+//	{ KEY_F(1),	{ 1, { K_F1 }}},
+//	{ KEY_F(2),	{ 2, { K_F1, SHIFTL }}},
+//	{ KEY_F(3),	{ 1, { K_F3 }}},
+//	{ KEY_F(4),	{ 2, { K_F3, SHIFTL }}},
+//	{ KEY_F(5),	{ 1, { K_F5 }}},
+//	{ KEY_F(6),	{ 2, { K_F5, SHIFTL }}},
+//	{ KEY_F(7),	{ 1, { K_F7 }}},
+//	{ KEY_F(8),	{ 2, { K_F7, SHIFTL }}},
+	{ KEY_HOME,	{ 1, { HOME }}},
+	{ KEY_SHOME,	{ 2, { SHIFTR, HOME }}},
+	{ KEY_CLEAR,	{ 2, { SHIFTL, HOME }}},
 	{ KEY_BACKSPACE,{ 1, { DEL }}},
 	{ KEY_IC,	{ 2, { SHIFTL, DEL }}},
 	{ KEY_DC,	{ 1, { DEL }}},

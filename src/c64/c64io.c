@@ -64,6 +64,8 @@ scnt cia1_rd(scnt);
 scnt cia2_rd(scnt);
 
 int io_init(void) {
+	iec_init();
+
 	memset(&cia1,0,sizeof(CIA));
 	memset(&cia2,0,sizeof(CIA));
 	cia1.timera=time_register(cia1_tia,"cia1 timera");

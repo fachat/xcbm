@@ -16,9 +16,10 @@
 #include "types.h"
 #include "alarm.h"
 #include "emu6502.h"
-#include "iec.h"
+#include "vdrive.h"
 #include "convert.h"
 #include "mem.h"
+#include "devices.h"
 
 #define	MAXLINE		200
 
@@ -28,10 +29,6 @@
 #define	VCNBUF		5
 
 /**************************************************************************/
-
-device   *dev;
-
-device   *devs[16];
 
 
 typedef struct {
@@ -70,8 +67,17 @@ size_t vcBuf_write(vcBuf *buf,char byte) {
 	return(buf->pos>=buf->max);
 }
 
-#define	vcBuf_end(b)  ((b)->pos>=(b)->len)
-#define vcBuf_read(b) ((b)->buf[((b)->pos)++])
+static inline int vcBuf_end(vcBuf *b) {
+	 return (b->pos>=b->len);
+}
+
+static inline uchar vcBuf_read(vcBuf *b, uchar ackflg) {
+	uchar rv = (b->buf[b->pos]);
+	if (ackflg) {
+		b->pos++;
+	}
+	return rv;
+}
 
 void vcBuf_convert(vcBuf* b,int (*func)(int)) {
 	size_t i;
@@ -114,8 +120,8 @@ typedef struct {
 		vcBuf		*errbufp;	
 } VC1541;
 
-void out_1541(scnt byte, int isatn, VC1541* vc);
-scnt get_1541(VC1541 *vc, int *iseof);
+void out_1541(uchar byte, int isatn, VC1541* vc);
+uchar get_1541(VC1541 *vc, uchar *status, uchar ackflag);
 void close_1541(void);
 		
 
@@ -142,11 +148,16 @@ VC1541	*vc;
 #define	VCE_EXISTS	17
 
 
+int vdrive_init(void) {
+	return 0;
+}
+
+
 int init_1541(VC1541 *v, int dev) {
 	int i;
 
-	v->dev.out =(void(*)(scnt, int, device*))out_1541;
-	v->dev.get =(scnt(*)(device*,int*))get_1541;
+	v->dev.out =(void(*)(uchar, int, device*))out_1541;
+	v->dev.get =(uchar(*)(device*,uchar*,uchar))get_1541;
 	v->drive[0]=v->drive[1]=NULL;
 
 	for(i=0;i<16;i++) {
@@ -164,25 +175,31 @@ int init_1541(VC1541 *v, int dev) {
 	return(0);
 }
 
-int iec_setdrive(int dev, int drive, const char *pathname) {
+int vdrive_setdrive(int dev, int drive, const char *pathname) {
 	VC1541 *v;
 
 	logout(1,"set drive(unit=%d, drive=%d) to %s",dev,drive,pathname);
+
+	
+	device *d = device_get(dev);
+
 	if(dev<0 || dev>15 || drive<0 || drive>1)
 		return(-1);
-	if(devs[dev] && (devs[dev]->type!=T_VC1541))
+	if(d && (d->type!=T_VC1541))
 		return(-2);
 	if(pathname==NULL) {
 		/* TODO: remove dev */
 	}
-	if(!devs[dev]) {
+
+	if(d == NULL) {
 		v=malloc(sizeof(VC1541));
 		if(!v)
 			return(-3);
 		init_1541(v,dev);
-		devs[dev]=(device*)v;
+		device_set(dev, (device*)v);
+	} else {
+		v=(VC1541*)d;
 	}
-	v=(VC1541*)devs[dev];	
 	v->drive[drive]=pathname;
 	return(0);
 }
@@ -627,7 +644,7 @@ logout(2,"close_1541: vf=%p",vf);
 	}	
 }
 
-void out_1541(scnt byte, int isatn, VC1541* vcp) {
+void out_1541(uchar byte, int isatn, VC1541* vcp) {
 	vcFile *vf;
 	vc = vcp;
 /*printf("out_1541, atn=%d\n",isatn);*/
@@ -700,14 +717,15 @@ logout(0,"detect cmd/err channel or open");
 	}
 }
 
-#define	seteof()	*iseof=1
+#define	seteof()	*status|=PAR_STATUS_EOI
+#define	settimeout()	*status|=PAR_STATUS_TIMEOUT
 
-scnt get_1541(VC1541 *vcp, int *iseof) {
+uchar get_1541(VC1541 *vcp, uchar *status, uchar ackflg) {
 /* see d39b */
 	vcFile *vf;
-	scnt byte = 0;
+	uchar byte = 0;
 
-	*iseof = 0;
+	*status = 0;
 
 	vc=vcp;
 	vf=&vc->bufp[vc->channel];
@@ -724,7 +742,7 @@ scnt get_1541(VC1541 *vcp, int *iseof) {
 	 vcp->dev.timeout=1;
 	} else  
 	if(vc->cmd) {
-	  byte=vcBuf_read(vc->errbufp);
+	  byte=vcBuf_read(vc->errbufp, ackflg);
 /*logout(0,"error chan. read %02x = %c",byte,byte);*/
 	  if(vcBuf_end(vc->errbufp)) {
 	    seteof();
@@ -737,7 +755,7 @@ scnt get_1541(VC1541 *vcp, int *iseof) {
 /*logout(0,"vf->eof=%d",vf->eof);*/
 	  if(vf->eof>=0) { 
 	    vcp->dev.timeout=0;
-	    byte=vcBuf_read(vf->buf);
+	    byte=vcBuf_read(vf->buf, ackflg);
 	    if(vcBuf_end(vf->buf)) {
 	      if(vf->mode==MODE_DIR) {
 	        if(getdir_1541(vf)) {
@@ -766,9 +784,10 @@ scnt get_1541(VC1541 *vcp, int *iseof) {
 	  err_1541(VCE_NOTOPEN);
 	 }
 	}
-if(vcp->dev.timeout)
-  logout(1,"get_1541: set timeout");
-/*logout(1,"get_1541: byte=%02x",byte);*/
+	if(vcp->dev.timeout) {
+	  settimeout();
+	  logout(1,"get_1541: set timeout");
+	}
 	return(byte);
 }
 

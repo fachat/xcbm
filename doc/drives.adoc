@@ -1,0 +1,64 @@
+
+= Device handling
+
+This document describes how the IEC or IEEE488 device handling is done.
+
+== Overview
+
+The Commodore computers use a standard protocol on either the serial IEC (C64, VIC20, ...) or the
+parallel IEEE488 (PET, CBM-II) busses. The protocol can handle devices on the bus using an address
+between 0 and 30. 
+
+Typically these devices are used::
+	* 4-5 - printer and plotter
+	* 8-11 - disk drives and hard disks
+
+Other devices known to exist for the IEC/IEEE488 bus are modems.
+
+This emulator currently simulates disk drives only, using the host filesystem as source 
+for the files. It is planned to add a "true drive emulation" at least for the 
+parallel IEEE488 disk drives.
+
+In the emulator, two ways are used to talk to the devices:
+
+Traps::
+	In the ROM certain addresses are marked and the emulator traps out into
+	native code when the emulated CPU tries to execute code on these addresses.
+	This way the emulator can emulate the communication with the devices
+	in native code. For this, the traps are located e.g. when the CPU tries
+	to send bytes under ATN, and interprets the bytes appropriately to 
+	forward the data to the correct emulated device.
+	This is mainly used for the serial IEC bus on the C64 emulation.
+
+Direct::
+	In this mode the bus hardware lines are emulated as a shared bus between
+	the emulated CPU (e.g. a PET), and either virtual drives that listen
+	on the bus or true disk emulation drives that listen to the bus as well.
+	This does away with the traps, and is thus a much less intrusive emulation mode.
+	This is mainly used for the IEEE488 bus on the PET emulation.
+
+== Code Structure
+
+The following diagram shows how the code parts play together.
+
+----
+C64 emu traps -> c64/iec64.c -+-> devices.c -+-> vdrive.c
+                              ^              |
+                              |              +-> (other simulated devices, TODO)
+PET PIA/VIA IO -> parallel.c -+
+                              |
+                              V
+                              +-> (true emulated devices, TODO)
+----
+
+In the C64, c64/iec64.c traps the kernal, and forwards the requests 
+to the devices layer. This dispatches it to the virtual (simulated) disk drives
+(or, at some point in the future, other devices).
+
+The PET uses standard I/O from its PIA and VIA chips to handle IEEE488 lines
+in the parallel.c code. This interprets the IEEE488 commands and hooks into the
+devices code to forward when a virtual device is accessed.
+At some point in the future, other true emulated devices may listen on the 
+same IEEE488 signal lines and handle them themselves.
+
+

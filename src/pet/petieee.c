@@ -3,16 +3,16 @@
 
 #include "types.h"
 #include "log.h"
-#include "iec.h"
+#include "parallel.h"
 
 #if 0
 #define atnislo()	(getbyt(0xdd00)&0x08)
 #define	seteof()	setbyt(0x0090,getbyt(0x0090)|0x40)
 #endif
 
-extern device	*dev;
+//extern device	*dev;
 
-extern device	*devs[16];
+//extern device	*devs[16];
 
 #if 0
 void bytein(scnt adr, CPU *cpu) {
@@ -86,14 +86,14 @@ void xrts(scnt adr, CPU *cpu) {
 
 #endif
 
-int iec_init(void) { /* is called _after_ iec_setdrive! */
-	dev=NULL;
 #if 0
+int vdrive_init(void) { /* is called _after_ iec_setdrive! */
+	//dev=NULL;
 	settrap(MP_KERNEL0,0xed40,byteout,NULL /*"byteout"*/ );
 	settrap(MP_KERNEL0,0xee13,bytein,NULL /*"bytein"*/ );
 	settrap(MP_KERNEL0,0xeeb3,xrts,NULL /*"xrts"*/);	/* delay loop */
-#endif
 	return(0);
 }
+#endif
 
 

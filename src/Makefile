@@ -19,7 +19,8 @@ COMMOBJ = 	curses.o \
 		log.o \
 		timer.o \
 		convert.o\
-		iec.o \
+		devices.o \
+		vdrive.o \
 		mem.o \
 		speed.o \
 
@@ -33,12 +34,12 @@ C64OBJ = 	c64/mem64.o \
 
 PETOBJ = 	pet/petemu.o \
 		pet/petmem.o \
-		pet/petieee.o \
 		pet/petio.o \
 		pet/petvideo.o \
 		pet/petkeys.o \
 		pia.o \
 		via.o \
+		parallel.o \
 #		pet/petkeys.o \
 
 $(XCBMLIB):

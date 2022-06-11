@@ -8,7 +8,6 @@
 #include	"alarm.h"
 #include	"emu6502.h"
 #include	"ccurses.h"
-#include	"iec.h"
 #include	"mem.h"
 #include	"mem64.h"
 
@@ -16,6 +15,8 @@
 #include	"video.h"
 #include	"speed.h"
 #include	"keys.h"
+#include	"devices.h"
+#include	"vdrive.h"
 
 #define	MAXLINE		200
 
@@ -62,6 +63,9 @@ int main(int argc, char *argv[])
 
 	logout(4,"6502-Emulation \n(c) 1993/94 A.Fachat");
 
+	// init vdrive table
+	devices_init();
+
 	while((o=getopt(argc,argv,"bpd:rfx8:9:K:B:C:L:H:EGR:?"))>=0) {
 	    switch(o) {	
 	    case 'b':
@@ -78,16 +82,16 @@ int main(int argc, char *argv[])
 		break;
 	    case '8':
 		if(optarg[0]=='0' && optarg[1]=='=') 
-		  iec_setdrive(8,0,optarg+2); 
+		  vdrive_setdrive(8,0,optarg+2); 
 		else if(optarg[0]=='1' && optarg[1]=='=') 
-		  iec_setdrive(8,0,optarg+2); 
+		  vdrive_setdrive(8,0,optarg+2); 
 		else logout(4,"wrong filename for disk setup");
 		break;
 	    case '9':
 		if(optarg[0]=='0' && optarg[1]=='=') 
-		  iec_setdrive(9,0,optarg+2); 
+		  vdrive_setdrive(9,0,optarg+2); 
 		else if(optarg[0]=='1' && optarg[1]=='=') 
-		  iec_setdrive(9,0,optarg+2); 
+		  vdrive_setdrive(9,0,optarg+2); 
 		else logout(4,"wrong filename for disk setup");
 		break;
 	    case 'K':
@@ -132,8 +136,8 @@ int main(int argc, char *argv[])
 	key_init(cpu);
 	io_init();	
 
-	iec_init();
-	iec_setdrive(8,0,".");
+	vdrive_init();
+	vdrive_setdrive(8,0,".");
 //settrap(MP_KERNEL0+1,0xfce4,NULL,"test");
 
 	speed_set_percent(100);

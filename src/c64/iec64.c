@@ -5,27 +5,24 @@
 #include "types.h"
 #include "alarm.h"
 #include "emu6502.h"
-#include "iec.h"
 #include "mem.h"
 #include "mem64.h"
+#include "devices.h"
 
 #define atnislo()	(getbyt(0xdd00)&0x08)
 #define	seteof()	setbyt(0x0090,getbyt(0x0090)|0x40)
 
-extern device	*dev;
-
-extern device	*devs[16];
+device *dev = NULL;
 
 void bytein(scnt adr, CPU *cpu) {
-	int iseof = 0;
+	uchar status = 0;
 
 	if(!dev) {		
 		cpu->pc=0xee42;
 	} else {
-		cpu->a=dev->get((void*)dev, &iseof);
-		if (iseof) {
-			seteof();
-		}
+		cpu->a=dev->get((void*)dev, &status, 1);
+		setbyt(0x0090, status);
+
 		/*cpu->sr &= ~(IRQ|CARRY);*/
 		if(dev->timeout) {
 logout(0,"set timeout pc->0xee42");
@@ -42,19 +39,19 @@ void byteout(scnt adr, CPU *cpu) {
 	scnt by=getbyt(0x95);
 	scnt a= by & 0x0f;
 	scnt b= by & 0xf0;
-/*printf("byteout(adr=%04x, by=%02x, a=%02x, b=%02x, dev=%p)\n",adr,by,a,b,dev);*/
+//printf("byteout(adr=%04x, by=%02x, a=%02x, b=%02x, dev=%p)\n",adr,by,a,b,dev);
 
 	cpu->sr &= ~(IRQ|CARRY);
 	cpu->pc =0xedac;
 
 	if(atnislo()) {
 		if(b==0x20) {
-			if(dev=devs[a]) {
+			if(dev=device_get(a)) {
 				dev->out(by, 1, dev);
 			}
 		} else 
 		if(b==0x40) {
-			if(dev=devs[a]) {
+			if(dev=device_get(a)) {
 				dev->out(by, 1, dev);
 			}
 		} else

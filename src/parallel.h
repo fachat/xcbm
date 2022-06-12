@@ -39,14 +39,15 @@
 
 #include "types.h"
 
-/* state of the bus lines -> "if (parallel_eoi) { eoi is active }" */
-extern uint8_t parallel_eoi;
-extern uint8_t parallel_ndac;
-extern uint8_t parallel_nrfd;
-extern uint8_t parallel_dav;
-extern uint8_t parallel_atn;
+void parallel_init();
 
-extern uint8_t parallel_bus;       /* data lines */
+int parallel_get_eoi();
+int parallel_get_atn();
+int parallel_get_ndac();
+int parallel_get_nrfd();
+int parallel_get_dav();
+int parallel_get_bus();
+
 
 /* Each device has a mask bit in the parallel_* handshake lines */
 #define PARALLEL_EMU    0x01
@@ -62,7 +63,7 @@ extern void parallel_set_ndac(uint8_t mask);
 extern void parallel_set_nrfd(uint8_t mask);
 extern void parallel_set_dav(uint8_t mask);
 extern void parallel_set_atn(uint8_t mask);
-extern void parallel_restore_set_atn(uint8_t mask);
+//extern void parallel_restore_set_atn(uint8_t mask);
 
 /* methods to set handshake lines inactive for the devices */
 extern void parallel_clr_eoi(uint8_t mask);
@@ -70,7 +71,7 @@ extern void parallel_clr_ndac(uint8_t mask);
 extern void parallel_clr_nrfd(uint8_t mask);
 extern void parallel_clr_dav(uint8_t mask);
 extern void parallel_clr_atn(uint8_t mask);
-extern void parallel_restore_clr_atn(uint8_t mask);
+//extern void parallel_restore_clr_atn(uint8_t mask);
 
 
 /* methods to set output lines for the computer */
@@ -84,6 +85,7 @@ extern void parallel_restore_clr_atn(uint8_t mask);
         }                                                    \
     }
 
+#if 0
 #define PARALLEL_RESTORE_LINE(line, dev, mask)                    \
     static inline void parallel_##dev##_restore_##line(uint8_t val)  \
     {                                                             \
@@ -93,6 +95,7 @@ extern void parallel_restore_clr_atn(uint8_t mask);
             parallel_restore_clr_##line(~PARALLEL_##mask);        \
         }                                                         \
     }
+#endif
 
 /* Emulator functions */
 PARALLEL_SET_LINE(eoi, emu, EMU)
@@ -114,7 +117,7 @@ PARALLEL_SET_LINE(ndac, cpu, CPU)
 
 extern void parallel_cpu_set_atn(char val);
 
-PARALLEL_RESTORE_LINE(atn, cpu, CPU)
+//PARALLEL_RESTORE_LINE(atn, cpu, CPU)
 
 extern void parallel_cpu_set_bus(uint8_t b);
 

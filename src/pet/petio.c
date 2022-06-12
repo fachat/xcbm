@@ -14,6 +14,7 @@
 #include "petio.h"
 #include "pia.h"
 #include "via.h"
+#include "parallel.h"
 
 
 // PIA1
@@ -40,7 +41,17 @@ PIA pia1;
 static uchar key_row = 0;
 
 static uchar pia1_get_porta(uchar origdata) {
-	return 0xf0 | key_row;
+	uchar rv = key_row;
+
+	rv |= 0x30;	// unused cassette inputs
+
+	if (parallel_get_eoi()) {
+		rv |= 0x40;
+	}
+
+	rv |= 0x80;	// unused DIAG inputs
+
+	return rv; 
 }
 
 static void pia1_set_porta(uchar data, uchar dir) {
@@ -50,6 +61,7 @@ static void pia1_set_porta(uchar data, uchar dir) {
 }
 
 static void pia1_set_ca2(uchar flag) {
+	parallel_cpu_set_eoi(!flag);
 }
 
 static uchar pia1_get_portb(uchar origdata) {
@@ -83,16 +95,19 @@ void io_set_vdrive(uchar flag) {
 PIA pia2;
 
 static uchar pia2_get_porta(uchar origdata) {
-	return 0xff;
+	return parallel_get_bus();
 }
 
 static void pia2_set_ca2(uchar flag) {
+	parallel_cpu_set_ndac(!flag);
 }
 
 static void pia2_set_portb(uchar data, uchar dir) {
+	parallel_cpu_set_bus(data | ~dir);
 }
 
 static void pia2_set_cb2(uchar flag) {
+	parallel_cpu_set_dav(!flag);
 }
 
 
@@ -105,7 +120,7 @@ static void pia2_set_cb2(uchar flag) {
 // CA2: graphics mode selector
 //
 // port B:
-//	0: NDAC out
+//	0: NDAC in
 //	1: NRFD out
 //	2: ATN out
 //	3: Cassette write (#1 + #2 shared)
@@ -120,17 +135,38 @@ static void pia2_set_cb2(uchar flag) {
 
 VIA via;
 
-static uchar via_get_portb(uchar origdata) {
-	return 0xff;
+uchar portb;
+
+static uchar via_get_portb(uchar outdata) {
+
+	uchar rv = outdata & 0x3e;
+
+	if (!parallel_get_ndac()) {
+		rv |= 0x01;
+	}
+	if (!parallel_get_nrfd()) {
+		rv |= 0x40;
+	}
+	if (!parallel_get_dav()) {
+		rv |= 0x80;
+	}
+	return rv;
 }
 
 static void via_set_portb(uchar data, uchar dir) {
+
+	data |= ~dir;
+
+	parallel_cpu_set_nrfd(!(data & 0x02));
+	parallel_cpu_set_atn(!(data & 0x04));
 }
 
 
 //------------------------------------------------------
 
 int io_init(void) {
+
+	parallel_init();
 
 	// ----------
 	// PIA1

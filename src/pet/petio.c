@@ -4,6 +4,7 @@
 #include "log.h"
 #include "types.h"
 #include "alarm.h"
+#include "bus.h"
 #include "emu6502.h"
 
 #include "timer.h"
@@ -45,7 +46,7 @@ static uchar pia1_get_porta(uchar origdata) {
 
 	rv |= 0x30;	// unused cassette inputs
 
-	if (parallel_get_eoi()) {
+	if (!parallel_get_eoi()) {
 		rv |= 0x40;
 	}
 
@@ -164,13 +165,13 @@ static void via_set_portb(uchar data, uchar dir) {
 
 //------------------------------------------------------
 
-int io_init(void) {
+int io_init(BUS *bus) {
 
 	parallel_init();
 
 	// ----------
 	// PIA1
-	pia_init(&pia1, "PIA1");
+	pia_init(&pia1, bus, "PIA1");
 
 	pia1.get_port_a_in = pia1_get_porta;
 	pia1.set_port_a_out = pia1_set_porta;
@@ -184,7 +185,7 @@ int io_init(void) {
 
 	// ----------
 	// PIA2
-	pia_init(&pia2, "PIA2");
+	pia_init(&pia2, bus, "PIA2");
 
 	// IEEE data
 	pia2.get_port_a_in = pia2_get_porta;
@@ -198,7 +199,7 @@ int io_init(void) {
 
 	// ----------
 	// VIA
-	via_init(&via);
+	via_init(&via, bus, "VIA");
 
 	via.get_port_b_in = via_get_portb;
 	via.set_port_b_out = via_set_portb;

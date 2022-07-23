@@ -23,6 +23,8 @@
 #define	PIA_CX1_HIGH	1
 
 typedef struct PIA {
+	BUS *bus;
+
 	// instance-specific functions that need to be set per instance
 	//
 	// read functions only change the bits and return unconnected bits as of origdata
@@ -63,7 +65,7 @@ typedef struct PIA {
 
 // initialize a PIA
 // sets all(!) fields. read/write_port_* must be set afterwards
-void pia_init(PIA *, const char *name);
+void pia_init(PIA *, BUS *bus, const char *name);
 
 // read/write to PIA registers by the CPU
 void pia_wr(PIA *pia, uchar reg, uchar val);

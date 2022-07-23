@@ -4,6 +4,7 @@
 #include  	"log.h"
 #include  	"types.h"
 #include  	"alarm.h"
+#include  	"bus.h"
 #include	"emu6502.h"
 #include	"timer.h"
 #include	"emucmd.h"
@@ -12,6 +13,7 @@
 
 #define	MAXLINE	200
 
+BUS		bus;
 CPU		cpu;
 
 void struct2cpu(CPU*);
@@ -94,7 +96,7 @@ void logass(CPU *cpu){
 	int o,a,f=0,ad=0;
 	
 /*	sprintf(l,"\033[15;1H%04x %02x %02x %02x %02x %02x \n  ",*/
-	sprintf(l,"%04x %02x %02x %02x %02x %02x            \n  ",
+	sprintf(l,"%04x A:%02x X:%02x Y:%02x S:%02x P:%02x            \n  ",
 		cpu->pc,cpu->a,cpu->x,cpu->y,cpu->sp,cpu->sr);
 	if(cmd[c]<0){
 	  sprintf(l+28," %02x illegal opcode!    ",c);
@@ -143,7 +145,10 @@ void cpu_reset(CPU *cpu){
 
 CPU *cpu_init(int cyclespersec, int msperframe) {
 
-	alarm_context_init(&cpu.actx, "main cpu");
+	alarm_context_init(&bus.actx, "main cpu");
+
+	cpu.bus = &bus;
+	bus.cpu = &cpu;
 
 	speed_init(&cpu, cyclespersec, msperframe);
 
@@ -175,7 +180,7 @@ CPU *cpu_init(int cyclespersec, int msperframe) {
 
 #define setnz(a)	neg=a&0x80;zero=!a		/* set neg&zero */
 #define setnza(a)	neg=a&0x80;zero=!(a&0xff)	/* set neg&zero */
-#define setnv(a)	neg=a&0x80;overfl=a&0x40	/* set neg & overfl */
+#define setnv(a)	neg=(a)&0x80;overfl=(a)&0x40;	/* set neg & overfl */
 #define setc(a)		carry=a>255			/* set c if a >255 */
 #define setc1(a)	carry=a&0x01			/* set c if a&0x01 */
 #define setc2(a)	carry=a<256			/* set c if a <256 */
@@ -206,7 +211,7 @@ CPU *cpu_init(int cyclespersec, int msperframe) {
 #define phpc()		phbyt(cpu.pc/256);phbyt(cpu.pc&0xff)
 #define plpc()		cpu.pc=plbyt();cpu.pc+=256*plbyt()
 
-#define	next(a)		advance_clock(&cpu.actx, (a))
+#define	next(a)		advance_clock(&(cpu.bus->actx), (a))
 
 void ill(){
 	err=1;

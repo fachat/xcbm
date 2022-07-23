@@ -1,9 +1,12 @@
 
 #include <string.h>
 
-#include "log.h"
 #include "types.h"
+#include "log.h"
+#include "alarm.h"
+#include "bus.h"
 #include "pia.h"
+#include "emu6502.h"
 
 
 
@@ -24,7 +27,7 @@ void pia_wr(PIA *pia, uchar reg, uchar val) {
 
 	reg = reg & 0x03;
 
-	//logout(0, "%s write %02x to reg %02x", pia->name, val, reg);
+	logout(0, "%04x: %s write %02x to reg %02x", pia->bus->cpu->pc, pia->name, val, reg);
 
 	switch(reg) {
 	case 0:
@@ -130,7 +133,7 @@ uchar pia_rd(PIA *pia, uchar reg) {
 		break;
 	}
 
-	logout(0, "%s read from reg %02x as %02x", pia->name, reg, rv);
+	logout(0, "%04x: %s read from reg %02x as %02x", pia->bus->cpu->pc, pia->name, reg, rv);
 	return rv;
 }
 
@@ -188,11 +191,13 @@ void pia_cb1(PIA *pia, uchar flag) {
 void pia_cb2(PIA *pia, uchar flag);
 
 
-void pia_init(PIA *p, const char *name) {
+void pia_init(PIA *p, BUS *bus, const char *name) {
 
 	memset(p, 0, sizeof(PIA));
 
 	p->name = name;
+
+	p->bus = bus;
 
 	// all Cxy are input
 	p->last_ca1 = 1;

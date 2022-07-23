@@ -15,6 +15,7 @@
 #include "log.h"
 #include "types.h"
 #include "alarm.h"
+#include "bus.h"
 #include "emu6502.h"
 #include "vdrive.h"
 #include "convert.h"
@@ -487,7 +488,7 @@ void cmd_1541(void) {
 	  cmd='o';	/* open */
 	}
 
-logout(2,"cmd=%c, cmdbuf=%s",cmd,bp);
+logout(2,"cmd=%c, cmdbuf=%s",cmd,bp+p);
 	switch(cmd) {
 	case 'o':
  	  if(bp[p]=='$') {	/* open directory */
@@ -559,7 +560,7 @@ logout(2,"cmd=%c, cmdbuf=%s",cmd,bp);
 		return;
 	      }
 
-/*logout(2,"open filename=%s, channel=%d, mode=%c",filename,channel,n1.mode);*/
+logout(2,"open filename=%s, channel=%d, mode=%c",filename,channel,n1.mode);
 
 	      switch(n1.mode) {
 	      case 'W':

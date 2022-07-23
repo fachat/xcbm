@@ -6,6 +6,7 @@
 #include  	"log.h"
 #include	"types.h"
 #include	"alarm.h"
+#include	"bus.h"
 #include	"emu6502.h"
 #include	"ccurses.h"
 #include	"mem.h"
@@ -134,7 +135,7 @@ int main(int argc, char *argv[])
 
 	video_init(cpu);
 	key_init(cpu);
-	io_init();	
+	io_init(cpu->bus);	
 
 	vdrive_init();
 	vdrive_setdrive(8,0,".");

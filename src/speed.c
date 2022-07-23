@@ -10,6 +10,7 @@
 
 #include "types.h"
 #include "alarm.h"
+#include "bus.h"
 #include "emu6502.h"
 #include "video.h"
 
@@ -39,7 +40,7 @@ void speed_alarm_cb(alarm_t *alarm, CLOCK current) {
 	// get current time
         clock_gettime(CLOCK_MONOTONIC, &spec);
 
-	CPU *cpu = (CPU*) alarm->data;
+	BUS *bus = (BUS*) alarm->data;
 
         s  = spec.tv_sec;
         ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
@@ -48,11 +49,11 @@ void speed_alarm_cb(alarm_t *alarm, CLOCK current) {
                 ms = 0;
         }
 
-	set_alarm_clock(alarm, alarm->clk + cpu->cyclesperframe);
+	set_alarm_clock(alarm, alarm->clk + bus->cyclesperframe);
 
         logout(0, "speed ctrl: clock=%lu, time=%ld.%03ds, last=%ld.%03ds", current, s, ms, last.tv_sec, last.tv_nsec /1000000);
 
-	long expectedns = target_speed_percent == 0 ? 1 : (cpu->msperframe * 1000000ul) * 100 / target_speed_percent;
+	long expectedns = target_speed_percent == 0 ? 1 : (bus->msperframe * 1000000ul) * 100 / target_speed_percent;
 
 	logout(0, "spec nsec=%ld, last nsec=%ld", spec.tv_nsec, last.tv_nsec);
 
@@ -72,7 +73,7 @@ void speed_alarm_cb(alarm_t *alarm, CLOCK current) {
 		// we are too slow
 		last = spec;
 
-		speedratio = (expectedns == 1 ? (cpu->msperframe * 1000000) : expectedns) 
+		speedratio = (expectedns == 1 ? (bus->msperframe * 1000000) : expectedns) 
 				/ (diff.tv_sec * 1000000000 + diff.tv_nsec) * 100.0;
 	} else {
 		// we are too fast - wait rest of interval
@@ -104,8 +105,8 @@ void speed_alarm_cb(alarm_t *alarm, CLOCK current) {
 
 void speed_init(CPU *cpu, int cyclespersec, int msperframe) {
 
-	cpu->msperframe = msperframe;
-	cpu->cyclesperframe = (cyclespersec / 1000) * msperframe;
+	cpu->bus->msperframe = msperframe;
+	cpu->bus->cyclesperframe = (cyclespersec / 1000) * msperframe;
 
 	clock_gettime(CLOCK_MONOTONIC, &last);
 
@@ -113,11 +114,11 @@ void speed_init(CPU *cpu, int cyclespersec, int msperframe) {
 
 	cpu->speed.name = "CPU speed control";
 	cpu->speed.callback = speed_alarm_cb;
-	cpu->speed.data = cpu;
+	cpu->speed.data = cpu->bus;
 	cpu->speed.clk = CLOCK_MAX;
 
-	alarm_register(&cpu->actx, &cpu->speed);
+	alarm_register(&cpu->bus->actx, &cpu->speed);
 
-	set_alarm_clock_diff(&cpu->speed, cpu->cyclesperframe);
+	set_alarm_clock_diff(&cpu->speed, cpu->bus->cyclesperframe);
 }
 

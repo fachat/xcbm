@@ -5,6 +5,7 @@
 #include "log.h"
 #include "types.h"
 #include "alarm.h"
+#include "bus.h"
 #include "emu6502.h"
 #include "mem.h"
 #include "ccurses.h"
@@ -153,7 +154,7 @@ void key_init(CPU *cpu) {
 		prb[i]=0xff; 
 	}
 
-	alarm_register(&cpu->actx, &key_alarm);
+	alarm_register(&cpu->bus->actx, &key_alarm);
 	set_alarm_clock(&key_alarm, 0);
 }
 

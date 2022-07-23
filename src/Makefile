@@ -4,7 +4,7 @@ CFLAGS = -g -O5 -finline-functions -Wall -pedantic -Wno-parentheses
 
 LIBS = -lc -lncurses -lm
 
-all: xcbm64 xcbm4032
+all: xcbm64 xcbm8032
 
 ifeq (xcbm.dep,$(wildcard xcbm.dep))
 include xcbm.dep
@@ -45,8 +45,8 @@ PETOBJ = 	pet/petemu.o \
 $(XCBMLIB):
 	test -d $(XCBMLIB) || mkdir $(XCBMLIB)
 
-xcbm4032: $(XCBMLIB) $(PETOBJ) $(COMMOBJ)
-	cc  -o $(XCBMLIB)/xcbm4032  $(PETOBJ) $(COMMOBJ) $(LIBS)
+xcbm8032: $(XCBMLIB) $(PETOBJ) $(COMMOBJ)
+	cc  -o $(XCBMLIB)/xcbm8032  $(PETOBJ) $(COMMOBJ) $(LIBS)
 
 xcbm64: $(XCBMLIB) $(C64OBJ) $(COMMOBJ)
 	cc  -o $(XCBMLIB)/xcbm64  $(C64OBJ) $(COMMOBJ) $(LIBS)

@@ -10,6 +10,7 @@
 
 #include	"types.h"
 #include	"alarm.h"
+#include	"bus.h"
 #include	"emu6502.h"
 #include	"ccurses.h"
 #include	"devices.h"
@@ -112,7 +113,7 @@ int main(int argc, char *argv[])
 	video_init(cpu);
 	key_init(cpu);	
 
-	io_init();	
+	io_init(cpu->bus);	
 
 	vdrive_init();
 	vdrive_setdrive(8,0,".");
@@ -121,6 +122,8 @@ int main(int argc, char *argv[])
 
 	// 200% speed for now
 	speed_set_percent(200);
+
+	//dismode=1;
 
 	cpu_run();
 	

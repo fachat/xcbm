@@ -3,6 +3,8 @@
 #define PAR_STATUS_TIMEOUT              0x02
 #define PAR_STATUS_EOI                  0x40
 #define PAR_STATUS_DEVICE_NOT_PRESENT   0x80
+#define PAR_STATUS_LISTENING		0x2000
+#define PAR_STATUS_TALKING		0x4000
 
 void devices_init(void);
 

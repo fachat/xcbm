@@ -14,7 +14,7 @@
 
 typedef struct alarm_s {
 	// name of the alarm
-	char *name;
+	const char *name;
 
 	// context, e.g. CPU. Also holds the clock of the context
 	struct alarm_context_s *context;
@@ -48,6 +48,7 @@ typedef struct alarm_context_s {
 	alarm_t *next_alarm;
 
 } alarm_context_t;
+
 
 static inline void alarm_context_init(alarm_context_t *ctx, const char *name) {
 	ctx->name = name;
@@ -135,5 +136,18 @@ static inline void advance_clock(alarm_context_t *actx, int add) {
 		// update next_alarm pointer
 		next = actx->next_alarm;
 	}
+}
+
+
+static inline void alarm_init(alarm_t *alarm, const char *name, 
+	alarm_context_t *actx, void (*callback)(struct alarm_s *alarm, CLOCK current),
+	void *data) {
+
+	alarm->name = name;
+	alarm->context = actx;
+	alarm->callback = callback;
+	alarm->data = data;
+
+	clr_alarm_clock(alarm);
 }
 

@@ -4,6 +4,7 @@
 #include "log.h"
 #include "types.h"
 #include "alarm.h"
+#include "bus.h"
 #include "emu6502.h"
 #include "ccurses.h"
 #include "mem.h"

@@ -5,6 +5,7 @@
 #include "log.h"
 #include "types.h"
 #include "alarm.h"
+#include "bus.h"
 #include "emu6502.h"
 #include "ccurses.h"
 #include "mem.h"
@@ -88,12 +89,12 @@ alarm_t clr_vdrive = {
 
 void set_vdrive_cb(struct alarm_s *alarm, CLOCK current) {
 	io_set_vdrive(1);
-	set_alarm_clock_plus(&set_vdrive, ((CPU*)set_vdrive.data)->cyclesperframe);
+	set_alarm_clock_plus(&set_vdrive, ((BUS*)set_vdrive.data)->cyclesperframe);
 }
 
 void clr_vdrive_cb(struct alarm_s *alarm, CLOCK current) {
 	io_set_vdrive(0);
-	set_alarm_clock_plus(&clr_vdrive, ((CPU*)clr_vdrive.data)->cyclesperframe);
+	set_alarm_clock_plus(&clr_vdrive, ((BUS*)clr_vdrive.data)->cyclesperframe);
 }
 
 
@@ -108,11 +109,11 @@ int video_init(CPU *cpu){
 	setwr(MP_VRAM, vmem_wr);
 
 	// 128 cycles VDRIVE pulse
-	set_vdrive.data = cpu;
-	alarm_register(&cpu->actx, &set_vdrive);
+	set_vdrive.data = cpu->bus;
+	alarm_register(&cpu->bus->actx, &set_vdrive);
 	set_alarm_clock(&set_vdrive, 0);
-	clr_vdrive.data = cpu;
-	alarm_register(&cpu->actx, &clr_vdrive);
+	clr_vdrive.data = cpu->bus;
+	alarm_register(&cpu->bus->actx, &clr_vdrive);
 	set_alarm_clock(&clr_vdrive, 128);
 
 	updatevideo();

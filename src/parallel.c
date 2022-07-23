@@ -76,6 +76,8 @@ int debug_ieee = 1;
 #define PARALLEL_DEBUG_VERBOSE
 static int parallel_emu = 1;
 
+static int par_status = 0;      /* lower 8 bits = PET par_status, upper bits own */
+
 /***************************************************************************
  * device API 
  */
@@ -92,6 +94,9 @@ static inline int parallel_receivebyte(uint8_t *byte, uint8_t flag) {
 		}
 		return status;
         } 
+	if (debug_ieee) {
+		logout(0, "IEEE488: parallel_receivebyte(fl=%d) -> DEVICE NOT PRESENT", flag, byte);
+	}
         return PAR_STATUS_DEVICE_NOT_PRESENT;
 }
 
@@ -107,13 +112,13 @@ static int parallel_attention(uint8_t byte) {
 	if(b==0x20) {
 		if(pardev=device_get(a)) {
 			pardev->out(byte, 1, pardev);
-			return PAR_STATUS_OK;
+			return PAR_STATUS_LISTENING;
 		}
 	} else
 	if(b==0x40) {
 		if(pardev=device_get(a)) {
 			pardev->out(byte, 1, pardev);
-			return PAR_STATUS_OK;
+			return PAR_STATUS_TALKING;
 		}
 	} else
 	if(pardev) {
@@ -124,9 +129,11 @@ static int parallel_attention(uint8_t byte) {
 		if(byte==0x5f) {
 			pardev->out(byte,  1, pardev);
 			pardev=NULL;
-		} else
+		} else {
 			pardev->out(byte,  1, pardev);
-
+			// kludge
+			return (par_status & 0xff00) | PAR_STATUS_OK;
+		}
 		return PAR_STATUS_OK;
 	}
 
@@ -141,7 +148,8 @@ int parallel_sendbyte(uint8_t byte) {
 
 	if (pardev) {
 		pardev->out(byte, 0, pardev);
-		return PAR_STATUS_OK;
+		// kludge
+		return (par_status & 0xff00) | PAR_STATUS_OK;
 	}
 	return PAR_STATUS_DEVICE_NOT_PRESENT;
 }
@@ -159,7 +167,6 @@ uint8_t parallel_atn = 0;
 
 uint8_t parallel_bus = 0xff;       /* data lines */
 
-static int par_status = 0;      /* lower 8 bits = PET par_status, upper bits own */
 
 
 void parallel_init() {

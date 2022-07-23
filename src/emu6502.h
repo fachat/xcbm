@@ -1,5 +1,8 @@
 
+		
 typedef struct CPU {
+		BUS		*bus;
+
 		scnt		pc;
 		
 		scnt		sp;
@@ -9,10 +12,8 @@ typedef struct CPU {
 
 		scnt		sr;
 
-		alarm_context_t	actx;
+		//alarm_context_t	actx;
 		alarm_t		speed;
-		int		msperframe;
-		int		cyclesperframe;
 } CPU;
 
 extern 	int	hirq;

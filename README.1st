@@ -3,15 +3,14 @@
 
              README File for 'xcbm', the Commodore C64 emulator
 
-          (c) 1994-98 Andre Fachat, fachat@galileo.rhein-neckar.de
+               (c) 1994-2022 Andre Fachat, afachat@gmx.de
 
-                       Version 0.1.2 / 13. Jul. 1998
+                       Version 0.2.x / 24.7.2022
 
 -------------------------------------------------------------------------------
 
 
-xcbm is an emulator for the commodore 8 bit computer cbm 3032 and c64.
-(at least it will be someday ;-))
+xcbm is an emulator for the commodore 8 bit computer cbm 8032 and c64.
 
 The programm is copyrighted by Andre Fachat and is covered by the
 GNU Public license. For copying this programm see the file 'COPYING'
@@ -20,11 +19,13 @@ included in this package.
 This programm comes with absolutely no warranty of any kind for what 
 happens due to this programm. 
 
-The current version number is 0.1.2. This means, that not much has been
+The current version number is 0.x. This means, that not much has been
 tested and it definitely has lots of bugs. And it lacks lots of
 stuff to really emulate. 
 On the other hand the programm can run some BASIC and machine language
 programms in c64 mode that do not require that much hardware simulation.
+Also, it runs the PET ROM code and BASIC programs without the need for
+any traps (i.e. keyboard and IEEE488 are hardware-emulated)
 
 Note that the (new) purpose of the program is to run test versions of
 my GeckOS operating system in various memory configurations (that
@@ -54,12 +55,9 @@ change the loop to "for i=14*4096 to 65535" and of course the filename.
 The character ROM is also not included, but for curses modes, it is not 
 necessary.
 
-This emulator is horribly slow as it lacks all necessary
-optimization. Especially the main CPU loop could be made into a 
-big "case" switch() as it is much faster etc.
-
-A cross assembler for 6502 computer is also available, so you can
-develop programms without even having a 6502. For more info, contact me.
+This emulator lacks all necessary optimization. 
+This would have been a problem in earlier times, but as PC speed has increased
+as much, it is probably not worth it putting in the effort of more optimization.
 
 Andre Fachat
 
@@ -71,31 +69,43 @@ BUGS/FEATURES (don't expect too much):
 - no doc available yet. see the file "MODES" on what is planned.
   see the file TODO for a brief introduction what has to be done.
   unfortunately the source is not documented very well.
+
 - no undocumented opcodes (still exits) and no CMOS opcodes (remind me
   to create a CMOS command line switch)
+
 - curses is hard to try: block graphic characters are not emulated,
   colors only very buggy, I don't understand it that much at the moment.
-- no X yet, no cbm3032 yet, no 'fancy' mode yet (If you call trapping the
-  IRQ address at ea31 fancy, compared to just trap hardware access, it is
-  somehow fancy. I tried to just use hardware access but I got much worse
-  keypress response time.)
-- CIA only partially emulated, VIC only regs 24 and 33, no SID
-- no real timing. IRQ timer gets decremented by ten for each executed
-  opcode. This gives a curser blink rate at roughly original speed (may
-  be a bit slower, but I have long time no real C64 seen).
+
+- In the C64 emu, CIA only partially emulated, VIC only regs 24 and 33, no SID
+  C64 emu uses the old timer handler, which is in the process of being
+  replaced with the alarm handler.
+
+- In the PET emu, only partial VIA emulation, but IEEE488 and keyboard are
+  emulated as hardware devices, not using traps.
+
+- CPU speed is managed using nano-waits in the operating system.
+  So, you can - in principle - set different emulation speeds, 
+  but there is no command line switch or online key available yet
+
 - Can use Un*x filesystem subdirectories as disks. At the moment, the 
   current directory for unit 8, drive 0 is ".". You can set this at
   command line. no real disk command ("R","S",...) is emulated.
   (what is a second disk for? ;-), no just kidding, it should be
   possible in the future, but low priority for now)
+
 - The current ROM directory is "/var/lib/xcbm" 
+
 - sigint not yet trapped, i.e. no run/stop possible. curses gave me some 
   more trouble when trying to get some special keys (e.g. shift pos1 to
   emulated the clear key doesn't work ????)
+  Ctrl-D now works as STOP key.
+
 - I have a function "logout" that gives output to the file "c64.log".
   here you can read some info on what this programm is doing and you
   can put some debug info there, if you want.
-- exrom and game lines not yet used in memory management.
+
+- In the C64 emu, exrom and game lines not yet used in memory management.
+
 - the misc directory contains a programm to list basic files to stdout
 
 - compiling: go to the src directory and type 'make clean;make dep; make'. 

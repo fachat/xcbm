@@ -17,10 +17,6 @@ A: video/keyboard I/O
     c) large mode (see above), screen size 80x25 
        without updating of video mem. Just to use "normal" screen
        size on PCs/Unixes/etc
-  2) X-based (full graphic available, may be no correct video irq timing)
-    a) raw mode (see above)
-    b) fast mode (see above)
-    c) large mode (see above)
 
   Not yet know how to emulate simply pressed shift or ctrl keys, may be
   key sequences on PC keyboard to emulate special stuff.
@@ -45,7 +41,7 @@ E: Expansion port
   be loaded with which ROM-File and what is RAM. Also description of
   usage of config lines on expansion port.
 
-F: Timing
-  It is not planned to do much more than incrementing system time 
-  (1MHz) for CIAs and VIC to do some Video Interrupting (only X-based)
+F: IEEE488
+  The IEEE488 bus is emulated in hardware, so multiple - emulated or virtual - devices
+  can at some point be wired together.
 

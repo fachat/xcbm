@@ -384,7 +384,8 @@ int getdir_1541(vcFile *vf) {
 	unsigned int i;
 	struct stat statbuf;
 	char writeprotect=' ';
-	char *type="prg";
+	char *type="PRG";
+	int offset = 0;
 /*
 	while(de=readdir(vf->f.dir)) {
 	  if(!vf->mask[0]) break;
@@ -406,28 +407,29 @@ int getdir_1541(vcFile *vf) {
 	  strcat(vf->path,de->d_name);
 	  stat(vf->path,&statbuf);
 	  if(!statbuf.st_mode&S_IWUSR) writeprotect='<';
-	  if(statbuf.st_mode&S_IFDIR) type="dir";
+	  if(statbuf.st_mode&S_IFDIR) type="DIR";
 	  vf->path[i]='\0';
 	  i=(statbuf.st_size/254)+1;	/* size of CBM blocks */
 	  i=i>65534?65535:i;		/* if too big */
+	  offset = 9-((int)log10(i));
 	  if((p=strrchr(de->d_name,',')) && p[1]!=0 && p[2]==0) {
 	    switch(p[1]) {
-	    case 'P': type="prg"; *p='\0'; break;
-	    case 'R': type="rel"; *p='\0'; break;
-	    case 'S': type="seq"; *p='\0'; break;
-	    case 'U': type="usr"; *p='\0'; break;
+	    case 'P': type="PRG"; *p='\0'; break;
+	    case 'R': type="REL"; *p='\0'; break;
+	    case 'S': type="SEQ"; *p='\0'; break;
+	    case 'U': type="USR"; *p='\0'; break;
 	    default:  break;
 	    }
 	  }
-	  sprintf(b,"                                     ");
-	  sprintf(&b[9-((int)log10(i))],"\"%s\"                                   ",
+	  sprintf(b,"%c%c                             ",1,1);
+	  sprintf(&b[offset],"\"%s\"                                   ",
 					de->d_name);
-	  vf->buf->len=39;
+	  vf->buf->len=34;
 	  vf->buf->pos=0;
 	  vcBuf_convert(vf->buf,a2pet);
 	  b[2]=i&0xff; b[3]=(i>>8)&0xff;
-	  sprintf(&b[9+19-((int)log10(i))],"  %s%c        ",type,writeprotect);
-	  b[38]='\0';
+	  sprintf(&b[19+offset],"%s%c        ",type,writeprotect);
+	  b[33]='\0';
 	  return(0);
 	} else {
 	  if(vf->eof>0) return(1);

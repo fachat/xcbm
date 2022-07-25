@@ -468,7 +468,7 @@ static void Out1_NRFD_false(int tr)
 {
     static uint8_t b;
 
-    par_status = parallel_receivebyte(&b, 1);
+    par_status = parallel_receivebyte(&b, 0);
 #ifdef DEBUG
     if (par_status & PAR_STATUS_DEVICE_NOT_PRESENT) {
         /* If we get to this function, this status should never be possible */
@@ -511,7 +511,7 @@ static void Out2_NDAC_false(int tr)
     parallel_emu_set_eoi(0);
     parallel_emu_set_bus(0xff);
 
-    par_status = parallel_receivebyte(&b, 0);
+    par_status = parallel_receivebyte(&b, 1);
 
     if (par_status & 0xff) {
         ResetBus();

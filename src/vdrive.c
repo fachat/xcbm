@@ -61,25 +61,37 @@ void vcBuf_fre(vcBuf *buf) {
 	free(buf);
 }
 
+/*
+ * write a byte to a buffer
+ * returns true if buffer is full
+ */
 size_t vcBuf_write(vcBuf *buf,char byte) {
-	if(buf->pos<buf->max)
+	if(buf->pos<buf->max) {
 	  buf->buf[buf->pos++]=byte;
+	}
 	buf->len=buf->pos;
 	return(buf->pos>=buf->max);
 }
 
+/*
+ * return true if a buffer read pointer is at the end
+ */
 static inline int vcBuf_end(vcBuf *b) {
 	 return (b->pos>=b->len);
 }
 
-static inline uchar vcBuf_read(vcBuf *b, uchar ackflg) {
+/*
+ * read a byte from a buffer
+ */
+static inline uchar vcBuf_read(vcBuf *b) {
 	uchar rv = (b->buf[b->pos]);
-	if (ackflg) {
-		b->pos++;
-	}
+	b->pos++;
 	return rv;
 }
 
+/*
+ * convert each byte of the buffer contents with a single byte conversion function
+ */
 void vcBuf_convert(vcBuf* b,int (*func)(int)) {
 	size_t i;
 	for(i=0;i<b->len;i++) {
@@ -96,6 +108,9 @@ typedef struct {
 		} f;
 		int		mode;
 		int		eof;
+		uchar		bufd;			// buffered byte for ack
+		uchar		bval;			// buffered byte is valid?
+		uchar 		bstat;			// buffered status
 		char 		mask[VCLINE];
 		char		path[MAXLINE];
 		vcBuf		*buf;
@@ -430,14 +445,19 @@ int getdir_1541(vcFile *vf) {
 	  b[2]=i&0xff; b[3]=(i>>8)&0xff;
 	  sprintf(&b[19+offset],"%s%c        ",type,writeprotect);
 	  b[33]='\0';
+logout(0,"dir entry -> len=33");
 	  return(0);
 	} else {
-	  if(vf->eof>0) return(1);
+	  if(vf->eof>0) {
+logout(0,"dir entry -> past end");
+		return(1);
+	  }
 
 	  vf->buf->buf[0]=vf->buf->buf[1]=0;
 	  vf->buf->len=2;
 	  vf->buf->pos=0;
 	  vf->eof=1;
+logout(0,"dir entry -> len=2");
 	  return(0);
 	}
 }
@@ -493,6 +513,7 @@ void cmd_1541(void) {
 logout(2,"cmd=%c, cmdbuf=%s",cmd,bp+p);
 	switch(cmd) {
 	case 'o':
+	  vf->bval = 0;
  	  if(bp[p]=='$') {	/* open directory */
 	    p++;
 	    if(!parse_1541(bp+p,&n1,1,&bp)) {
@@ -722,6 +743,69 @@ logout(0,"detect cmd/err channel or open");
 
 #define	seteof()	*status|=PAR_STATUS_EOI
 #define	settimeout()	*status|=PAR_STATUS_TIMEOUT
+#define	hastimeout()	(*status & PAR_STATUS_TIMEOUT)
+
+/*
+ * get the next byte for a channel, set status too
+ */
+uchar get_1541_int(VC1541 *vcp, uchar *status) {
+	uchar byte = 0xff;
+	vcFile *vf = NULL;
+
+	*status = 0;
+
+	vf=&vc->bufp[vc->channel];
+
+	if(vc->cmd) {
+		// command channel
+		byte=vcBuf_read(vc->errbufp);
+		/*logout(0,"error chan. read %02x = %c",byte,byte);*/
+  		if(vcBuf_end(vc->errbufp)) {
+    			seteof();
+    			err_1541(VCE_OK);
+  		}
+	} else {
+ 		if(vf->buf) {
+  			if(vf->eof>=0) { 
+				// not yet EOF
+				// read byte from buffer
+    				byte=vcBuf_read(vf->buf);
+    				if(vcBuf_end(vf->buf)) {
+					// buffer is empty, try to re-fill it
+      					if(vf->mode==MODE_DIR) {
+						// directory
+        					if(getdir_1541(vf)) {
+							logout(0,"getdir->seteof");
+	  						seteof();
+						}
+      					} else {
+						// file
+						if(vc->channel!=15) {
+	  						if(read_1541(vf)) {
+	    							/*logout(0,"read_1541->seteof");*/
+	    							seteof();
+	  						}
+						} else {
+							// command channel
+	  						seteof();
+	  						err_1541(VCE_OK);
+						}
+      					}	
+    				}
+  			} else {
+				// read past EOF
+ 				settimeout();
+    				err_1541(VCE_PASTEND);
+  			}
+ 		} else {
+			// file not open
+ 			settimeout();
+  			err_1541(VCE_NOTOPEN);
+ 		}
+	}
+	return byte;
+}
+
 
 uchar get_1541(VC1541 *vcp, uchar *status, uchar ackflg) {
 /* see d39b */
@@ -732,65 +816,34 @@ uchar get_1541(VC1541 *vcp, uchar *status, uchar ackflg) {
 
 	vc=vcp;
 	vf=&vc->bufp[vc->channel];
-/*logout(0,"channel=%d, vf=%p",vc->channel,vf);	*/
-	if(vc->atn) {		/* first get after atn */ 
-	  vc->atn=0;
-/*
-	  if(vc->channel==15) {
-	    vf->buf=vc->errbufp;
-	  } 
-*/
-	}
+
+	vcp->dev.timeout=0;
+
 	if (vc->talk == 0) {
-	 vcp->dev.timeout=1;
-	} else  
-	if(vc->cmd) {
-	  byte=vcBuf_read(vc->errbufp, ackflg);
-/*logout(0,"error chan. read %02x = %c",byte,byte);*/
-	  if(vcBuf_end(vc->errbufp)) {
-	    seteof();
-	    err_1541(VCE_OK);
-	  }
-	  vcp->dev.timeout=0;
+		settimeout();
 	} else {
-	 vcp->dev.timeout=1;
-	 if(vf->buf) {
-/*logout(0,"vf->eof=%d",vf->eof);*/
-	  if(vf->eof>=0) { 
-	    vcp->dev.timeout=0;
-	    byte=vcBuf_read(vf->buf, ackflg);
-	    if(vcBuf_end(vf->buf)) {
-	      if(vf->mode==MODE_DIR) {
-	        if(getdir_1541(vf)) {
-/*logout(0,"getdir->seteof");*/
-		  seteof();
-		  vf->eof=-1;
-		}
-	      } else {
-		if(vc->channel!=15) {
-		  if(read_1541(vf)) {
-		    /*logout(0,"read_1541->seteof");*/
-		    seteof();
-		    vf->eof=-1;
-		  }
+		// we have a byte and get a repeated call
+		if (vf->bval) {
+			// consume buffer
+			*status = vf->bstat;
+			byte = vf->bufd;
+			if (ackflg) {
+				// fill up buffer again
+				vf->bufd = get_1541_int(vcp, &vf->bstat);
+			}
 		} else {
-		  seteof();
-		  err_1541(VCE_OK);
-		  /*vf->eof=-1;*/
+			// fill buffer in the first place
+			vf->bufd = get_1541_int(vcp, &vf->bstat);
+			*status = vf->bstat;
+			byte = vf->bufd;
+			vf->bval = 1;
 		}
-	      }	
-	    }
-	  } else {
-	    err_1541(VCE_PASTEND);
-	  }
-	 } else {
-	  err_1541(VCE_NOTOPEN);
-	 }
 	}
-	if(vcp->dev.timeout) {
-	  settimeout();
-	  logout(1,"get_1541: set timeout");
+	if(hastimeout()) {
+	  	vcp->dev.timeout = 1;
+		logout(1,"get_1541: set timeout");
 	}
+
 	return(byte);
 }
 

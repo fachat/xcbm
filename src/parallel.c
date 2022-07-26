@@ -90,7 +90,7 @@ static inline int parallel_receivebyte(uint8_t *byte, uint8_t flag) {
                 *byte = pardev->get(pardev, &status, flag);
 
 		if (debug_ieee) {
-			logout(0, "IEEE488: parallel_receivebyte(fl=%d) -> %02x", flag, byte);
+			logout(0, "IEEE488: parallel_receivebyte(fl=%d) -> %02x (st=%02x)", flag, byte, status);
 		}
 		return status;
         } 
@@ -469,6 +469,7 @@ static void Out1_NRFD_false(int tr)
     static uint8_t b;
 
     par_status = parallel_receivebyte(&b, 0);
+logout(2, "receivebyte(0) -> par_status=%x", par_status);
 #ifdef DEBUG
     if (par_status & PAR_STATUS_DEVICE_NOT_PRESENT) {
         /* If we get to this function, this status should never be possible */

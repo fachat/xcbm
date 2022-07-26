@@ -78,6 +78,7 @@ extern void parallel_clr_atn(uint8_t mask);
 #define PARALLEL_SET_LINE(line, dev, mask)                   \
     static inline void parallel_##dev##_set_##line(uint8_t val) \
     {                                                        \
+	logout(0,"%s %s to %02x", #dev, #line, val);		     \
         if (val) {                                           \
             parallel_set_##line(PARALLEL_##mask);            \
         } else {                                             \

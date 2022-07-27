@@ -230,19 +230,19 @@ typedef struct vc1541_name {
 } vc1541_name;
  
 static char *erstr_1541[]= {
-	"no buffer", "file not open", "file open", "file not open",
-	"file not write",
-	"syntax", "command not implemented", "syntax", "buffer length", 
-	"file not load", "write past end", "illegal mode", "file not save",
-	"file open", "file not found", "xcbm version 0.1.0", "file exists" 
+	"NO BUFFER", "FILE NOT OPEN", "FILE OPEN", "FILE NOT OPEN",
+	"FILE NOT WRITE",
+	"SYNTAX", "COMMAND NOT IMPLEMENTED", "SYNTAX", "BUFFER LENGTH", 
+	"FILE NOT LOAD", "WRITE PAST END", "ILLEGAL MODE", "FILE NOT SAVE",
+	"FILE OPEN", "FILE NOT FOUND", "XCBM VERSION 0.1.0", "FILE EXISTS" 
 };
 
 void err_1541(int ernum) {
 	vcBuf *vb = vc->bufp[15].buf;
 	if(!ernum) {
-		strcpy(vb->buf,"00, ok, 00, 00\015");
+		strcpy(vb->buf,"00, OK, 00, 00\015");
 	} else {
-		sprintf(vb->buf,"%02d, %s error, 00, 00\015",ernum,
+		sprintf(vb->buf,"%02d, %s ERROR, 00, 00\015",ernum,
 			erstr_1541[ernum-1]);
 		vc->talk=vc->listen=0;
 		logout(3,"err=%s",vb->buf);

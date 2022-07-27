@@ -133,7 +133,7 @@ typedef struct {
 
 		vcFile		bufp[16];
 		vcBuf		*cmdbufp;
-		vcBuf		*errbufp;	
+		//vcBuf		*errbufp;	
 } VC1541;
 
 void out_1541(uchar byte, int isatn, VC1541* vc);
@@ -180,7 +180,8 @@ int init_1541(VC1541 *v, int dev) {
 		v->bufp[i].buf=NULL;
 	}
 	v->cmdbufp=vcBuf_get(VCLINE);
-	v->errbufp=vcBuf_get(VCLINE);
+	// status buffer
+	v->bufp[15].buf=vcBuf_get(VCLINE);
 
 	v->talk=v->listen=v->cmd=0;
 	v->talkadr = dev|0x40;
@@ -237,16 +238,17 @@ static char *erstr_1541[]= {
 };
 
 void err_1541(int ernum) {
+	vcBuf *vb = vc->bufp[15].buf;
 	if(!ernum) {
-		strcpy(vc->errbufp->buf,"00, ok, 00, 00\015");
+		strcpy(vb->buf,"00, ok, 00, 00\015");
 	} else {
-		sprintf(vc->errbufp->buf,"%02d, %s error, 00, 00\015",ernum,
+		sprintf(vb->buf,"%02d, %s error, 00, 00\015",ernum,
 			erstr_1541[ernum-1]);
 		vc->talk=vc->listen=0;
-		logout(3,"err=%s",vc->errbufp->buf);
+		logout(3,"err=%s",vb->buf);
 	}
-	vc->errbufp->len=strlen(vc->errbufp->buf);
-	vc->errbufp->pos=0;
+	vb->len=strlen(vb->buf);
+	vb->pos=0;
 /*logout(3,"err=%s",vc->errbufp->buf);*/
 }
 
@@ -514,7 +516,8 @@ logout(2,"cmd=%c, cmdbuf=%s",cmd,bp+p);
 	switch(cmd) {
 	case 'o':
 	  vf->bval = 0;
- 	  if(bp[p]=='$') {	/* open directory */
+ 	  if(bp[p]=='$') {
+	    /* open directory */
 	    p++;
 	    if(!parse_1541(bp+p,&n1,1,&bp)) {
 	      if(!open_1541dir(vf,&n1)) {
@@ -528,8 +531,9 @@ logout(2,"cmd=%c, cmdbuf=%s",cmd,bp+p);
 	      }
 	    } 
 	  } else {
-/* open file */
+	    /* open file */
 	    if(!parse_1541(bp+p,&n1,0,&bp)) {
+	      // channel 0 is LOAD
 	      if(channel==0) {
 	        if(!n1.mode) {
 		  n1.mode='R';
@@ -540,6 +544,7 @@ logout(2,"cmd=%c, cmdbuf=%s",cmd,bp+p);
 	          }
 		}
 	      }
+	      // channel 1 is SAVE
 	      if(channel==1) {
 		if(!n1.mode) {
 		  n1.mode='W';
@@ -550,20 +555,27 @@ logout(2,"cmd=%c, cmdbuf=%s",cmd,bp+p);
 		  }
 	        }
 	      }
+	      // if write, no wildcards allowed
 	      if(n1.mode=='W') {
 		if(strchr(n1.name,'*') || strchr(n1.name,'?')) {
 		  err_1541(VCE_SYNTAX);
 		  return;
 		}
 	      }
+	      // open directory to scan for the file
 	      if(!open_1541dir(vf,&n1)) {
 	        strcpy(filename,vf->path);
-	        if(filename[strlen(filename)-1]!='/') strcat(filename,"/");
+	        if(filename[strlen(filename)-1]!='/') {
+		  strcat(filename,"/");
+		}
+		// get directory entry
 		get_next1541(vf,&de);
 		if(n1.mode!='W') {
 	 	  if(de) {
+		    // found
 		    strcat(filename,de->d_name);
 		  } else {
+		    // not found, so FILE NOT FOUND
 		    vcBuf_fre(vf->buf);
 		    vf->buf=NULL;
 		    err_1541(VCE_NOTFOUND);
@@ -571,15 +583,18 @@ logout(2,"cmd=%c, cmdbuf=%s",cmd,bp+p);
 		  }
 		} else {
 		  if(de) {
+		    // found, so FILE EXISTS
 		    vcBuf_fre(vf->buf);
 		    vf->buf=NULL;
 		    err_1541(VCE_EXISTS);	
 		    return;
 		  } else {
+		    // not found, so we can create one to write
 		    strcat(filename,n1.name);
 		  }
 		}
 	      } else {
+		// dir open failed
 		return;
 	      }
 
@@ -609,14 +624,20 @@ logout(0,"open file %s gives fd=%d",filename,vf->f.fd);
 		  vf->f.fd=open(filename,O_RDONLY);
 		  if(vf->f.fd==-1) {
 		    logout(3,"open %s for read failed, errno=%d",filename,errno);
-		    if(errno=2) err_1541(VCE_NOTFOUND);
-		    else err_1541(VCE_OPENERR);
+		    if(errno=2) {
+		      err_1541(VCE_NOTFOUND);
+		    } else {
+		      err_1541(VCE_OPENERR);
+		    }
 	            vcBuf_fre(vf->buf);
 		    vf->buf=NULL;
 		  } else {
+		    uchar status = 0;
 		    vf->mode=MODE_READ;
 		    read_1541(vf);
 		    vf->eof=vf->buf->len?0:-1;
+		    vf->bval = 0;
+		    get_1541(vc, &status, 0);
 		  }
 /*
 		} else {
@@ -652,6 +673,11 @@ logout(2,"write_1541(vcFile *vf=%p)",vf);
 void close_1541(void) {
 	vcFile *vf=&vc->bufp[vc->channel];
 logout(2,"close_1541: vf=%p",vf);
+	if (vc->channel == 15) {
+	  // command channel
+          err_1541(VCE_OK);
+	  return;
+	}
 	if(vf->buf) {
 	  if(vf->mode==MODE_WRITE) {
 	    write_1541(&(vc->bufp[vc->channel]));
@@ -748,61 +774,49 @@ logout(0,"detect cmd/err channel or open");
 /*
  * get the next byte for a channel, set status too
  */
-uchar get_1541_int(VC1541 *vcp, uchar *status) {
+uchar get_1541_int(vcFile *vf, uchar *status) {
 	uchar byte = 0xff;
-	vcFile *vf = NULL;
 
 	*status = 0;
 
-	vf=&vc->bufp[vc->channel];
-
-	if(vc->cmd) {
-		// command channel
-		byte=vcBuf_read(vc->errbufp);
-		/*logout(0,"error chan. read %02x = %c",byte,byte);*/
-  		if(vcBuf_end(vc->errbufp)) {
-    			seteof();
-    			err_1541(VCE_OK);
-  		}
-	} else {
- 		if(vf->buf) {
-  			if(vf->eof>=0) { 
-				// not yet EOF
-				// read byte from buffer
-    				byte=vcBuf_read(vf->buf);
-    				if(vcBuf_end(vf->buf)) {
-					// buffer is empty, try to re-fill it
-      					if(vf->mode==MODE_DIR) {
-						// directory
-        					if(getdir_1541(vf)) {
-							logout(0,"getdir->seteof");
-	  						seteof();
-						}
-      					} else {
-						// file
-						if(vc->channel!=15) {
-	  						if(read_1541(vf)) {
-	    							/*logout(0,"read_1541->seteof");*/
-	    							seteof();
-	  						}
-						} else {
-							// command channel
-	  						seteof();
-	  						err_1541(VCE_OK);
-						}
-      					}	
-    				}
-  			} else {
-				// read past EOF
- 				settimeout();
-    				err_1541(VCE_PASTEND);
-  			}
- 		} else {
-			// file not open
+	if(vf->buf) {
+  		if(vf->eof>=0) { 
+			// not yet EOF
+			// read byte from buffer
+    			byte=vcBuf_read(vf->buf);
+    			if(vcBuf_end(vf->buf)) {
+				// buffer is empty, try to re-fill it
+      				if(vf->mode==MODE_DIR) {
+					// directory
+       					if(getdir_1541(vf)) {
+						logout(0,"getdir->seteof");
+  						seteof();
+					}
+      				} else {
+					// file
+					if(vc->channel!=15) {
+  						if(read_1541(vf)) {
+    							/*logout(0,"read_1541->seteof");*/
+    							seteof();
+  						}
+					} else {
+						// command channel
+  						seteof();
+  						err_1541(VCE_OK);
+					}
+      				}	
+    			}
+  		} else {
+			// read past EOF
  			settimeout();
-  			err_1541(VCE_NOTOPEN);
- 		}
-	}
+    			err_1541(VCE_PASTEND);
+  		}
+ 	} else {
+		// file not open
+ 		settimeout();
+  		err_1541(VCE_NOTOPEN);
+ 	}
+
 	return byte;
 }
 
@@ -829,14 +843,14 @@ uchar get_1541(VC1541 *vcp, uchar *status, uchar ackflg) {
 			byte = vf->bufd;
 			if (ackflg) {
 				// fill up buffer again
-				vf->bufd = get_1541_int(vcp, &vf->bstat);
+				vf->bufd = get_1541_int(vf, &vf->bstat);
 			}
 		} else {
 			// fill buffer in the first place
-			vf->bufd = get_1541_int(vcp, &vf->bstat);
+			vf->bufd = get_1541_int(vf, &vf->bstat);
 			*status = vf->bstat;
 			byte = vf->bufd;
-			vf->bval = 1;
+			vf->bval = !ackflg;
 		}
 	}
 	if(hastimeout()) {

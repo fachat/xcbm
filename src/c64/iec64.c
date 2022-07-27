@@ -23,6 +23,7 @@ void bytein(scnt adr, CPU *cpu) {
 	} else {
 		cpu->a=dev->get((void*)dev, &status, 1);
 		setbyt(0x0090, status);
+//logout(0,"bytein -> %02x, status=%02x", cpu->a, status);
 
 		/*cpu->sr &= ~(IRQ|CARRY);*/
 		if(dev->timeout) {

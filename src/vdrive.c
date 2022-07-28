@@ -249,7 +249,10 @@ void err_1541(int ernum) {
 	}
 	vb->len=strlen(vb->buf);
 	vb->pos=0;
-/*logout(3,"err=%s",vc->errbufp->buf);*/
+
+	vc->bufp[15].bval = 0;
+
+	logout(3,"err=%s",vb->buf);
 }
 
 int parse_1541(char *cmd, vc1541_name *ns, int needcolon, char **cmdp) {
@@ -691,13 +694,13 @@ logout(2,"close_1541: vf=%p",vf);
 	  }
 	} else {
           err_1541(VCE_NOTOPEN);
-	}	
+	}
 }
 
 void out_1541(uchar byte, int isatn, VC1541* vcp) {
 	vcFile *vf;
 	vc = vcp;
-/*printf("out_1541, atn=%d\n",isatn);*/
+logout(0, "out_1541(%02x), atn=%d\n",byte, isatn);
 	if(isatn) {
 	  if(!vc->atn) {
 	    vc->listen=vc->talk=0;
@@ -721,12 +724,13 @@ void out_1541(uchar byte, int isatn, VC1541* vcp) {
 	  if((byte & 0x60)==0x60) {
 	    vc->secadr=byte;
 	    vc->channel=byte & 0x0f;
-	    if(((byte&0xf0)==0xf0) || vc->channel==15) {
+	    if(((byte&0xf0)==0xf0)) { // || vc->channel==15) {
 	      vc->cmd=1;
 logout(0,"detect cmd/err channel or open");
 	      vc->cmdbufp->pos=vc->cmdbufp->len=0;
 	    } else   
 	    if((byte & 0xf0)==0xe0) {
+logout(0,"detect close");
 	      close_1541();
 	    }
 	  }
@@ -768,6 +772,7 @@ logout(0,"detect cmd/err channel or open");
 }
 
 #define	seteof()	*status|=PAR_STATUS_EOI
+#define	haseof()	(*status & PAR_STATUS_EOI)
 #define	settimeout()	*status|=PAR_STATUS_TIMEOUT
 #define	hastimeout()	(*status & PAR_STATUS_TIMEOUT)
 
@@ -784,6 +789,9 @@ uchar get_1541_int(vcFile *vf, uchar *status) {
 			// not yet EOF
 			// read byte from buffer
     			byte=vcBuf_read(vf->buf);
+
+			logout(0, "get_1541_int(pos=%d) -> %02x, eof=%d", vf->buf->pos, byte, vcBuf_end(vf->buf));
+
     			if(vcBuf_end(vf->buf)) {
 				// buffer is empty, try to re-fill it
       				if(vf->mode==MODE_DIR) {
@@ -833,6 +841,8 @@ uchar get_1541(VC1541 *vcp, uchar *status, uchar ackflg) {
 
 	vcp->dev.timeout=0;
 
+	logout(2, "get_1541(ack=%d), bval=%d", ackflg, vf->bval);
+
 	if (vc->talk == 0) {
 		settimeout();
 	} else {
@@ -845,6 +855,8 @@ uchar get_1541(VC1541 *vcp, uchar *status, uchar ackflg) {
 				// fill up buffer again
 				vf->bufd = get_1541_int(vf, &vf->bstat);
 			}
+			// get_1541_int can clear it due to calling err_1541
+			vf->bval = 1;
 		} else {
 			// fill buffer in the first place
 			vf->bufd = get_1541_int(vf, &vf->bstat);

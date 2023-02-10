@@ -18,18 +18,39 @@ static void t1alarm_cb(alarm_t *, CLOCK);
 
 inline static void update_int(VIA *via_context, CLOCK rclk)
 {
-//    (via->set_int)(via_context, via_context->int_num,
-//                           (via_context->ifr & via_context->ier & 0x7f)
-//                           ? via_context->irq_line : 0, rclk);
+	// VICE update_myviairq_rclk()
+#if 0
+	(via->set_int)(via_context, via_context->int_num,
+		(via_context->ifr & via_context->ier & 0x7f)
+		? via_context->irq_line : 0, rclk);
+#endif
 }
 
+#define	FULL_CYCLE_2	2
+/*
+ * Get the current Timer 1 value.
+ *
+ * The datasheet claims:
+ * Only in continuous mode, T1 reloads from the latch after it shows underflow (FFFF).
+ * A full cycle of T1 therefore takes (tal + 2) cycles: N, N-1, ..., 1, , 0, FFFF.
+ * FULL_CYCLE_2 is the name of this 2, to make it clear where it occurs.
+ *      
+ * In practice it seems that this happens also in one-shot mode.
+ *       
+ * tau is used to indicate when T1 gets/was reloaded from the latch.
+ */
 inline static CLOCK viata(VIA *via_context, CLOCK rclk)
 {
+	// VICE viacore_t1()
+
     if (rclk < via_context->tau - TAUOFFSET) {
-        return via_context->tau - TAUOFFSET - rclk - 2;
+        return via_context->tau - TAUOFFSET - rclk - FULL_CYCLE_2;
     } else {
-        return (via_context->tal - (rclk - via_context->tau
-                                    + TAUOFFSET) % (via_context->tal + 2));
+	unsigned int full_cycle = via_context->tal + FULL_CYCLE_2;
+	CLOCK time_past_last_reload = rclk - via_context->tau;
+	unsigned int partial_cycle = time_past_last_reload % full_cycle;
+
+        return (via_context->tal - partial_cycle);
     }
 }
 
@@ -58,71 +79,64 @@ inline static CLOCK viatb(VIA *via_context, CLOCK rclk)
 
 inline static void update_viatal(VIA *via_context, CLOCK rclk)
 {
-    //via_context->pb7x = 0;
-    //via_context->pb7xx = 0;
+	// VICE update_via_t1_latch()
 
-    if (rclk > via_context->tau) {
-        //CLOCK nuf = (via_context->tal + 1 + rclk - via_context->tau)
-        //          / (via_context->tal + 2);
+    if (rclk >= via_context->tau) {
+	unsigned int full_cycle = via_context->tal + FULL_CYCLE_2;
+	CLOCK time_past_last_reload = rclk - via_context->tau;
+	/*
+	 * Calculate the number of full T1 cycles, rounded way up
+	 * to get tau ahead of rclk, but at most by 1 full_cycle
+	 */
 
-        //if (!(via_context->acr & 0x40)) {
-            /* one shot mode */
-            //if (((nuf - via_context->pb7sx) > 1) || (!(via_context->pb7))) {
-            //    via_context->pb7o = 1;
-            //    via_context->pb7sx = 0;
-            //}
-        //}
-        //via_context->pb7 ^= (nuf & 1);
-
-        via_context->tau = TAUOFFSET + via_context->tal + 2
-                   + (rclk - (rclk - via_context->tau + TAUOFFSET)
-                   % (via_context->tal + 2));
-        //if (rclk == via_context->tau - via_context->tal - 1) {
-        //    via_context->pb7xx = 1;
-        //}
+        CLOCK nuf = 1 + (time_past_last_reload / full_cycle);
+	via_context->tau += nuf * full_cycle;
     }
-
-    //if (via_context->tau == rclk) {
-    //    via_context->pb7x = 1;
-    //}
 
     via_context->tal = via_context->t1ll
                        + (via_context->t1lh << 8);
 }
 
+/*
+ * This alarm takes care of generating the T1 IRQ: VIA_IM_T1.
+ * It also toggles PB7.
+ * It runs after the T1 reads 0000.
+ */
 static void t1alarm_cb(alarm_t *alarm, CLOCK rclk)
 {
 	VIA *via_context = (VIA *)alarm->data;
 
+logout(0, "t1alarm_cb");
 
 	if (!(via_context->acr & 0x40)) {     /* one-shot mode */
 		clr_alarm_clock(alarm);
 		via_context->tai = 0;
 	} else {                    /* continuous mode */
+		unsigned int full_cycle = via_context->tal + FULL_CYCLE_2;
 		/* load counter with latch value */
-		via_context->tai += via_context->tal + 2;
+		via_context->tai += full_cycle;
 		set_alarm_clock(alarm, via_context->tai);
 
 		/* Let tau also keep up with the cpu clock
-		this should avoid "% (via_context->tal + 2)" case */
-		via_context->tau += via_context->tal + 2;
+	  	   this should avoid "% (via_context->tal + 2)" case */
+		via_context->tau += full_cycle;
 	}
-	via_context->ifr |= VIA_IM_T1;
-	update_int(via_context, rclk);
 
-	/* TODO: toggle PB7? */
-	/*(viaier & VIA_IM_T1) ? 1:0; */
+	via_context->ifr |= VIA_IM_T1;
+	update_int(via_context, rclk + 1);
+
+	via_context->t1pb7 ^= 0x80;
 }
 
 
 // read/write to VIA registers by the CPU
 void via_wr(VIA *via, scnt addr, uchar val) {
 
-	CLOCK rclk = via->bus->clk;
+	CLOCK rclk = via->bus->actx.clk;
 
 	uchar reg = addr & 0x0f;
 
-	logout(0, "%04x: %s write %02x to reg %02x", via->bus->cpu->pc, via->name, val, reg);
+	logout(0, "% 6d - %04x: %s write %02x to reg %02x", rclk, via->bus->cpu->pc, via->name, val, reg);
 
 	switch(reg) {
 	case VIA_PRB:
@@ -155,9 +169,12 @@ void via_wr(VIA *via, scnt addr, uchar val) {
 		update_viatal(via, rclk);
 		// load counter with latch value
 		via->tau = rclk + via->tal + 3 + TAUOFFSET;
-		via->tai = rclk + via->tal + 3 + TAUOFFSET;
-		// TODO set alarm at via->tai
-		// TODO set pb7 state
+		via->tai = rclk + via->tal + 1 + TAUOFFSET;
+		// set alarm at via->tai
+	logout(1, "set T1 alarm to %d", via->tai);
+		set_alarm_clock(&via->t1alarm, via->tai);
+		// set PB7 state
+		via->t1pb7 = 0;
 		// clear T1 interrupt
 		via->ifr &= ~VIA_IM_T1;
 		update_int(via, rclk);
@@ -203,7 +220,13 @@ void via_wr(VIA *via, scnt addr, uchar val) {
 		via->ifr = val;
 		break;
 	case VIA_IER:
-		via->ier = val;
+		if (val & VIA_IM_IRQ) {
+			/* set interrupts */
+			via->ier |= val & 0x7f;
+		} else {
+			/* clear interrupts */
+			via->ier &= ~val;
+		}
 		break;	
 	}
 }
@@ -214,7 +237,7 @@ uchar via_rd(VIA *via, scnt addr) {
 
 	uchar reg = addr & 0x0f;
 	
-	CLOCK rclk = via->bus->clk;
+	CLOCK rclk = via->bus->actx.clk;
 
 
 	switch(reg) {
@@ -308,6 +331,6 @@ void via_init(VIA *via, BUS *bus, const char *name) {
 	alarm_init(&via->t2alarm, "VIA T2", &bus->actx, NULL, via);
 	alarm_init(&via->sralarm, "VIA SR", &bus->actx, NULL, via);
 
-	update_int(via, bus->clk);
+	update_int(via, bus->actx.clk);
 }
 

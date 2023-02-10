@@ -6,10 +6,12 @@
 #include  	"alarm.h"
 #include  	"bus.h"
 #include	"emu6502.h"
+#include	"asm6502.h"
 #include	"timer.h"
 #include	"emucmd.h"
 #include 	"mem.h"
 #include 	"speed.h"
+#include 	"mon.h"
 
 #define	MAXLINE	200
 
@@ -26,115 +28,20 @@ int 	traplines =0;
 
 int	xxmode =0;
 
-/*******************************************************************/
-
-char *kt[] ={ 
-     "adc","and","asl","bbr","bbs","bcc","bcs","beq",
-     "bit","bmi",
-     "bne","bpl","bra","brk","bvc","bvs","clc","cld",
-     "cli",
-     "clv","cmp","cpx","cpy","dec","dex","dey","eor",
-     "inc","inx","iny","jmp","jsr","lda","ldx","ldy",
-     "lsr","nop","ora","pha","php","phx","phy","pla",
-     "plp","plx","ply","rmb","rol",
-     "ror","rti","rts","sbc","sec","sed","sei","smb",
-     "sta",
-     "stx","sty","stz","tax","tay","trb","tsb","tsx",
-     "txa","txs","tya",
-};
-
-int cmd[256]=
-   { 13, 37, -1, -1, -1, 37,  2, -1, 39, 37,  2, -1, -1, 37,  2, -1,
-     11, 37, -1, -1, -1, 37,  2, -1, 16, 37, -1, -1, -1, 37,  2, -1,
-     31,  1, -1, -1,  8,  1, 47, -1, 43,  1, 47, -1,  8,  1, 47, -1,
-      9,  1, -1, -1, -1,  1, 47, -1, 52,  1, -1, -1, -1,  1, 47, -1,
-     49, 26, -1, -1, -1, 26, 35, -1, 38, 26, 35, -1, 30, 26, 35, -1,
-     14, 26, -1, -1, -1, 26, 35, -1, 18, 26, -1, -1, -1, 26, 35, -1,
-     50,  0, -1, -1, -1,  0, 48, -1, 42,  0, 48, -1, 30,  0, 48, -1,
-     15,  0, -1, -1, -1,  0, 48, -1, 54,  0, -1, -1, -1,  0, 48, -1,
-
-     -1, 56, -1, -1, 58, 56, 57, -1, 25, -1, 65, -1, 58, 56, 57, -1,
-      5, 56, -1, -1, 58, 56, 57, -1, 67, 56, 66, -1, -1, 56, -1, -1,
-     34, 32, 33, -1, 34, 32, 33, -1, 61, 32, 60, -1, 34, 32, 33, -1,
-      6, 32, -1, -1, 34, 32, 33, -1, 19, 32, 64, -1, 34, 32, 33, -1,
-     22, 20, -1, -1, 22, 20, 23, -1, 29, 20, 24, -1, 22, 20, 23, -1,
-     10, 20, -1, -1, -1, 20, 23, -1, 17, 20, -1, -1, -1, 20, 23, -1, 
-     21, 51, -1, -1, 21, 51, 27, -1, 28, 51, 36, -1, 21, 51, 27, -1,
-      7, 51, -1, -1, -1, 51, 27, -1, 53, 51, -1, -1, -1, 51, 27, -1 
-};
-      
-int adm[256]=
-   {  0, 12, -1, -1, -1,  3,  3, -1,  0,  1,  0, -1, -1,  2,  2, -1,
-     10, 13, -1, -1, -1,  4,  4, -1,  0,  7, -1, -1, -1,  6,  6, -1,
-      2, 12, -1, -1,  3,  3,  3, -1,  0,  1,  0, -1,  2,  2,  2, -1,
-     10, 13, -1, -1, -1,  4,  4, -1,  0,  7, -1, -1, -1,  6,  6, -1,
-      0, 12, -1, -1, -1,  3,  3, -1,  0,  1,  0, -1,  2,  2,  2, -1,
-     10, 13, -1, -1, -1,  4,  4, -1,  0,  7, -1, -1, -1,  6,  6, -1,
-      0, 12, -1, -1, -1,  3,  3, -1,  0,  1,  0, -1, 14,  2,  2, -1,
-     10, 13, -1, -1, -1,  4,  4, -1,  0,  1, -1, -1, -1,  6,  6, -1,
-
-     -1, 12, -1, -1,  3,  3,  3, -1,  0, -1,  0, -1,  2,  2,  2, -1,
-     10, 13, -1, -1,  4,  4,  5, -1,  0,  7,  0, -1, -1,  6, -1, -1,
-      1, 12,  1, -1,  3,  3,  3, -1,  0,  1,  0, -1,  2,  2,  2, -1,
-     10, 13, -1, -1,  4,  4,  5, -1,  0,  7,  0, -1,  6,  6,  7, -1,
-      1, 12, -1, -1,  3,  3,  3, -1,  0,  1,  0, -1,  2,  2,  2, -1,
-     10, 13, -1, -1, -1,  4,  4, -1,  0,  7, -1, -1, -1,  6,  6, -1, 
-      1, 12, -1, -1,  3,  3,  3, -1,  0,  1,  0, -1,  2,  2,  2, -1,
-     10, 13, -1, -1, -1,  4,  4, -1,  0,  7, -1, -1, -1,  6,  6, -1 
-};
-
-int adl[16]= { 1,2,3,2,2,2,3,3,3,1,2,3,2,2,3,3 };
-char *ad1[16]={ "", "#$", "$", "$", "$", "$", "$", "$", "($", "", "$", "", "($", "($", "($", "($" };
-char *ad2[16]={ "", "", "", "", ",x", ",y", ",x", ",y", ",x)", "", "", "", ",x)", "),y", ")", ")" };
-
 uchar zero,carry,overfl,neg,irq,dez,cbrk;
 int err;
 
 void logass(CPU *cpu){
 	char l[MAXLINE];
-	int c=getbyt(cpu->pc);
-	int o,a,f=0,ad=0;
 	
 /*	sprintf(l,"\033[15;1H%04x %02x %02x %02x %02x %02x \n  ",*/
-	sprintf(l,"%04x A:%02x X:%02x Y:%02x S:%02x P:%02x            \n  ",
+	sprintf(l,"% 8ld %04x A:%02x X:%02x Y:%02x S:%02x P:%02x            \n  ",
+		cpu->bus->actx.clk,
 		cpu->pc,cpu->a,cpu->x,cpu->y,cpu->sp,cpu->sr);
-	if(cmd[c]<0){
-	  sprintf(l+28," %02x illegal opcode!    ",c);
-	} else {
-	  a=adm[c];
-	  o=cmd[c];
-	  switch(adl[a]){
-	  case 1:
-	    sprintf(l+28," %s                        ", kt[o]);
-	    break;
-	  case 2:
-	    if(a!=10) {
-	      sprintf(l+28," %s %s%02x%s          ",
-	        kt[o],ad1[a],getbyt(cpu->pc+1),ad2[a]);
-	      if(a!=1) f=1;
-	      ad=getbyt(cpu->pc+1);
-	    } else {
-	      c=getbyt(cpu->pc+1);
-	      sprintf(l+28," %s %s%04x          ",
-	        kt[o],ad1[a],cpu->pc+2+c-256*(c>127));
-	    }
-	    break;
-	  case 3:
-	    sprintf(l+28," %s %s%04x%s           ",
-	      kt[o],ad1[a],getadr(cpu->pc+1),ad2[a]);
-	    if(c!=0x4c && c!=0x20) f=1;
-	    ad=getadr(cpu->pc+1);
-	    break;
-	  default:
-	    break;
-	  }
-	}
-	if(f) {
-	  logout(0,"mem@ %04x = %02x %02x %02x %02x %02x %02x %02x %02x",
-	    ad,getbyt(ad),getbyt(ad+1),getbyt(ad+2),getbyt(ad+3),getbyt(ad+4),
-	    getbyt(ad+5),getbyt(ad+6),getbyt(ad+7));
-	}
-	logout(0,l);
+
+	dis6502(cpu->pc, l+40, MAXLINE-40);
+
+	logout(0, l);
 }
 
 void cpu_reset(CPU *cpu){
@@ -253,6 +160,7 @@ void jsr_abs(){
 void rti(){
 	cpu.sr=plbyt();
 	plpc();
+logout(0, "Pulling %04x from stack as new PC", cpu.pc);
 	cpu.pc++;
 	struct2cpu(&cpu);
 	next(6);	// clock cycles;
@@ -1321,11 +1229,18 @@ int cpu_run(void){
 	
 	do{
 /*if(dismode || hirq) printf("\n\nhirq=%d, irq=%d, hnmi=%d\n",hirq,irq,hnmi);*/
+
+		if (is_mon()) {
+			cpu2struct(&cpu);
+			mon_line(&cpu);
+			struct2cpu(&cpu);
+		}
+
 		if(hirq && !(irq)) {
-/*printf("\nirq: set pc to IRQ address\n");*/
 			aclb();
 			cpu2struct(&cpu);
 			cpu.pc-=1;
+logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, getadr(0xfffe));
 			phpc();
 			phbyt(cpu.sr);
 			cpu.pc=getadr(0xfffe);

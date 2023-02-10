@@ -107,7 +107,7 @@ uchar pia_rd(PIA *pia, uchar reg) {
 			update_int(pia);
 		} else {
 			// data direction register selected in CR
-			rv = pia->ddir_b;
+			rv = pia->ddir_a;
 		}
 		break;
 	case 1:

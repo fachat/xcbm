@@ -46,16 +46,6 @@ extern unsigned char *mem;
 extern mt m[];
 extern meminfo memtab[];
 
-#if 0
-#define setbyt(a,b)     \
-{       register scnt c=(a)>>12;\
-/*logout(0,"adr=%04x, byte=%02x, mt=%p, mf=%p\n",a,b,m[c].i.mt_wr,m[c].i.mf_wr);*/\
-	if(!(a&0xfffe)) mem_setcpuport(a,b); else\
-        if(m[c].i.mt_wr) m[c].i.mt_wr[(a)&0xfff]=(char)(b); else\
-        if(m[c].i.mf_wr) m[c].i.mf_wr(a,b);\
-}
-#endif 
-
 static inline scnt getbyt(scnt a) {
 	register scnt bank = a >> 12;
 
@@ -77,6 +67,10 @@ static inline scnt getbyt(scnt a) {
 
 static inline void setbyt(scnt a, scnt b) {
 	register scnt bank =  a >> 12;
+
+if (a == 0x013b || a == 0x013c || a == 0x13d) {
+	logout(0, "writing to stack at %04x <- %02x", a, b);
+}
 
 	if ((m[bank].mask != 0) && ((a & m[bank].mask) == m[bank].comp)) {
 		//logout(0, "masked write (a=%04x, mask=%04x, comp=%04x, val=%02x)", a, m[bank].mask, m[bank].comp, b);

@@ -70,6 +70,9 @@ static inline void alarm_register(alarm_context_t *ctx, alarm_t *alarm) {
 	ctx->num_alarms ++;
 }
 
+/*
+ * find the next alarm to be handled
+ */
 static inline void update_alarms(alarm_context_t *actx) {
 	
 	CLOCK c = CLOCK_MAX;
@@ -79,6 +82,8 @@ static inline void update_alarms(alarm_context_t *actx) {
 
 		alarm_t *alrm = actx->alarms[i];
 
+		//logout(1, "update_alarms(%d) -> %s at %ld", i, alrm ? alrm->name : "-", alrm ? alrm->clk : 0);
+
 		if (alrm->clk < c) {
 			c = alrm->clk;
 			alarm = alrm;
@@ -87,6 +92,9 @@ static inline void update_alarms(alarm_context_t *actx) {
 	actx->next_alarm = alarm;
 }
 
+/*
+ * set alarm clock by absolute clock value 
+ */
 static inline void set_alarm_clock(alarm_t *alarm, CLOCK newtime) {
 
 	alarm->clk = newtime;
@@ -104,11 +112,17 @@ static inline void set_alarm_clock(alarm_t *alarm, CLOCK newtime) {
 	} 
 }
 
+/*
+ * set the alarm clock based on the difference from the current clock
+ */
 static inline void set_alarm_clock_diff(alarm_t *alarm, int addtime) {
 	
 	set_alarm_clock(alarm, alarm->context->clk + addtime);
 }
 
+/*
+ * set the alarm clock based on the difference from the previously set alarm clock for that alarm
+ */
 static inline void set_alarm_clock_plus(alarm_t *alarm, int addtime) {
 	
 	set_alarm_clock(alarm, alarm->clk + addtime);
@@ -123,6 +137,9 @@ static inline void advance_clock(alarm_context_t *actx, int add) {
 	actx->clk += add;
 
 	alarm_t *next = actx->next_alarm;
+
+	//logout(1, "advance_clock %s from %ld by %d: next=%s, next clk=%d",
+	//	actx->name, actx->clk, add, next ? next->name : "-", next ? next->clk : 0);
 
 	while (next && actx->clk >= next->clk) {
 		// we ran into the next alarm
@@ -147,6 +164,8 @@ static inline void alarm_init(alarm_t *alarm, const char *name,
 	alarm->context = actx;
 	alarm->callback = callback;
 	alarm->data = data;
+
+	alarm_register(actx, alarm);
 
 	clr_alarm_clock(alarm);
 }

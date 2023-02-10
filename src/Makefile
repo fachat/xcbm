@@ -16,6 +16,7 @@ endif
 COMMOBJ = 	curses.o \
 		trap.o \
 		emu6502.o \
+		asm6502.o \
 		log.o \
 		timer.o \
 		convert.o\
@@ -42,17 +43,20 @@ PETOBJ = 	pet/petemu.o \
 		parallel.o \
 #		pet/petkeys.o \
 
+MONOBJ =	mon/mon.o \
+		mon/labels.o
+
 $(XCBMLIB):
 	test -d $(XCBMLIB) || mkdir $(XCBMLIB)
 
-xcbm8032: $(XCBMLIB) $(PETOBJ) $(COMMOBJ)
-	cc  -o $(XCBMLIB)/xcbm8032  $(PETOBJ) $(COMMOBJ) $(LIBS)
+xcbm8032: $(XCBMLIB) $(PETOBJ) $(COMMOBJ) $(MONOBJ)
+	cc  -o $(XCBMLIB)/xcbm8032  $(PETOBJ) $(COMMOBJ) $(MONOBJ) $(LIBS)
 
-xcbm64: $(XCBMLIB) $(C64OBJ) $(COMMOBJ)
-	cc  -o $(XCBMLIB)/xcbm64  $(C64OBJ) $(COMMOBJ) $(LIBS)
+xcbm64: $(XCBMLIB) $(C64OBJ) $(COMMOBJ) $(MONOBJ)
+	cc  -o $(XCBMLIB)/xcbm64  $(C64OBJ) $(COMMOBJ) $(MONOBJ) $(LIBS)
 
 clean:
-	rm -f $(COMMOBJ) $(C64OBJ) $(PETOBJ) xcbm.dep c64.log
+	rm -f $(COMMOBJ) $(C64OBJ) $(PETOBJ) $(MONOBJ) xcbm.dep c64.log
 
 dep depend:
 	cc -M -E -I. */*.c *.c > xcbm.dep

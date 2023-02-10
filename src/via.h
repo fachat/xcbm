@@ -84,6 +84,8 @@ typedef struct {
 	CLOCK tal;
 	CLOCK tai;
 
+	uchar t1pb7;
+
 	alarm_t t1alarm;
 
 	// timer 2

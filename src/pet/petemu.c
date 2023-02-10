@@ -16,6 +16,8 @@
 #include	"devices.h"
 #include	"vdrive.h"
 #include	"mem.h"
+#include	"mon.h"
+#include	"labels.h"
 
 #include	"petemu.h"
 #include	"io.h"
@@ -49,6 +51,8 @@ void usage(void) {
  "-B pet_basic_file\n"
  "-E pet_edit_file\n"
  "   set different ROM files\n"
+ "-l xa65_label_file\n"
+ "   load label file for use in monitor\n"
   );
   exit(1);
 }
@@ -63,9 +67,11 @@ int main(int argc, char *argv[])
 	// init virtual device table
 	devices_init();
 
-	logout(4,"6502-Emulation \n(c) 1993/94 A.Fachat");
+	label_init();
 
-	while((o=getopt(argc,argv,"bd:8:9:K:B:E:?"))>=0) {
+	logout(4,"6502-Emulation \n(c) 1993/2023 A.Fachat");
+
+	while((o=getopt(argc,argv,"bd:8:9:K:B:E:l:?"))>=0) {
 	    switch(o) {	
 	    case 'b':
 		color=-1;
@@ -75,6 +81,9 @@ int main(int argc, char *argv[])
 		break;
 	    case 'd':
 	 	files[0]=optarg;
+		break;
+	    case 'l':
+	 	label_load(optarg);
 		break;
 	    case '8':
 		if(optarg[0]=='0' && optarg[1]=='=') 
@@ -119,11 +128,12 @@ int main(int argc, char *argv[])
 	vdrive_setdrive(8,0,".");
 //settrap(MP_KERNEL1,0xfce4,NULL,"test");
 
+	mon_init();
 
 	// 200% speed for now
 	speed_set_percent(200);
 
-	//dismode=1;
+	dismode=1;
 
 	cpu_run();
 	

@@ -103,7 +103,7 @@ void dis6502(scnt pc, char *l, int maxlen){
 	    }
 	    ln = label_lookup(ad);
 	    if (ln == NULL || a == 1) {
-	    	snprintf(addrbuf, 10, (a==10) ? "$%04x" : "%02x", ad);
+	    	snprintf(addrbuf, 10, (a==10) ? "$%04x" : "$%02x", ad);
 		ln = addrbuf;
 	    }
 	    sprintf(l," %02x %02x     %-12s %s %s%s%s          ",

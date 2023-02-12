@@ -35,11 +35,20 @@ void logass(CPU *cpu){
 	char l[MAXLINE];
 	
 /*	sprintf(l,"\033[15;1H%04x %02x %02x %02x %02x %02x \n  ",*/
-	sprintf(l,"% 8ld %04x A:%02x X:%02x Y:%02x S:%02x P:%02x            \n  ",
+	sprintf(l,"% 8ld %04x A:%02x X:%02x Y:%02x P:%02x  S:%c%c%c%c%c%c%c%c            \n  ",
 		cpu->bus->actx.clk,
-		cpu->pc,cpu->a,cpu->x,cpu->y,cpu->sp,cpu->sr);
+		cpu->pc,cpu->a,cpu->x,cpu->y,cpu->sp,
+		cpu->sr & 0x80 ? 'N' : '-',
+		cpu->sr & 0x40 ? 'V' : '-',
+		cpu->sr & 0x20 ? '1' : '-',
+		cpu->sr & 0x10 ? 'B' : '-',
+		cpu->sr & 0x08 ? 'D' : '-',
+		cpu->sr & 0x04 ? 'I' : '-',
+		cpu->sr & 0x02 ? 'Z' : '-',
+		cpu->sr & 0x01 ? 'C' : '-'
+		);
 
-	dis6502(cpu->pc, l+40, MAXLINE-40);
+	dis6502(cpu->pc, l+47, MAXLINE-47);
 
 	logout(0, l);
 }

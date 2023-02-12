@@ -299,36 +299,32 @@ int parse_1541(char *cmd, vc1541_name *ns, int needcolon, char **cmdp) {
 	  *cmdp=cmd;
 	  return(0);
 	}
-	if(*cmd==',') {
-	  /* dateityp */
+	/* TODO: this parser is so horribly wrong...? */
+	while(*cmd==',') {
+	  /* file type */
 	  cmd++;
 	  if(strchr("PUSLDpusld",*cmd)) {
+	    /* file type first char */
 	    ns->type=toupper(*(cmd++));
+	  } else
+	  if(strchr("RWAMrwam",*cmd)) {
+	    /* read write mode */
+	    ns->mode=toupper(*(cmd++));
 	  } else {
 	    err_1541(VCE_SYNTAX);
 	    return(-1);
 	  }
-	  if(!*cmd || *cmd=='=') {
-	    *cmdp=cmd;
-	    return(0);
-	  }
-	  if(*cmd==',') {
-	    /* i/o-mode */
-	    cmd++;
-	    if(strchr("RWAMrwam",*cmd)) {
-	      ns->mode=toupper(*(cmd++));
-	    } else {
-	      err_1541(VCE_SYNTAX);
-	      return(-1);
-	    }
-	  }
-	  if(*cmd && *cmd!='=') {
-	    err_1541(VCE_SYNTAX);
-	    return(-1);
+	  /* skip rest */
+	  while (*cmd && *cmd != ',') {
+		cmd++;
 	  }
 	}
-	*cmdp=cmd;
-	return(0);
+	if(!*cmd || *cmd=='=') {
+	    *cmdp=cmd;
+	    return(0);
+	}
+	err_1541(VCE_SYNTAX);
+	return(-1);
 }
 
 /**************************************************************************/

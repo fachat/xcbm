@@ -133,7 +133,8 @@ int main(int argc, char *argv[])
 	// 200% speed for now
 	speed_set_percent(200);
 
-	dismode=1;
+	// TODO: move that into CPU struct
+	//dismode=1;
 
 	cpu_run();
 	

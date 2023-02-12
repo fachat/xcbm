@@ -170,7 +170,6 @@ void rti(){
 	cpu.sr=plbyt();
 	plpc();
 logout(0, "Pulling %04x from stack as new PC", cpu.pc);
-	cpu.pc++;
 	struct2cpu(&cpu);
 	next(6);	// clock cycles;
 }
@@ -1248,7 +1247,6 @@ int cpu_run(void){
 		if(hirq && !(irq)) {
 			aclb();
 			cpu2struct(&cpu);
-			cpu.pc-=1;
 logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, getadr(0xfffe));
 			phpc();
 			phbyt(cpu.sr);
@@ -1258,7 +1256,6 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
                 if(hnmi) {
 			hnmi=0;
                         cpu2struct(&cpu);
-			cpu.pc--;
                         phpc();
                         phbyt(cpu.sr);
                         cpu.pc=getadr(0xfffa);

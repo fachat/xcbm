@@ -12,14 +12,17 @@
 #include "alarm.h"
 #include "bus.h"
 #include "emu6502.h"
-#include "video.h"
-
-#define	MAXLINE	200
+#include "config.h"
 
 static unsigned int target_speed_percent = 100;
 static double speed_ratio = 0.0;
 
 static struct timespec last;
+
+/* update status only every N frames */
+static const int UPDATE_COUNT = 5;
+static int update_counter;
+
 
 // set target speed in percent of the original machine. 0 = warp
 void speed_set_percent(unsigned int per) {
@@ -35,7 +38,6 @@ void speed_alarm_cb(alarm_t *alarm, CLOCK current) {
         struct timespec diff;
         struct timespec rem;
 	struct timespec waitts;
-	char line[MAXLINE];
 
 	// get current time
         clock_gettime(CLOCK_MONOTONIC, &spec);
@@ -59,22 +61,35 @@ void speed_alarm_cb(alarm_t *alarm, CLOCK current) {
 
 	diff.tv_sec  = spec.tv_sec  - last.tv_sec;
 	diff.tv_nsec = spec.tv_nsec - last.tv_nsec;
-	if (diff.tv_nsec < 0) {
+
+	//logout(0, "diff sec=%ld, nsec=%ld", diff.tv_sec, diff.tv_nsec);
+
+	if (diff.tv_sec < 0 || (diff.tv_sec == 0 && diff.tv_nsec < 0)) {
+		logout(1, "went back in time... ");
 		diff.tv_sec = 0;
 		diff.tv_nsec = 1;
 	}
+
+	while (diff.tv_nsec < 0) {
+		diff.tv_sec -= 1;
+		diff.tv_nsec += 1000000000ul;
+	}
+
 	//logout(0, "diff=%ld.%03ds", diff.tv_sec, diff.tv_nsec / 1000000);
 
 	double speedratio = 100.0;
-	
 
 	if (diff.tv_sec > 0 || diff.tv_nsec > expectedns) {
 		logout(0, "too slow? diff=%ld.%03ds", diff.tv_sec, diff.tv_nsec / 1000000);
 		// we are too slow
 		last = spec;
 
-		speedratio = (expectedns == 1 ? (bus->msperframe * 1000000) : expectedns) 
-				/ (diff.tv_sec * 1000000000 + diff.tv_nsec) * 100.0;
+		double upper = (bus->msperframe * 1000000.);
+		double lower = (diff.tv_sec * 1000000000. + diff.tv_nsec);
+
+		speedratio = 100.0 * upper / lower;
+
+		logout(0, "expected=%ld, upper=%lf / lower=%lf -> ratio=%lf%%", expectedns,upper,lower,speedratio); 
 	} else {
 		// we are too fast - wait rest of interval
 		long wait = expectedns - diff.tv_nsec;
@@ -95,15 +110,22 @@ void speed_alarm_cb(alarm_t *alarm, CLOCK current) {
 		speedratio = target_speed_percent;
 	}
 
+	/* smooth out fluctuations */
 	speed_ratio = (2.0 * speed_ratio + speedratio) / 3.0;
-	snprintf(line, MAXLINE, "diff=%9ld, Host: % 5.0lf%%, limited to=%d%%", diff.tv_nsec, speed_ratio, target_speed_percent);
-	line[MAXLINE-1]=0;
-	video_set_status_line(line);
 
+	if (--update_counter) {
+		return;
+	}
+
+	update_counter = UPDATE_COUNT;
+
+	config_set_speed(speed_ratio, target_speed_percent);
 }
 
 
 void speed_init(CPU *cpu, int cyclespersec, int msperframe) {
+
+	update_counter = UPDATE_COUNT;
 
 	cpu->bus->msperframe = msperframe;
 	cpu->bus->cyclesperframe = (cyclespersec / 1000) * msperframe;

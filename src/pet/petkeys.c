@@ -11,6 +11,7 @@
 #include "ccurses.h"
 
 #include "keys.h"
+#include "config.h"
 
 
 int timer;
@@ -71,7 +72,7 @@ void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
 	//logout(0, "checking for key");
 
 	// do we have a character in curses?
-	if((key=getch())!=ERR) {	 	/* read a char */
+	if((key=esc_getch())!=ERR) {	 	/* read a char */
 
 		logout(0, "get key %d (%c)", key, isprint(key)?key:'.');
 

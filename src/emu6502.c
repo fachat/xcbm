@@ -12,6 +12,7 @@
 #include 	"mem.h"
 #include 	"speed.h"
 #include 	"mon.h"
+#include 	"config.h"
 
 #define	MAXLINE	200
 
@@ -1272,7 +1273,7 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
 			if(!(--traplines))
 				dismode =2;
 		}
-		if(dismode) {
+		if(config_is_trace_enabled()) {
 			cpu2struct(&cpu);
 			logass(&cpu);
 		}

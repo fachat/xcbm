@@ -24,6 +24,7 @@ COMMOBJ = 	curses.o \
 		vdrive.o \
 		mem.o \
 		speed.o \
+		config.o \
 
 C64OBJ = 	c64/mem64.o \
 		c64/emu64.o \

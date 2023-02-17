@@ -18,6 +18,7 @@
 #include	"mem.h"
 #include	"mon.h"
 #include	"labels.h"
+#include	"config.h"
 
 #include	"petemu.h"
 #include	"io.h"
@@ -53,6 +54,9 @@ void usage(void) {
  "   set different ROM files\n"
  "-l xa65_label_file\n"
  "   load label file for use in monitor\n"
+ "-e <char>\n"
+ "   set ctrl-<char> escape and pause code. Defaults to 'p'\n"
+ "   'ctrl-p h' for help on its usage\n"
   );
   exit(1);
 }
@@ -71,10 +75,13 @@ int main(int argc, char *argv[])
 
 	logout(4,"6502-Emulation \n(c) 1993/2023 A.Fachat");
 
-	while((o=getopt(argc,argv,"bd:8:9:K:B:E:l:?"))>=0) {
+	while((o=getopt(argc,argv,"bd:8:9:K:B:E:l:e:?"))>=0) {
 	    switch(o) {	
 	    case 'b':
 		color=-1;
+		break;
+	    case 'e':
+		config_set_esc_char(optarg[0]);
 		break;
 	    case '?':
 		usage();
@@ -131,7 +138,7 @@ int main(int argc, char *argv[])
 	mon_init();
 
 	// 200% speed for now
-	speed_set_percent(200);
+	speed_set_percent(1000);
 
 	// TODO: move that into CPU struct
 	//dismode=1;

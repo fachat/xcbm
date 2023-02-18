@@ -49,7 +49,6 @@ void usage(void) {
 int main(int argc, char *argv[])
 {
 	int er=0;
-	int o;
 	
 	loginit("c64.log");
 

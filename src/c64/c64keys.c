@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "log.h"
+#include "config.h"
 #include "types.h"
 #include "alarm.h"
 #include "bus.h"
@@ -65,7 +66,7 @@ void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
 	scnt i;	
 /*	time_setval(timer, KEYTIMER);*/
 
-	if((key=getch())!=ERR) {	 	/* read a char */
+	if((key=esc_getch())!=ERR) {	 	/* read a char */
 		if(key<128) {
 			k=&ktab[key];
 		} else 

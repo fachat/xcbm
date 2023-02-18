@@ -93,7 +93,7 @@ void inimemvec(void){
 /* ---------------------------------------------------------------*/
 
 static const char *names[] = { 
-		"/var/lib/cbm",
+		"/var/lib/cbm/pet",
 		"petkernel4.rom",
 		"petbasic4.rom",
 		"petedit4.rom"
@@ -120,7 +120,7 @@ static int mem_set_edit(const char *param) {
 }
 
 static config_t mem_pars[] = {
-	{ "rom-dir", 'd', "rom_directory", mem_set_rom_dir, "set common ROM directory (default = /var/lib/cbm)" },
+	{ "rom-dir", 'd', "rom_directory", mem_set_rom_dir, "set common ROM directory (default = /var/lib/cbm/pet)" },
 	{ "kernal-rom", 'K', "kernal_rom_filename", mem_set_kernal, "set kernal ROM file name (in ROM directory; default 'petkernal4.rom')" },
 	{ "basic-rom", 'B', "basic_rom_filename", mem_set_basic, "set basic ROM file name (in ROM directory; default 'petbasic4.rom')" },
 	{ "edit-rom", 'E', "edit_rom_filename", mem_set_edit, "set edit ROM file name (in ROM directory; default 'petedit4.rom')" },

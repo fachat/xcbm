@@ -5,6 +5,7 @@
 #include 	<errno.h>
 
 #include	"log.h"
+#include	"config.h"
 #include	"types.h"
 #include	"alarm.h"
 #include	"bus.h"
@@ -177,8 +178,78 @@ void inimemvec(void){
 	setmap();
 }
 
+/* -------------------------------------------------------------*/
 
-int mem_init(char *names[], int games, int exrom){
+static const char *names[] = {
+                "/var/lib/cbm/c64",
+                "c64kernl.rom",
+                "c64basic.rom",
+                "c64chars.rom",
+                "c64romh.rom",
+                "c64roml.rom"
+};
+
+static int exrom = 0;
+static int games = 0;
+
+static int mem_set_rom_dir(const char *param) {
+        names[0] = param;
+        return 0;
+}
+
+static int mem_set_kernal(const char *param) {
+        names[1] = param;
+        return 0;
+}
+
+static int mem_set_basic(const char *param) {
+        names[2] = param;
+        return 0;
+}
+
+static int mem_set_charom(const char *param) {
+        names[3] = param;
+        return 0;
+}
+
+static int mem_set_romh(const char *param) {
+        names[4] = param;
+        return 0;
+}
+
+static int mem_set_roml(const char *param) {
+        names[5] = param;
+        return 0;
+}
+
+static int mem_toggle_games(const char *p) {
+	games = !games;
+	return 0;
+}
+
+static int mem_toggle_exrom(const char *p) {
+	exrom = !exrom;
+	return 0;
+}
+
+static config_t mem_pars[] = {
+	{ "exrom", 'E', NULL, mem_toggle_exrom, "Toggle EXROM line (default off)" },
+	{ "games", 'G', NULL, mem_toggle_games, "Toggle GAMES line (default off)" },
+	{ "rom-dir", 'd', "rom_directory", mem_set_rom_dir, "set common ROM directory (default = /var/lib/cbm/c64)" },
+        { "kernal-rom", 'K', "kernal_rom_filename", mem_set_kernal, "set kernal ROM file name (in ROM directory; default 'c64kernl.rom')" },
+        { "basic-rom", 'B', "basic_rom_filename", mem_set_basic, "set basic ROM file name (in ROM directory; default 'c64basic.rom')" },
+        { "charom", 'C', "character_rom_filename", mem_set_charom, "set charactor ROM file name (in ROM directory; default 'c64chars.rom')" },
+        { "roml", 'L', "roml_filename", mem_set_roml, "set ROM file for lomem (in ROM directory; default 'c64roml.rom')" },
+        { "romh", 'H', "romh_filename", mem_set_romh, "set ROM file for himem (in ROM directory; default 'c64romh.rom')" },
+	{ NULL }
+};
+
+void mem_init() {
+	config_register(mem_pars);
+}
+
+
+void mem_start(){
 	char fname[MAXLINE];
 	size_t offset[]={ 0, KERNEL, BASIC, CHAROM, ROMH, ROML };
 	size_t len[]=   { 0, 8192,   8192,  4096,   8192, 8192 };
@@ -198,7 +269,7 @@ int mem_init(char *names[], int games, int exrom){
 	    loadrom(fname, offset[i], len[i]);
 	  }	
 	  inimemvec();
-	  return(0);
+	  return;
 	}
 	exit(1);
 }

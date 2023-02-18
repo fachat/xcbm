@@ -5,6 +5,7 @@
 #include 	<errno.h>
 
 #include	"log.h"
+#include 	"config.h"
 #include	"types.h"
 #include	"alarm.h"
 #include	"bus.h"
@@ -89,8 +90,49 @@ void inimemvec(void){
 	setmap();
 }
 
+/* ---------------------------------------------------------------*/
 
-int mem_init(char *names[], int games, int exrom){
+static const char *names[] = { 
+		"/var/lib/cbm",
+		"petkernel4.rom",
+		"petbasic4.rom",
+		"petedit4.rom"
+};
+
+static int mem_set_rom_dir(const char *param) {
+	names[0] = param;
+	return 0;
+}
+
+static int mem_set_kernal(const char *param) {
+	names[1] = param;
+	return 0;
+}
+
+static int mem_set_basic(const char *param) {
+	names[2] = param;
+	return 0;
+}
+
+static int mem_set_edit(const char *param) {
+	names[3] = param;
+	return 0;
+}
+
+static config_t mem_pars[] = {
+	{ "rom-dir", 'd', "rom_directory", mem_set_rom_dir, "set common ROM directory (default = /var/lib/cbm)" },
+	{ "kernal-rom", 'K', "kernal_rom_filename", mem_set_kernal, "set kernal ROM file name (in ROM directory; default 'petkernal4.rom')" },
+	{ "basic-rom", 'B', "basic_rom_filename", mem_set_basic, "set basic ROM file name (in ROM directory; default 'petbasic4.rom')" },
+	{ "edit-rom", 'E', "edit_rom_filename", mem_set_edit, "set edit ROM file name (in ROM directory; default 'petedit4.rom')" },
+	{ NULL }
+};
+
+
+void mem_init() {
+	config_register(mem_pars);
+}
+
+void mem_start() {
 	char fname[MAXLINE];
 	size_t offset[]={ 0, KERNEL, BASIC, EDITOR };
 	size_t len[]=   { 0, 4096,   3*4096,  2048 };
@@ -109,7 +151,7 @@ int mem_init(char *names[], int games, int exrom){
 	    loadrom(fname, offset[i], len[i]);
 	  }	
 	  inimemvec();
-	  return(0);
+	  return;
 	}
 	exit(1);
 }

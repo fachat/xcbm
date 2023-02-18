@@ -13,6 +13,7 @@
 #include <fcntl.h>
 
 #include "log.h"
+#include "config.h"
 #include "types.h"
 #include "alarm.h"
 #include "bus.h"
@@ -163,10 +164,6 @@ VC1541	*vc;
 #define	VCE_DOSVER	16
 #define	VCE_EXISTS	17
 
-
-int vdrive_init(void) {
-	return 0;
-}
 
 
 int init_1541(VC1541 *v, int dev) {
@@ -868,4 +865,39 @@ uchar get_1541(VC1541 *vcp, uchar *status, uchar ackflg) {
 
 	return(byte);
 }
+
+/* ----------------------------------------------------------------- */
+
+int vdrive_set_path(int unit, const char *par) {
+	if (par[0] == '0' && par[1] == '=') {
+		vdrive_setdrive(unit, 0, par+2);
+		return 0;
+	}
+	if (par[0] == '1' && par[1] == '=') {
+		vdrive_setdrive(unit, 1, par+2);
+		return 0;
+	}
+	return -1;
+}
+
+int vdrive_set_path_8(const char *par) {
+	return vdrive_set_path(8, par);
+}
+
+int vdrive_set_path_9(const char *par) {
+	return vdrive_set_path(9, par);
+}
+
+static config_t vdrive_pars[] = {
+	{ "drive8", '8', "{0|1}=path_for_unit_8", vdrive_set_path_8, "Set path for unit 8, drive 0 or 1" }, 
+	{ "drive9", '9', "{0|1}=path_for_unit_9", vdrive_set_path_9, "Set path for unit 9, drive 0 or 1" }, 
+	{ NULL }
+};
+
+int vdrive_init(void) {
+
+	config_register(vdrive_pars);
+	return 0;
+}
+
 

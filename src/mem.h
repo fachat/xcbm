@@ -1,5 +1,6 @@
 
-int mem_init(char *name[],int,int);
+void mem_init();
+void mem_start();
 
 void update_mem(int);
 

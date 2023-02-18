@@ -38,27 +38,12 @@ char *files[] = {
 
 void usage(void) {
 	printf(
- "xcbm4032 is a cbm4032 emulator for curses based Un*x systems\n"
- " xcbm4032 [options]\n"
- "Options:\n"
- "-b\n"
- "   force to black/white in curses mode\n"
- "-d rom_directory\n"
- "   set common ROM directory (default=/var/lib/xcbm)\n"
- "-8 {0|1}=path_for_unit_8\n"
- "-9 {0|1}=path_for_unit_9\n"
- "   set directories to be used as unit 8/9 'diskettes'\n"
- "-K pet_kernel_file\n"
- "-B pet_basic_file\n"
- "-E pet_edit_file\n"
- "   set different ROM files\n"
- "-l xa65_label_file\n"
- "   load label file for use in monitor\n"
- "-e <char>\n"
- "   set ctrl-<char> escape and pause code. Defaults to 'p'\n"
- "   'ctrl-p h' for help on its usage\n"
-  );
-  exit(1);
+ 		"xcbm8032 is a cbm8032 emulator for curses based Un*x systems\n"
+		" xcbm4032 [options]\n"
+ 		"Options:\n"
+	);
+ 	config_print();
+  	exit(1);
 }
 
 int main(int argc, char *argv[])
@@ -68,60 +53,27 @@ int main(int argc, char *argv[])
 	
 	loginit("c64.log");
 
+	config_init();
+
 	// init virtual device table
 	devices_init();
 
 	label_init();
 
+	mem_init();
+
 	logout(4,"6502-Emulation \n(c) 1993/2023 A.Fachat");
 
-	while((o=getopt(argc,argv,"bd:8:9:K:B:E:l:e:?"))>=0) {
-	    switch(o) {	
-	    case 'b':
-		color=-1;
-		break;
-	    case 'e':
-		config_set_esc_char(optarg[0]);
-		break;
-	    case '?':
-		usage();
-		break;
-	    case 'd':
-	 	files[0]=optarg;
-		break;
-	    case 'l':
-	 	label_load(optarg);
-		break;
-	    case '8':
-		if(optarg[0]=='0' && optarg[1]=='=') 
-		  vdrive_setdrive(8,0,optarg+2); 
-		else if(optarg[0]=='1' && optarg[1]=='=') 
-		  vdrive_setdrive(8,0,optarg+2); 
-		else logout(4,"wrong filename for disk setup");
-		break;
-	    case '9':
-		if(optarg[0]=='0' && optarg[1]=='=') 
-		  vdrive_setdrive(9,0,optarg+2); 
-		else if(optarg[0]=='1' && optarg[1]=='=') 
-		  vdrive_setdrive(9,0,optarg+2); 
-		else logout(4,"wrong filename for disk setup");
-		break;
-	    case 'K':
-		files[1]=optarg;
-		break;
-	    case 'B':
-		files[2]=optarg;
-		break;
-	    case 'E':
-		files[3]=optarg;
-		break;
-	    default:
-		logout(1,"unknown option!");
-		break;
-	    }
+	int e = config_parse(argc, argv);
+	if (e < 0) {
+		exit(1);
+	}
+	if (e < argc) {
+		printf("Unknown extra parameter(s) %s ...\n", argv[e]);
+		exit(1);
 	}
 
-	mem_init(files,0,0);
+	mem_start();
 	cur_init();
 
 	CPU *cpu = cpu_init(1000000, 16);

@@ -6,16 +6,12 @@
 #include <errno.h>
 
 #include "log.h"
+#include "config.h"
 #include "types.h"
 #include "labels.h"
 
 
 const char **labels;
-
-void label_init() {
-	
-	labels = malloc(sizeof(const char*) * 65536);
-}
 
 const char *label_lookup(int addr) {
 	return labels[addr & 0xffff];
@@ -47,7 +43,7 @@ static void label_register(int addr, const char *lname) {
 }
 
 
-void label_load(const char *filename) {
+int label_load(const char *filename) {
 	size_t len = 2000;
 	char *linep = malloc(len);
 	int s;
@@ -58,7 +54,7 @@ void label_load(const char *filename) {
 
 	if (fp == NULL) {
 		logout(1, "Error opening label file '%s' -> '%s'", filename, strerror(errno));
-		return;
+		return -1;
 	}
 
 	while((s = getline(&linep, &len, fp)) >= 0) {
@@ -71,5 +67,21 @@ void label_load(const char *filename) {
 	fclose(fp);
 
 	logout(0, "Successfully loaded label file '%s'", filename);
+
+	return 0;
 }
+
+
+static config_t label_pars[] = {
+	{ "labels", 'l', "label_file", label_load, "Load xa65 label file for use in the monitor" },
+	{ NULL }
+};
+
+void label_init() {
+	
+	labels = malloc(sizeof(const char*) * 65536);
+
+	config_register(label_pars);
+}
+
 

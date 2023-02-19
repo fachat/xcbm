@@ -46,7 +46,7 @@ int config_parse(int argc, char *argv[]) {
 
 	while (argp < argc) {
 
-		logout(0, "par: %s\n", argv[argp]);
+		logout(0, "par: %s", argv[argp]);
 		par = argv[argp];
 		found = NULL;
 		par_found = NULL;

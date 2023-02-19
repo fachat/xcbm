@@ -4,14 +4,7 @@ CFLAGS = -g -O5 -finline-functions -Wall -pedantic -Wno-parentheses
 
 LIBS = -lc -lncurses -lm
 
-all: xcbm64 xcbm8032
-
-ifeq (xcbm.dep,$(wildcard xcbm.dep))
-include xcbm.dep
-endif
-
-.c.o:
-	$(CC) $(CFLAGS) -I. -g -c -o $*.o $<
+all: xcbm64 xcbm8032 xcsa
 
 COMMOBJ = 	curses.o \
 		trap.o \
@@ -42,11 +35,43 @@ PETOBJ = 	pet/petemu.o \
 		pia.o \
 		via.o \
 		parallel.o \
-#		pet/petkeys.o \
+
+CSAOBJ = 	csa/xcsa.o \
+		csa/csamem.o \
+		pet/petio.o \
+		pet/petvideo.o \
+		pet/petkeys.o \
+		pia.o \
+		via.o \
+		parallel.o \
 
 MONOBJ =	mon/mon.o \
 		mon/labels.o
 
+ALLOBJ =	$(COMMONOBJ) $(C64OBJ) $(PETOBJ) $(MONOBJ) $(CSAOBJ)
+
+DEPDIR=.dep
+
+include $(wildcard $(DEPDIR)/*.d)
+include $(wildcard $(DEPDIR)/*/*.d)
+
+MAKEDEPEND = $(CC) -E -MM -I. $< > $(DEPDIR)/$*.d
+#MAKECSADEPEND = $(CC) -E -MM -I. -Ipet $< > $(DEPDIR)/$*.d
+
+$(DEPDIR):
+	@mkdir -p $@ $@/pet $@/c64 $@/csa $@/mon
+
+%.o : %.c $(DEPDIR)
+	$(MAKEDEPEND)
+	$(CC) $(CFLAGS) -I. -c -o $@ $<
+
+#csa/%.o : csa/%.c $(DEPDIR)
+#	$(MAKECSADEPEND)
+#	$(CC) $(CFLAGS) -I. -Ipet -c -o $@ $<
+
+
+depfiles: $(DEPDIR) $(DEPFILES)
+ 
 $(XCBMLIB):
 	test -d $(XCBMLIB) || mkdir $(XCBMLIB)
 
@@ -56,9 +81,10 @@ xcbm8032: $(XCBMLIB) $(PETOBJ) $(COMMOBJ) $(MONOBJ)
 xcbm64: $(XCBMLIB) $(C64OBJ) $(COMMOBJ) $(MONOBJ)
 	cc  -o $(XCBMLIB)/xcbm64  $(C64OBJ) $(COMMOBJ) $(MONOBJ) $(LIBS)
 
+xcsa: $(XCBMLIB) $(CSAOBJ) $(COMMOBJ) $(MONOBJ)
+	cc  -o $(XCBMLIB)/xcsa  $(CSAOBJ) $(COMMOBJ) $(MONOBJ) $(LIBS)
+
 clean:
 	rm -f $(COMMOBJ) $(C64OBJ) $(PETOBJ) $(MONOBJ) xcbm.dep c64.log
-
-dep depend:
-	cc -M -E -I. */*.c *.c > xcbm.dep
+	rm -rf $(DEPDIR)
 

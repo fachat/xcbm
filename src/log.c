@@ -42,7 +42,7 @@ char *logout(int c,char *format, ...)
 
 	strftime(line+1,22," %d-%b-%y %H:%M:%S  ",ts);
 	
-	vsprintf(line+22,format,argl);
+	vsnprintf(line+22,MAXLOG-22,format,argl);
 /*	printf("%s\n",line);*/
 
 	if(flog){

@@ -20,7 +20,6 @@
 #include	"labels.h"
 #include	"config.h"
 
-#include	"petemu.h"
 #include	"io.h"
 #include	"video.h"
 #include	"speed.h"

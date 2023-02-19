@@ -45,7 +45,7 @@ int debug_ieee = 1;
 #define	log_debug(x, ...)	logout(0, x, ##__VA_ARGS__);
 #define	log_error(x, ...)	logout(x, ##__VA_ARGS__);
 
-#include <types.h>
+//#include <types.h>
 #include <stddef.h>
 
 #include "log.h"

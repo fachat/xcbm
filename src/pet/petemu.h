@@ -1,4 +1,0 @@
-
-#define	MAXLINE		200
-
-

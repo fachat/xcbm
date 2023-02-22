@@ -43,6 +43,7 @@ typedef struct {
 /*****************************************************************************/
 /* Funktions- und Speicheradressen fr 6502-Speicherzugriffe */
 
+// nasty
 extern unsigned char *mem;
 extern mt m[];
 extern meminfo memtab[];

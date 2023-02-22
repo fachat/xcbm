@@ -13,6 +13,7 @@
 #include	"ccurses.h"
 #include	"mem.h"
 #include	"mem64.h"
+#include	"mon.h"
 
 #include	"io.h"
 #include	"video.h"
@@ -68,7 +69,10 @@ int main(int argc, char *argv[])
 	cur_init();
 
 	// PAL
-	CPU *cpu = cpu_init(985248, 20);
+	CPU *cpu = cpu_init("main", 985248, 20);
+
+	mon_init();
+	mon_register_cpu(cpu);
 
 	video_init(cpu);
 	key_init(cpu);

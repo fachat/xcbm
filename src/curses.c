@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "log.h"
 #include "types.h"
@@ -9,6 +10,8 @@
 #include "emu6502.h"
 #include "ccurses.h"
 #include "video.h"
+
+#define	MAXLINE		200
 
 int color = 0;		/* 0 = black/white, 1= color use for ncurses */
 
@@ -33,10 +36,23 @@ rgb_t rgb[16]={ { 0,    0,    0,	0 },	/* black */
 		{ 200,   200, 1000,	6 },	/* bright blue */
 		{ 750,   750,  750,	0 } };	/* grey 3 */
  
-void cur_exit(void);
 
-int cur_init(void) {
+int cur_getch() {
+	struct timespec sleep;
 
+        int c = ERR;
+        while (c == ERR) {
+                c = getch();
+
+                // wait a bit to release CPU
+                sleep.tv_sec = 0;
+                sleep.tv_nsec = 20000000;
+                nanosleep(&sleep, NULL);
+        }
+	return c;
+}
+
+void cur_setup(void) {
 	scr =initscr();
 
 	cbreak();	/* may be changed to raw() someday */
@@ -73,13 +89,35 @@ int cur_init(void) {
 	} else {
 	  color=0;
 	}
-	atexit(cur_exit);
-	return(0);
 }
 
 void cur_exit(void) {
 	nocbreak();
 	endwin();
+}
+
+ssize_t cur_getline(char **line, size_t *llen) {
+
+
+        if (*llen == 0) {
+                *line = malloc(MAXLINE);
+                *llen = MAXLINE;
+        }
+
+	int r = getline(line, llen, stdin);
+
+
+	return r;
+}
+
+
+int cur_init(void) {
+
+	cur_setup();
+
+	atexit(cur_exit);
+
+	return(0);
 }
 
 

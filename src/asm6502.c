@@ -75,9 +75,10 @@ int adl[16]= { 1,2,3,2,2,2,3,3,3,1,2,3,2,2,3,3 };
 char *ad1[16]={ "", "#", "", "", "", "", "", "", "(", "", "", "", "(", "(", "(", "(" };
 char *ad2[16]={ "", "", "", "", ",x", ",y", ",x", ",y", ",x)", "", "", "", ",x)", "),y", ")", ")" };
 
-void dis6502(scnt pc, char *l, int maxlen){
+int dis6502(scnt pc, char *l, int maxlen){
 	int c=getbyt(pc);
 	int o,a,d,f=0;
+	int olen = 1;
 	scnt ad = 0;
 	const char *ln = NULL;
 	char addrbuf[10];
@@ -92,7 +93,8 @@ void dis6502(scnt pc, char *l, int maxlen){
 	} else {
 	  a=adm[c];
 	  o=cmd[c];
-	  switch(adl[a]){
+	  olen = adl[a];
+	  switch(olen){
 	  case 1:
 	    sprintf(l," %02x        %-12s %s                        ", c, al, kt[o]);
 	    break;
@@ -132,6 +134,8 @@ void dis6502(scnt pc, char *l, int maxlen){
 	    getbyt(ad+5),getbyt(ad+6),getbyt(ad+7));
 #endif
 	}
+	// return length of opcode
+	return olen;
 }
 
 

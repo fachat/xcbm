@@ -1,4 +1,4 @@
 
 		
-void dis6502(scnt pc, char *l, int maxlen);
+int dis6502(scnt pc, char *l, int maxlen);
 

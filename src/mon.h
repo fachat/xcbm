@@ -22,5 +22,8 @@ static inline int is_mon() {
 	return 0;
 }
 
+void mon_register_cpu(CPU *cpu);
+
+/* switch monitor to the given CPU if not NULL */
 void mon_line(CPU *cpu);
 

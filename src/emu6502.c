@@ -60,10 +60,11 @@ void cpu_reset(CPU *cpu){
 	err=0;
 }
 
-CPU *cpu_init(int cyclespersec, int msperframe) {
+CPU *cpu_init(const char *n, int cyclespersec, int msperframe) {
 
 	alarm_context_init(&bus.actx, "main cpu");
 
+	cpu.name = n;
 	cpu.bus = &bus;
 	bus.cpu = &cpu;
 

@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	mem_start();
 	cur_init();
 
-	CPU *cpu = cpu_init(1000000, 16);
+	CPU *cpu = cpu_init("main", 1000000, 16);
 
 	video_init(cpu);
 	key_init(cpu);	
@@ -86,6 +86,7 @@ int main(int argc, char *argv[])
 //settrap(MP_KERNEL1,0xfce4,NULL,"test");
 
 	mon_init();
+	mon_register_cpu(cpu);
 
 	// 200% speed for now
 	speed_set_percent(1000);

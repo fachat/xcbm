@@ -1,7 +1,6 @@
 
 #include <curses.h>
 #include <stdio.h>
-#include <time.h>
 #include <string.h>
 
 #include "types.h"
@@ -11,6 +10,8 @@
 #include "bus.h"
 #include "emu6502.h"
 #include "video.h"
+#include "ccurses.h"
+#include "mon.h"
 
 
 static char cf_esc_char = 'p';
@@ -154,6 +155,7 @@ void config_print() {
 }
 
 /* ------------------------------------------------------------------- */
+
 static void config_update() {
 
         snprintf(line, MAXLINE, "Speed: % 3.0lf%%, limit=% 3.0lf%%  Esc: C-%c  Shift:%c%c %s", 
@@ -196,8 +198,6 @@ void config_toggle_trace() {
 /* get an escaped character from the keyboard */
 int esc_getch() {
 
-	struct timespec sleep;
-
 	int c = getch();
 
 	//if (c != ERR) logout(1, "received char %02x ('%c'), esc=%02x, '%c'", c, c, config_get_esc_char() & 0x1f, sline_get_esc_char() & 0x1f);
@@ -208,6 +208,8 @@ int esc_getch() {
 
 	logout(1, "escape: Entering wait loop");
 
+	c = cur_getch();
+#if 0
 	// wait test
 	c = ERR;
 	while (c == ERR) {
@@ -218,6 +220,7 @@ int esc_getch() {
 		sleep.tv_nsec = 20000000;
 		nanosleep(&sleep, NULL);
 	}
+#endif
 
 	// if Ctrl-P again, exit pause/config mode
 	if (c == (config_get_esc_char() & 0x1f)) {
@@ -229,6 +232,13 @@ int esc_getch() {
 		// toggle trace
 		config_toggle_trace();
 		c = ERR;
+		break;
+	case 'm':
+		mon_line(NULL);
+		c = ERR;
+		break;
+	case 'x':
+		exit(0);
 		break;
 	default:
 		break;

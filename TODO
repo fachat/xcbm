@@ -1,6 +1,4 @@
 
-- separate out multiple machine types, like pet, upet/ultra-pet
-
 - make CPU loop a big switch/case thing to improve speed
 
 - simulating 1541:
@@ -13,19 +11,11 @@
   - better output, for e.g. "@"
   - fix color mode
  
-- Counter: have system counter to be increased, only compare
-  to target values, don't have lots of counters
-
-- Catch SIGINT and make ^C to xcbm
-  how to exit xcbm? - special key-code
-
 - get CIA Timers to work
 
 - undocumented opcodes
 
 - CMOS opcodes
-
-- right timing counter values for opcodes
 
 - real (?) mode - adjust read/write cycles to real 6502/10 behaviour
 

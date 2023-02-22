@@ -16,6 +16,29 @@
 
 #define	MAXLINE	200
 	
+/*******************************************************************
+ * Simulated memory map:
+ *
+ * 00000-07fff 	32k SRAM (BIOS board)
+ * 08000-0ffff	32k ROM (pre-filled with PET BASIC 4)
+ *		I/O window at 0e800-0efff
+ * 10000-1ffff	64k RAM (VDC board)
+ * 80000-fffff	512k RAM (lowest 32k overlapp with 00000-07fff)
+ *
+ * Of the video RAM, after reset, the lowest 16k are available
+ * to the CRTC, but can be changed with bits 0/1 in the VDC
+ * control port at $e888
+ *
+ * The CPU address after reset is mapped 1:1 to the lowest
+ * 64k of memory. After the first write to the MMU at I/O effx,
+ * the mapping is determined by the MMU registers, one
+ * for every 4k block. 
+ *
+ * At this time the control register at I/O efd0 (wprot/notmapped/noexec)
+ * and $efd8/efd9 (read CPU address from external bus master) 
+ * are ignored 
+ */
+
 #define		VRAM	0x8000
 #define 	KERNEL	(MP_KERNEL*4096l)
 #define 	BASIC	(MP_BASIC*4096l)

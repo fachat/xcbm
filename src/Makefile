@@ -7,7 +7,6 @@ LIBS = -lc -lncurses -lm
 all: xcbm64 xcbm8032 xcsa
 
 COMMOBJ = 	curses.o \
-		trap.o \
 		emu6502.o \
 		asm6502.o \
 		log.o \

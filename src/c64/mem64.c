@@ -18,7 +18,45 @@ int	hiram;
 int	loram;
 int	charen;
 
-meminfo memtab[MP_NUM];
+static char *ram[0x10000];	// 64k RAM
+static char *rom[0x9000];	// 36 ROM (8k Kernal, 8k BASIC, 4k charrom, 8k loram, 8k hiram)
+
+static meminfo_t ram_info[16];
+
+static bank_t rambank = {
+	"ram",
+	add_mem_trap,
+	rm_mem_trap,
+	ram_info
+};
+
+static meminfo_t rom_info[16];
+
+static bank_t rombank = {
+	"rom",
+	add_mem_trap,
+	rm_mem_trap,
+	rom_info
+};
+
+static meminfo_t io_info[16];
+
+static bank_t iobank = {
+	"io",
+	add_mem_trap,
+	rm_mem_trap,
+	io_info
+};
+
+static meminfo_t cart_info[16];
+
+static bank_t cartbank = {
+	"cart",
+	add_mem_trap,
+	rm_mem_trap,
+	cart_info
+};
+
 
 #define	seekernel()	(hiram)
 #define	seebasic()	(hiram&&loram)
@@ -28,12 +66,11 @@ meminfo memtab[MP_NUM];
 #define	seeio()		((charen)&&(hiram||loram))
 	
 
-#define 	KERNEL	65536l
-#define 	BASIC	(KERNEL+8192l)
-#define		CHAROM	(BASIC+8192l)
-#define		ROML	(CHAROM+4096l)
-#define		ROMH	(ROML+8192l)
-#define		MEMLEN	(ROMH+8192l)
+#define 	KERNEL	(MP_KERNEL0 * 4096)
+#define 	BASIC	(MP_BASIC0 * 4096)
+#define		CHAROM	(MP_CHAROM * 4096)
+#define		ROML	(MP_ROML0 * 4096)
+#define		ROMH	(MP_ROMH0 * 4096)
 
 /*******************************************************************/
 
@@ -133,7 +170,7 @@ void inimemvec(void){
 		memtab[i].mf_wr=NULL;
 		memtab[i].mf_rd=NULL;
 	}
-	/* RAM */
+	/* 64k RAM */
 	for(i=MP_RAM0;i<MP_RAM0+16;i++) {
 	 	memtab[i].mt_wr=mem+i*0x1000;
 	 	memtab[i].mt_rd=mem+i*0x1000;
@@ -246,6 +283,37 @@ static config_t mem_pars[] = {
 
 void mem_init() {
 	config_register(mem_pars);
+
+	memset(rominfo, 0, sizeof(rominfo));
+	memset(raminfo, 0, sizeof(rominfo));
+	memset(ioinfo, 0, sizeof(rominfo));
+	memset(cartinfo, 0, sizeof(rominfo));
+
+	// see also https://codebase64.org/doku.php?id=base:memory_management
+
+	// set RAM bank
+	for (int i = 0; i < 16; i++) {
+		raminfo[i].mt_rd = &rom[i * 0x1000];
+		raminfo[i].mt_wr = &rom[i * 0x1000];
+	}
+
+	// set ROM bank
+	// kernal
+	rominfo[14].mt_rd = &rom[KERNAL];
+	rominfo[15].mt_rd = &rom[KERNAL + 0x1000];
+	// BASIC
+	rominfo[10].mt_rd = &rom[BASIC];
+	rominfo[11].mt_rd = &rom[BASIC + 0x1000];
+	// charrom
+	rominfo[13].mr_rd = &rom[CHAROM];
+
+	// set Cartridge bank
+	// ROML
+	cartinfo[8].mt_rd = &rom[ROML];
+	cartinfo[9].mt_rd = &rom[ROML + 0x1000];
+	// ROMH
+	cartinfo[10].mt_rd = &rom[ROMH];
+	cartinfo[11].mt_rd = &rom[ROMH + 0x1000];
 }
 
 
@@ -255,7 +323,6 @@ void mem_start(){
 	size_t len[]=   { 0, 8192,   8192,  4096,   8192, 8192 };
 	int i;
 	loram=hiram=charen=1;
-	mem=malloc(MEMLEN);
 	if(mem){
 	  atexit(mem_exit);
 	  for(i=1;i<6;i++) {
@@ -266,7 +333,7 @@ void mem_start(){
 	      if(fname[strlen(fname)-1]!='/') strcat(fname,"/");
 	      strcat(fname,names[i]);
 	    }
-	    loadrom(fname, offset[i], len[i]);
+	    loadrom(fname, rom + offset[i], len[i]);
 	  }	
 	  inimemvec();
 	  return;

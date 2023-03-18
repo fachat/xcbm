@@ -11,9 +11,9 @@
 #include "bus.h"
 #include "emu6502.h"
 #include "asm6502.h"
-#include "mon.h"
 #include "labels.h"
 #include "mem.h"
+#include "mon.h"
 #include "ccurses.h"
 #include "labels.h"
 
@@ -25,6 +25,11 @@
 #define	min(a,b)	((a)<(b)?(a):(b))
 
 #define	MAXLEN		200
+
+/* this should be more dynamic, but heck.... */
+#define	MAXBANKS	16
+
+static bank_t *banks[MAXBANKS];
 
 static struct sigaction monaction;
 static struct sigaction oldaction;
@@ -44,6 +49,15 @@ typedef struct {
 static int cmd_quit(char *pars) {
 	return R_QUIT;
 }
+
+static int cmd_bank(char *pars) {
+	/* preliminary */
+	for (int i = 0; i < MAXBANKS && banks[i]; i++) {
+		printf("%s\n", banks[i]->name);
+	}
+	return R_CONT;
+}
+
 
 static int getpars(const char *pars, unsigned int *from, unsigned int *to) {
 
@@ -148,6 +162,7 @@ static int cmd_help(char *pars);
 static cmd_t cmds[] = {
 	{ "mem", cmd_mem, "Show a memory dump in hex: m <from_in_hex> [<to_in_hex>]" },
 	{ "dis", cmd_dis, "Disassemble a memory area: d <from_in_hex> [<to_in_hex>]" },
+	{ "bank", cmd_bank, "show current bank or set new one" },
 	{ "help", cmd_help, "Show this help" },
 	{ "x", cmd_quit, "Leave the monitor" },
 	{ NULL }
@@ -287,8 +302,22 @@ void mon_init() {
 			strerror(er));
 
 	}
+
+	memset(banks, 0, sizeof(banks));
 }
 
 
+void mon_register_bank(bank_t *bank) {
+
+	for (int i = 0; i < MAXBANKS; i++) {
+		if (banks[i] == NULL) {
+			banks[i] = bank;
+			return;
+		}
+	}
+
+	logout(4, "Too many banks - should not happen");
+	exit(1);
+}
 
 

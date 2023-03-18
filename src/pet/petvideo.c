@@ -27,11 +27,13 @@ int videopage=0;
 static const int width=80;
 static const int scrlen=width*25;
 
+/* video RAM (mirrors 0x8xxx of CPU pet bank */
+static uchar vram[0x1000];
+
 void wrvid(scnt a, scnt b){
 	static chtype c;
 	static int line, col;
-	if(a>=screenadr && a<screenadr+scrlen) {
-		a-=screenadr;
+	if(a<scrlen) {
 		line=a/width;
 		col =a%width;
 		c=b&0x7f;
@@ -40,7 +42,7 @@ void wrvid(scnt a, scnt b){
 		if(b&0x80)
 			c|=A_REVERSE;
 		if(color) {
-		 	c|=COLOR_PAIR(colram[a]);
+		 	c|=COLOR_PAIR(vram[a+0x800]);
 		}
 
 		mvaddch(line,col,c);
@@ -55,13 +57,11 @@ void wrvid(scnt a, scnt b){
 
 void updatevideo(void) {
 	int i;
-	setwr(MP_VRAM,NULL);
 	//val=vic_reg[24];
 	//screenadr=videopage+1024*(val>>4);
-	setwr(MP_VRAM,vmem_wr);
 	update=0;
-	for(i=screenadr;i<screenadr+scrlen;i++) {
-	  wrvid(i,getvbyt(i));
+	for(i=0;i<scrlen;i++) {
+	  wrvid(i,vram[i]);
 	}
 	update=1;
 /*	touchwin(scr);*/
@@ -106,8 +106,6 @@ int video_init(CPU *cpu){
 	screenadr=0x8000;
 //	crtc_wr(33,0);
 
-	setwr(MP_VRAM, vmem_wr);
-
 	// 128 cycles VDRIVE pulse
 	set_vdrive.data = cpu->bus;
 	alarm_register(&cpu->bus->actx, &set_vdrive);
@@ -122,18 +120,20 @@ int video_init(CPU *cpu){
 
 static inline void colram_wr(scnt adr, scnt val) {
 	if(color && adr<1000) {
-	  wrvid(adr+screenadr,getvbyt(adr+screenadr));
+	  wrvid(adr,vram[adr]);
 	}
 }
 
 void vmem_wr(scnt addr,scnt val ) {
 	register scnt a = addr & 0x0fff;
 
+	vram[a] = val;
+
 	if (a & 0x800) {
 		// write col RAM
-		colram_wr(addr, val);
+		colram_wr(a, val);
 	} else {
-		wrvid(addr, val);
+		wrvid(a, val);
 	}
 }
 

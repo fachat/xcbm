@@ -13,79 +13,102 @@
 #include 	"mem.h"
 #include 	"petmem.h"
 #include 	"petio.h"
+#include 	"petvideo.h"
+#include 	"mon.h"
 
 #define	MAXLINE	200
 	
 #define		VRAM	0x8000
-#define 	KERNEL	(MP_KERNEL*4096l)
-#define 	BASIC	(MP_BASIC*4096l)
-#define		EDITOR	(MP_EDIT*4096l)
+#define 	KERNEL	(MP_KERNEL*PAGESIZE)
+#define 	BASIC	(MP_BASIC*PAGESIZE)
+#define		EDITOR	(MP_EDIT*PAGESIZE)
+#define		ROM9	(MP_ROM9*PAGESIZE)
+#define		ROMA	(MP_ROMA*PAGESIZE)
 
 #define		MEMLEN	0x10000
 
 /*******************************************************************/
 
-meminfo memtab[MP_NUM];
+
+static uchar ram[0x09000];	// 32k main RAM + 4k video RAM
+static uchar rom[0x07000];	// 4k ROM9, 4k ROMA, 12k BASIC, 4k EDIT, 4k KERNEL
 
 uchar *colram = NULL;
 
+/* in prep for extra 8296 memory banks */
+/* includes 32k RAM, 4k Video, and all ROM + I/O */
+
+static meminfo_t pet_info[16];
+
+static bank_t petbank = {
+	"pet",
+	add_mem_trap,
+	rm_mem_trap,
+	pet_info
+};
+
+/* 
+ * initialize the CPU memory map, depending on the configuration chosen
+ */
 void setmap(void) {
 	int i;
 
 	for(i=0;i<16;i++) {
-		updatemw(i,i);
-		updatemr(i,i);
+		cpumap[i].inf = &pet_info[i];
+
+		// mask/comp flags for I/O area
+		if (i == 14) {
+			// I/O memory space 
+			// note: limited to 4k page
+			cpumap[i].mask = 0x0f00;
+			cpumap[i].comp = 0x0800;
+			cpumap[i].m_wr = &io_wr;
+			cpumap[i].m_rd = &io_rd;
+		}
 	}
 }
 
 
 /*******************************************************************/
-
+/*
+ * initialize the bank information that stays constant
+ * and is then used by setmap() to set the actual CPU mapping
+ */
 void inimemvec(void){
 	int i;
-	for(i=0;i<MP_NUM;i++) {
-		memtab[i].mt_wr=NULL;
-		memtab[i].mt_rd=NULL;
-		memtab[i].ntraps=0;
-		memtab[i].mf_wr=NULL;
-		memtab[i].mf_rd=NULL;
+	for(i=0;i<16;i++) {
+		pet_info[i].mt_wr=NULL;
+		pet_info[i].mt_rd=NULL;
+		pet_info[i].traplist=malloc(PAGESIZE * sizeof(trap_t*));
+		pet_info[i].mf_wr=NULL;
+		pet_info[i].mf_rd=NULL;
+		memset(pet_info[i].traplist, 0, PAGESIZE * sizeof(trap_t*));
 	}
+
 	/* RAM (including VRAM) */
-	for(i=MP_RAM0;i<MP_RAM0+9;i++) {
-	 	memtab[i].mt_wr=mem+i*0x1000;
-	 	memtab[i].mt_rd=mem+i*0x1000;
+	for(i=MP_RAM0;i<=MP_VRAM;i++) {
+	 	pet_info[i].mt_wr=ram+i*0x1000;
+	 	pet_info[i].mt_rd=ram+i*0x1000;
 	}
 	/* video + color RAM at $8800 */
-	colram = memtab[MP_VRAM].mt_wr + 0x0800;
+	pet_info[MP_VRAM].mf_wr = vmem_wr;
 
 	/* KERNEL */
-	memtab[MP_KERNEL].mt_rd = mem+KERNEL;
+	pet_info[MP_ROM_OFFSET+MP_KERNEL].mt_rd = rom+KERNEL;
 	/* BASIC */
-	memtab[MP_BASIC].mt_rd = mem+BASIC;
-	memtab[MP_BASIC+1].mt_rd = mem+BASIC+0x1000;
-	memtab[MP_BASIC+2].mt_rd = mem+BASIC+0x2000;
+	pet_info[MP_ROM_OFFSET+MP_BASIC].mt_rd = rom+BASIC;
+	pet_info[MP_ROM_OFFSET+MP_BASIC+1].mt_rd = rom+BASIC+0x1000;
+	pet_info[MP_ROM_OFFSET+MP_BASIC+2].mt_rd = rom+BASIC+0x2000;
 	/* EDITOR */
-	memtab[MP_EDIT].mt_rd = mem+EDITOR;
+	pet_info[MP_ROM_OFFSET+MP_EDIT].mt_rd = rom+EDITOR;
 
+	/* the CPU map parts that may need to survive a setmap() */
 	for(i=0;i<16;i++) {
-		// video memory address */
-		if(i==8) {
-			m[i].vr=mem+VRAM;
-		} else {
-			m[i].vr=NULL;
-		}
-		// current page
-		m[i].wr=m[i].rd=-1;
-		// mask/comp flags
-		if (i == 14) {
-			// I/O memory space
-			m[i].mask = 0xff00;
-			m[i].comp = 0xe800;
-			m[i].m_wr = &io_wr;
-			m[i].m_rd = &io_rd;
-		} else {
-			m[i].mask = 0;
-		}
+		cpumap[i].mask = 0;
+		cpumap[i].comp = 0;
+
+		cpumap[i].traplist=malloc(PAGESIZE * sizeof(trap_t*));
+		memset(pet_info[i].traplist, 0, PAGESIZE * sizeof(trap_t*));
 	}
 	setmap();
 }
@@ -130,6 +153,8 @@ static config_t mem_pars[] = {
 
 void mem_init() {
 	config_register(mem_pars);
+
+	mon_register_bank(&petbank);
 }
 
 void mem_start() {
@@ -137,9 +162,7 @@ void mem_start() {
 	size_t offset[]={ 0, KERNEL, BASIC, EDITOR };
 	size_t len[]=   { 0, 4096,   3*4096,  2048 };
 	int i;
-	mem=malloc(MEMLEN);
-	if(mem){
-	  atexit(mem_exit);
+
 	  for(i=1;i<4;i++) {
 	    if(names[i][0]=='/') {
 	      strcpy(fname,names[i]);
@@ -148,11 +171,9 @@ void mem_start() {
 	      if(fname[strlen(fname)-1]!='/') strcat(fname,"/");
 	      strcat(fname,names[i]);
 	    }
-	    loadrom(fname, offset[i], len[i]);
+	    loadrom(fname, rom+offset[i], len[i]);
 	  }	
 	  inimemvec();
 	  return;
-	}
-	exit(1);
 }
 

@@ -19,6 +19,8 @@
 BUS		bus;
 CPU		cpu;
 
+memmap_t cpumap[PAGES];
+
 void struct2cpu(CPU*);
 void cpu2struct(CPU*);
 
@@ -1233,7 +1235,7 @@ void struct2cpu(CPU *cpu){
 	
 int cpu_run(void){
 	scnt c;
-	void (*v)(scnt,CPU*);
+	void (*v)(CPU*, scnt);
 	cpu_reset(&cpu);
 	struct2cpu(&cpu);
 	
@@ -1266,7 +1268,7 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
                 }
                 if(v=trap6502(cpu.pc)) {
 			cpu2struct(&cpu);
-			v(cpu.pc,&cpu);
+			v(&cpu, cpu.pc);
 			struct2cpu(&cpu);
 		}
 

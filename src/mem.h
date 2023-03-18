@@ -7,115 +7,171 @@ void update_mem(int);
 /*****************************************************************************/
 /* some needed structs */
 
-#define	MAXTRAPS	16
+#define	PAGESIZE	4096
+#define	PAGES		16
 
-typedef struct {
-		scnt		adr;
-		void		(*exec)(scnt trapadr, CPU *cpu);
+
+typedef struct trap_s trap_t;
+typedef struct bank_s bank_t;
+typedef struct meminfo_s meminfo_t;
+
+struct trap_s {
+		scnt		addr;
+		void		(*exec)(CPU *cpu, scnt trapaddr);
 		const char	*name;
-} trap;
+};
+
+
+struct bank_s {
+		const char	*name;
+		trap_t* 	(*addtrap)(bank_t *bank, scnt trapaddr, void (*execaddr)(CPU *cpu, scnt addr));
+		trap_t* 	(*rmtrap)(bank_t *bank, scnt trapaddr);
+		void		*map;	// either ptr to memmap_t array (cpu bank), or meminfo_t array (mem bank), 
+					// or anything else the corresponding addtrap/rmtrap understands
+};
 
 /* information on a memory page (4k) */
-typedef struct {
-                uchar   *mt_wr;
-		uchar	*mt_rd;
-                int     ntraps;
-                trap    traplist[MAXTRAPS];
-                void    (*mf_wr)(scnt,scnt);
-                scnt    (*mf_rd)(scnt);
-} meminfo;
+struct meminfo_s {
+                uchar   	*mt_wr;
+		uchar		*mt_rd;
+                void    	(*mf_wr)(scnt,scnt);
+                scnt    	(*mf_rd)(scnt);
+                trap_t 		**traplist;		// array of 4k trap_t* pointers if at least one is set
+};
 
 /* entry in the CPU's virtual address space, 16x 4k */
 typedef struct {
+		// escape e.g. CPU registers 0/1
 		scnt		mask;			/* mask for special bits */
 		scnt		comp;			/* compare after mask */
                 void    	(*m_wr)(scnt,scnt);	/* if mask/comp match, use this to write */
                 scnt    	(*m_rd)(scnt);		/* is mask/comp match, use this to read */
+		// CPU bank based traps
+                trap_t 		**traplist;		// array of 4k trap_t* pointers if at least one is set
+		// actual memory mapping
+                meminfo_t 	*inf;
+} memmap_t;
 
-                int     	rd;	/* current entry in the memtab[] array */
-                int     	wr;	/* current entry in the memtab[] array */
-                meminfo 	i;	/* copy of memtab entry */
+/*****************************************************************************/
+/* CPU memory map 
+ *
+ * Note: needs to be refined if we add drive CPUs
+ */
 
-		uchar		*vr;	/* video memory address */
-} mt;
+extern memmap_t cpumap[PAGES];
 
 
 /*****************************************************************************/
 /* Funktions- und Speicheradressen fr 6502-Speicherzugriffe */
 
-// nasty
-extern unsigned char *mem;
-extern mt m[];
-extern meminfo memtab[];
+// default add/rm trap functions for CPU bank and memory banks respectively
+trap_t *add_cpu_trap(bank_t *bank, scnt trapaddr, void (*exec)(CPU *cpu, scnt addr));
+trap_t *rm_cpu_trap(bank_t *bank, scnt trapaddr);
+
+trap_t *add_mem_trap(bank_t *bank, scnt trapaddr, void (*exec)(CPU *cpu, scnt addr));
+trap_t *rm_mem_trap(bank_t *bank, scnt trapaddr);
 
 static inline scnt getbyt(scnt a) {
 	register scnt bank = a >> 12;
+	register scnt offset = a & 0xfff;
+	memmap_t *cpupage = &cpumap[bank];
 
-	if (m[bank].mask && ((a & m[bank].mask) == m[bank].comp)) {
-		return m[bank].m_rd(a);
+	if (cpupage->mask && ((offset & cpupage->mask) == cpupage->comp)) {
+		return cpupage->m_rd(offset);
 	}
 
-        if(m[bank].i.mf_rd != NULL) {
-		//logout(0,"read address %04x gives function call at %p",(int)a,m[bank].i.mf_rd); 
-                return(m[bank].i.mf_rd(a));
+	meminfo_t *inf = cpupage->inf;
+
+        if(inf->mf_rd != NULL) {
+                return(inf->mf_rd(offset));
         }
-        if(m[bank].i.mt_rd != NULL) {
-		//logout(0,"read address %04x gives %02x",(int)a,(int)m[bank].i.mt_rd[a&0xfff]); 
-             	return(m[bank].i.mt_rd[a&0xfff]);
+        if(inf->mt_rd != NULL) {
+             	return(inf->mt_rd[offset]);
         }
         return(a>>8);
 
 }
 
+static inline scnt getadr(scnt a) {
+
+	return (getbyt(a) & 0xff) | ((getbyt(a+1) & 0xff) << 8);
+}
+
+
 static inline void setbyt(scnt a, scnt b) {
 	register scnt bank =  a >> 12;
+	register scnt offset = a & 0xfff;
+	memmap_t *cpupage = &cpumap[bank];
 
-#if 0		/* TODO: implement watchpoints */
-if (a >= 0x0404 && a < 0x0504) {
-	logout(0, "writing to %04x <- %02x", a, b);
-}
-#endif
-
-	if ((m[bank].mask != 0) && ((a & m[bank].mask) == m[bank].comp)) {
-		//logout(0, "masked write (a=%04x, mask=%04x, comp=%04x, val=%02x)", a, m[bank].mask, m[bank].comp, b);
-		m[bank].m_wr(a,b);
+	if ((cpupage->mask != 0) && ((offset & cpupage->mask) == cpupage->comp)) {
+		cpupage->m_wr(offset,b);
 	}
-        if(m[bank].i.mt_wr != NULL) {
-		//logout(0,"write address %04x,%02x",(int)a,(int)b); 
-             	m[bank].i.mt_wr[a&0xfff] = b;
+
+	meminfo_t *inf = cpupage->inf;
+
+        if(inf->mt_wr != NULL) {
+             	inf->mt_wr[offset] = b;
         }
-        if(m[bank].i.mf_wr != NULL) {
-		//logout(0,"write address %04x,%02x gives function call at %p",(int)a,(int)b,m[bank].i.mf_wr); 
-                m[bank].i.mf_wr(a,b);
+        if(inf->mf_wr != NULL) {
+                inf->mf_wr(a,b);
         }
 }
 
+static inline void (*trap6502(scnt a))(CPU*,scnt) {
+	register scnt bank =  a >> 12;
+	register scnt offset = a & 0xfff;
+	memmap_t *cpupage = &cpumap[bank];
+
+	if (cpupage->traplist
+		&& cpupage->traplist[offset]) {
+		return cpupage->traplist[offset]->exec;
+	}
+
+	meminfo_t *inf = cpupage->inf;
+
+	if (inf->traplist
+		&& inf->traplist[offset]) {
+		return inf->traplist[offset]->exec;
+	}
+	return NULL;
+}
+
+/*
 #define getvbyt(a)       (m[(a)>>12].vr[(a)&0xfff])
 
 #define getadr(a)       (getbyt(a)+256*getbyt(a+1))
+*/
 
 /*****************************************************************************/
 /* "Trap" setzen fr den Einsprung in C-Code (System-Eulation)) */
 
+/*
 int settrap(int mempage, scnt trapadr, void execadr(scnt trapadr, CPU *cpureg),
 		 const char *name);
 int rmtrap(int mempage, scnt trapadr);
 void clrtrap(void);
 
 void (*trap6502(scnt))(scnt,CPU*);
+*/
 
 /*****************************************************************************/
 /* read/write functions fuer memory page setzen */
 
+#if 0
 void setrd(int mempage, scnt (*func)(scnt));
 void setwr(int mempage, void (*func)(scnt,scnt));
+#endif
 
 /*****************************************************************************/
 /* internals */
 
+#if 0
 void update_mem(int mempage);
 void mem_exit(void);
-int loadrom(char *fname, size_t offset, size_t len);
 void updatemr(int page, int newpage);
 void updatemw(int page, int newpage);
+
+#endif
+
+int loadrom(char *fname, uchar *mem, size_t len);
 

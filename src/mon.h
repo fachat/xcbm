@@ -24,6 +24,8 @@ static inline int is_mon() {
 
 void mon_register_cpu(CPU *cpu);
 
+void mon_register_bank(bank_t *bank);
+
 /* switch monitor to the given CPU if not NULL */
 void mon_line(CPU *cpu);
 

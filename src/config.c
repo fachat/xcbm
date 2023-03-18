@@ -11,6 +11,7 @@
 #include "emu6502.h"
 #include "video.h"
 #include "ccurses.h"
+#include "mem.h"
 #include "mon.h"
 
 

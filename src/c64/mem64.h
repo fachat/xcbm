@@ -1,15 +1,15 @@
 
 #define MP_RAM0		0	/* RAM1-15= MP_RAM0+{1-15} */
-#define	MP_KERNEL0	16	
-#define	MP_KERNEL1	17
-#define	MP_BASIC0	18
-#define	MP_BASIC1	19
-#define	MP_CHAROM	20
-#define	MP_ROML0	21
-#define	MP_ROML1	22
-#define	MP_ROMH0	23
-#define	MP_ROMH1	24
-#define	MP_IO64		25
-#define	MP_NUM		26
+
+
+#define	MP_KERNEL0	0	
+#define	MP_KERNEL1	1
+#define	MP_BASIC0	2
+#define	MP_BASIC1	3
+#define	MP_CHAROM	4
+#define	MP_ROML0	5
+#define	MP_ROML1	6
+#define	MP_ROMH0	7
+#define	MP_ROMH1	8
 
 

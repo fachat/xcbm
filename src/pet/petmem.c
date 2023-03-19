@@ -44,6 +44,8 @@ static bank_t petbank = {
 	"pet",
 	add_mem_trap,
 	rm_mem_trap,
+	bank_mem_peek,
+	bank_mem_poke,
 	pet_info
 };
 
@@ -76,13 +78,12 @@ void setmap(void) {
  */
 void inimemvec(void){
 	int i;
-	for(i=0;i<16;i++) {
+	for(i=0;i<PAGES;i++) {
 		pet_info[i].mt_wr=NULL;
 		pet_info[i].mt_rd=NULL;
-		pet_info[i].traplist=malloc(PAGESIZE * sizeof(trap_t*));
+		pet_info[i].traplist=NULL;
 		pet_info[i].mf_wr=NULL;
 		pet_info[i].mf_rd=NULL;
-		memset(pet_info[i].traplist, 0, PAGESIZE * sizeof(trap_t*));
 	}
 
 	/* RAM (including VRAM) */
@@ -107,8 +108,7 @@ void inimemvec(void){
 		cpumap[i].mask = 0;
 		cpumap[i].comp = 0;
 
-		cpumap[i].traplist=malloc(PAGESIZE * sizeof(trap_t*));
-		memset(pet_info[i].traplist, 0, PAGESIZE * sizeof(trap_t*));
+		cpumap[i].traplist=NULL;
 	}
 	setmap();
 }

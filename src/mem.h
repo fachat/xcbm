@@ -24,8 +24,10 @@ struct trap_s {
 
 struct bank_s {
 		const char	*name;
-		trap_t* 	(*addtrap)(bank_t *bank, scnt trapaddr, void (*execaddr)(CPU *cpu, scnt addr));
+		trap_t* 	(*addtrap)(bank_t *bank, scnt trapaddr, void (*execaddr)(CPU *cpu, scnt addr), const char *name);
 		trap_t* 	(*rmtrap)(bank_t *bank, scnt trapaddr);
+		scnt		(*peek)(bank_t *bank, scnt addr);
+		void		(*poke)(bank_t *bank, scnt addr, scnt val);
 		void		*map;	// either ptr to memmap_t array (cpu bank), or meminfo_t array (mem bank), 
 					// or anything else the corresponding addtrap/rmtrap understands
 };
@@ -65,11 +67,17 @@ extern memmap_t cpumap[PAGES];
 /* Funktions- und Speicheradressen fr 6502-Speicherzugriffe */
 
 // default add/rm trap functions for CPU bank and memory banks respectively
-trap_t *add_cpu_trap(bank_t *bank, scnt trapaddr, void (*exec)(CPU *cpu, scnt addr));
+trap_t *add_cpu_trap(bank_t *bank, scnt trapaddr, void (*exec)(CPU *cpu, scnt addr), const char *name);
 trap_t *rm_cpu_trap(bank_t *bank, scnt trapaddr);
 
-trap_t *add_mem_trap(bank_t *bank, scnt trapaddr, void (*exec)(CPU *cpu, scnt addr));
+trap_t *add_mem_trap(bank_t *bank, scnt trapaddr, void (*exec)(CPU *cpu, scnt addr), const char *name);
 trap_t *rm_mem_trap(bank_t *bank, scnt trapaddr);
+
+scnt bank_mem_peek(bank_t *bank, scnt addr);
+void bank_mem_poke(bank_t *bank, scnt addr, scnt val);
+
+scnt bank_cpu_peek(bank_t *bank, scnt addr);
+void bank_cpu_poke(bank_t *bank, scnt addr, scnt val);
 
 static inline scnt getbyt(scnt a) {
 	register scnt bank = a >> 12;
@@ -136,42 +144,6 @@ static inline void (*trap6502(scnt a))(CPU*,scnt) {
 	return NULL;
 }
 
-/*
-#define getvbyt(a)       (m[(a)>>12].vr[(a)&0xfff])
-
-#define getadr(a)       (getbyt(a)+256*getbyt(a+1))
-*/
-
-/*****************************************************************************/
-/* "Trap" setzen fr den Einsprung in C-Code (System-Eulation)) */
-
-/*
-int settrap(int mempage, scnt trapadr, void execadr(scnt trapadr, CPU *cpureg),
-		 const char *name);
-int rmtrap(int mempage, scnt trapadr);
-void clrtrap(void);
-
-void (*trap6502(scnt))(scnt,CPU*);
-*/
-
-/*****************************************************************************/
-/* read/write functions fuer memory page setzen */
-
-#if 0
-void setrd(int mempage, scnt (*func)(scnt));
-void setwr(int mempage, void (*func)(scnt,scnt));
-#endif
-
-/*****************************************************************************/
-/* internals */
-
-#if 0
-void update_mem(int mempage);
-void mem_exit(void);
-void updatemr(int page, int newpage);
-void updatemw(int page, int newpage);
-
-#endif
 
 int loadrom(char *fname, uchar *mem, size_t len);
 

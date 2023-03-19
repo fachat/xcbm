@@ -12,4 +12,11 @@
 #define	MP_ROMH0	7
 #define	MP_ROMH1	8
 
+void rom_settrap(scnt addr, void (*trapfunc)(CPU *cpu, scnt addr), const char *name);
+
+/* set video character memory address callback */
+void mem_set_vaddr(scnt addr, void (*wrvid)(scnt addr, scnt val));
+
+/* peek into RAM, to re-draw video screen */
+scnt mem_getvbyt(scnt addr);
 

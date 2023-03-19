@@ -34,6 +34,15 @@ int	xxmode =0;
 uchar zero,carry,overfl,neg,irq,dez,cbrk;
 int err;
 
+static bank_t cpubank = {
+	"cpu",
+	add_cpu_trap,
+	rm_cpu_trap,
+	bank_cpu_peek,
+	bank_cpu_poke,
+	cpumap
+};
+
 void logass(CPU *cpu){
 	char l[MAXLINE];
 	
@@ -73,6 +82,9 @@ CPU *cpu_init(const char *n, int cyclespersec, int msperframe) {
 	speed_init(&cpu, cyclespersec, msperframe);
 
 	cpu_reset(&cpu);
+
+	mon_register_bank(&cpubank);
+
 	return &cpu;
 }
 

@@ -43,7 +43,7 @@ keytab ktab[];
 #define	KEYTIMER	10000	/* each (simulated) ms */
 
 void key_exit(void);
-void key_irq(scnt,CPU* /*int*/);
+void key_irq(CPU*, scnt);
 
 void key_init(CPU *cpu) {
 	int i;
@@ -54,11 +54,11 @@ void key_init(CPU *cpu) {
 	time_setval(timer,KEYTIMER);
 	time_seton(timer);
 */
-	settrap(MP_KERNEL0,0xea31,key_irq,NULL /*"keytrap"*/ );
+	rom_settrap(0xea31,key_irq,"keytrap" );
 	for(i=0;i<256;i++) { prb[i]=0xff; pra[i]=0xff; }
 }
 
-void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
+void key_irq(CPU *cpu, scnt adr) {
 	static int xflag;
 	uchar rows;
 	chtype key;

@@ -13,13 +13,15 @@
 #include	"emu64.h"
 #include 	"mem.h"
 #include 	"mem64.h"
+#include 	"c64io.h"
+#include 	"mon.h"
 
 int	hiram;
 int	loram;
 int	charen;
 
-static char *ram[0x10000];	// 64k RAM
-static char *rom[0x9000];	// 36 ROM (8k Kernal, 8k BASIC, 4k charrom, 8k loram, 8k hiram)
+static uchar ram[0x10000];	// 64k RAM
+static uchar rom[0x9000];	// 36 ROM (8k Kernal, 8k BASIC, 4k charrom, 8k loram, 8k hiram)
 
 static meminfo_t ram_info[16];
 
@@ -27,6 +29,8 @@ static bank_t rambank = {
 	"ram",
 	add_mem_trap,
 	rm_mem_trap,
+	bank_mem_peek,
+	bank_mem_poke,
 	ram_info
 };
 
@@ -36,6 +40,8 @@ static bank_t rombank = {
 	"rom",
 	add_mem_trap,
 	rm_mem_trap,
+	bank_mem_peek,
+	bank_mem_poke,
 	rom_info
 };
 
@@ -45,6 +51,8 @@ static bank_t iobank = {
 	"io",
 	add_mem_trap,
 	rm_mem_trap,
+	bank_mem_peek,
+	bank_mem_poke,
 	io_info
 };
 
@@ -54,6 +62,8 @@ static bank_t cartbank = {
 	"cart",
 	add_mem_trap,
 	rm_mem_trap,
+	bank_mem_peek,
+	bank_mem_poke,
 	cart_info
 };
 
@@ -65,7 +75,7 @@ static bank_t cartbank = {
 #define	seechar()	((!charen)&&(hiram||loram))
 #define	seeio()		((charen)&&(hiram||loram))
 	
-
+/* offset in rom[] */
 #define 	KERNEL	(MP_KERNEL0 * 4096)
 #define 	BASIC	(MP_BASIC0 * 4096)
 #define		CHAROM	(MP_CHAROM * 4096)
@@ -80,9 +90,10 @@ scnt mem_getcpuport(scnt adr);
 int reg0,dir0;
 
 /*******************************************************************/
+// see also https://codebase64.org/doku.php?id=base:memory_management
 
 void setmap(void) {
-	int i,p;
+	int p;
 
 	p=reg0|(~dir0);
 	loram=p&0x01;
@@ -90,48 +101,43 @@ void setmap(void) {
 	charen=p&0x04;
 
 logout(0,"set loram=%d, hiram=%d, charen=%d",loram,hiram,charen);
-	
-	for(i=0;i<16;i++) {
-		if(i==13 && seeio()) 
-			updatemw(i,MP_IO64);
-		else 
-			updatemw(i,i);
+
+	// $8000-$9fff
+	if (seeroml()) {
+		cpumap[8].inf = &cart_info[8];
+		cpumap[9].inf = &cart_info[9];
+	} else {
+		cpumap[8].inf = &ram_info[8];
+		cpumap[9].inf = &ram_info[9];
 	}
 
-	for(i=0;i<8;i++) {
-		updatemr(i,i);
-	}
-	if(seeroml()) {
-		updatemr(8,MP_ROML0);
-		updatemr(9,MP_ROML1);
-	} else {
-		updatemr(8,8);
-		updatemr(9,9);
-	}
+	// $a000-$bfff
 	if(seebasic()) {
-		updatemr(10,MP_BASIC0);
-		updatemr(11,MP_BASIC1);
+		cpumap[10].inf = &rom_info[10];
+		cpumap[11].inf = &rom_info[11];
 	} else if(seeromh()) {
-		updatemr(10,MP_ROMH0);
-		updatemr(11,MP_ROMH1);
+		cpumap[10].inf = &cart_info[10];
+		cpumap[11].inf = &cart_info[11];
 	} else {
-		updatemr(10,10);
-		updatemr(11,11);
+		cpumap[10].inf = &ram_info[10];
+		cpumap[11].inf = &ram_info[11];
 	}
-	updatemr(12,12);
+
+	/* $dxxx */
 	if(seeio()) {
-		updatemr(13,MP_IO64);
+		cpumap[13].inf = &io_info[13];
 	} else if(seechar()) {
-		updatemr(13,MP_CHAROM);
+		cpumap[13].inf = &rom_info[13];
 	} else { 
-		updatemr(13,13);
+		cpumap[13].inf = &ram_info[13];
 	}
+
 	if(seekernel()) {
-		updatemr(14,MP_KERNEL0);
-		updatemr(15,MP_KERNEL1);
+		cpumap[14].inf = &rom_info[14];
+		cpumap[15].inf = &rom_info[15];
 	} else {
-		updatemr(14,14);
-		updatemr(15,15);
+		cpumap[14].inf = &ram_info[14];
+		cpumap[15].inf = &ram_info[15];
 	}	
 }
 
@@ -157,61 +163,120 @@ scnt mem_getcpuport(scnt adr) {
 	return dir0;
 }
 
+void rom_settrap(scnt addr, void (*trapfunc)(CPU *cpu, scnt addr), const char *name) {
+
+	add_mem_trap(&rombank, addr, trapfunc, name);
+}
+
+/* set video character memory address callback */
+void mem_set_vaddr(scnt addr, void (*wrvid)(scnt addr, scnt val)) {
+
+	int page = addr >> 12;
+
+	ram_info[page].mf_wr = wrvid;
+}
+
+scnt mem_getvbyt(scnt addr) {
+
+	int page = addr >> 12;
+	int offset = addr & 0xfff;
+
+	return ram_info[page].mt_rd[offset];
+}
+
 
 /*******************************************************************/
-
+/*
+ * configure the banks, as well as the initial parts of the CPU memory map,
+ * that needs to be kept (if changed) across setmap() calls
+ */
 
 void inimemvec(void){
 	int i;
-	for(i=0;i<MP_NUM;i++) {
-		memtab[i].mt_wr=NULL;
-		memtab[i].mt_rd=NULL;
-		memtab[i].ntraps=0;
-		memtab[i].mf_wr=NULL;
-		memtab[i].mf_rd=NULL;
+	for(i=0;i<PAGES;i++) {
+		ram_info[i].mt_wr=NULL;
+		ram_info[i].mt_rd=NULL;
+		ram_info[i].mf_wr=NULL;
+		ram_info[i].mf_rd=NULL;
+		ram_info[i].traplist=NULL;
+		rom_info[i].mt_wr=NULL;
+		rom_info[i].mt_rd=NULL;
+		rom_info[i].mf_wr=NULL;
+		rom_info[i].mf_rd=NULL;
+		rom_info[i].traplist=NULL;
+		io_info[i].mt_wr=NULL;
+		io_info[i].mt_rd=NULL;
+		io_info[i].mf_wr=NULL;
+		io_info[i].mf_rd=NULL;
+		io_info[i].traplist=NULL;
+		cart_info[i].mt_wr=NULL;
+		cart_info[i].mt_rd=NULL;
+		cart_info[i].mf_wr=NULL;
+		cart_info[i].mf_rd=NULL;
+		cart_info[i].traplist=NULL;
 	}
 	/* 64k RAM */
 	for(i=MP_RAM0;i<MP_RAM0+16;i++) {
-	 	memtab[i].mt_wr=mem+i*0x1000;
-	 	memtab[i].mt_rd=mem+i*0x1000;
+	 	ram_info[i].mt_wr=ram+i*0x1000;
+	 	ram_info[i].mt_rd=ram+i*0x1000;
 	}
+
+	/* should ROM be modifyable in the monitor? */
+	/* anyway, CPU writes go to RAM below ROM */
+
 	/* KERNEL */
-	memtab[MP_KERNEL0].mt_rd = mem+KERNEL;
-	memtab[MP_KERNEL1].mt_rd = mem+KERNEL+0x1000;
+	rom_info[14].mt_rd = rom+KERNEL;
+	rom_info[14].mt_wr = ram+KERNEL;
+	rom_info[15].mt_rd = rom+KERNEL+0x1000;
+	rom_info[15].mt_wr = ram+KERNEL+0x1000;
 	/* BASIC */
-	memtab[MP_BASIC0].mt_rd = mem+BASIC;
-	memtab[MP_BASIC1].mt_rd = mem+BASIC+0x1000;
+	rom_info[10].mt_rd = rom+BASIC;
+	rom_info[10].mt_wr = ram+BASIC;
+	rom_info[11].mt_rd = rom+BASIC+0x1000;
+	rom_info[11].mt_wr = ram+BASIC+0x1000;
 	/* CHAROM */
-	memtab[MP_CHAROM].mt_rd = mem+CHAROM;
+	rom_info[13].mt_rd = rom+CHAROM;
+	rom_info[13].mt_wr = ram+CHAROM;
 	/* ROML */
-	memtab[MP_ROML0].mt_rd = mem+ROML;
-	memtab[MP_ROML1].mt_rd = mem+ROML+0x1000;
-	/* ROMH */
-	memtab[MP_ROMH0].mt_rd = mem+ROMH;
-	memtab[MP_ROMH1].mt_rd = mem+ROMH+0x1000;
+	cart_info[8].mt_rd = rom+ROML;
+	cart_info[8].mt_wr = ram+ROML;
+	cart_info[9].mt_rd = rom+ROML+0x1000;
+	cart_info[9].mt_wr = ram+ROML+0x1000;
+	/* ROMH - depending on config this is mapped in two locations - our bank just maps both */
+	cart_info[10].mt_rd = rom+ROMH;
+	cart_info[10].mt_wr = ram+ROMH;
+	cart_info[11].mt_rd = rom+ROMH+0x1000;
+	cart_info[11].mt_wr = ram+ROMH+0x1000;
+	cart_info[14].mt_rd = rom+ROMH;
+	cart_info[14].mt_wr = ram+ROMH;
+	cart_info[15].mt_rd = rom+ROMH+0x1000;
+	cart_info[15].mt_wr = ram+ROMH+0x1000;
+
+	/* IO */
+	io_info[13].mf_wr = io_wr;
+	io_info[13].mf_rd = io_rd;
 
 	/* CPU virtual address space */
 	for(i=0;i<16;i++) {
-		/* video memory address */
-		if((i&7)==1) {
-			m[i].vr=mem+CHAROM;
-		} else {
-			m[i].vr=mem+i*0x1000;
-		}
-		/* current page */
-		m[i].wr=m[i].rd=-1;
+		cpumap[i].mask = 0;
+		cpumap[i].comp = 0;
+
 		/* mask/comp flag */
 		if (i == 0) {
 			/* CPU registers 0/1 */
-			m[i].mask = 0xfffe;
-			m[i].comp = 0x0000;
-			m[i].m_wr = &mem_setcpuport;
-			m[i].m_rd = &mem_getcpuport;
-		} else {
-			m[i].mask = 0;
+			cpumap[i].mask = 0xfffe;
+			cpumap[i].comp = 0x0000;
+			cpumap[i].m_wr = &mem_setcpuport;
+			cpumap[i].m_rd = &mem_getcpuport;
+		}
+
+		// lower 32k and $cxxx are always RAM
+		if (i < 8 || i == 12) {
+			cpumap[i].inf = &ram_info[i];
 		}
 	}
 	reg0=dir0=0;
+
 	setmap();
 }
 
@@ -284,36 +349,15 @@ static config_t mem_pars[] = {
 void mem_init() {
 	config_register(mem_pars);
 
-	memset(rominfo, 0, sizeof(rominfo));
-	memset(raminfo, 0, sizeof(rominfo));
-	memset(ioinfo, 0, sizeof(rominfo));
-	memset(cartinfo, 0, sizeof(rominfo));
+	memset(rom_info, 0, sizeof(rom_info));
+	memset(ram_info, 0, sizeof(ram_info));
+	memset(io_info, 0, sizeof(io_info));
+	memset(cart_info, 0, sizeof(cart_info));
 
-	// see also https://codebase64.org/doku.php?id=base:memory_management
-
-	// set RAM bank
-	for (int i = 0; i < 16; i++) {
-		raminfo[i].mt_rd = &rom[i * 0x1000];
-		raminfo[i].mt_wr = &rom[i * 0x1000];
-	}
-
-	// set ROM bank
-	// kernal
-	rominfo[14].mt_rd = &rom[KERNAL];
-	rominfo[15].mt_rd = &rom[KERNAL + 0x1000];
-	// BASIC
-	rominfo[10].mt_rd = &rom[BASIC];
-	rominfo[11].mt_rd = &rom[BASIC + 0x1000];
-	// charrom
-	rominfo[13].mr_rd = &rom[CHAROM];
-
-	// set Cartridge bank
-	// ROML
-	cartinfo[8].mt_rd = &rom[ROML];
-	cartinfo[9].mt_rd = &rom[ROML + 0x1000];
-	// ROMH
-	cartinfo[10].mt_rd = &rom[ROMH];
-	cartinfo[11].mt_rd = &rom[ROMH + 0x1000];
+	mon_register_bank(&rambank);
+	mon_register_bank(&rombank);
+	mon_register_bank(&iobank);
+	mon_register_bank(&cartbank);
 }
 
 
@@ -323,8 +367,7 @@ void mem_start(){
 	size_t len[]=   { 0, 8192,   8192,  4096,   8192, 8192 };
 	int i;
 	loram=hiram=charen=1;
-	if(mem){
-	  atexit(mem_exit);
+
 	  for(i=1;i<6;i++) {
 	    if(names[i][0]=='/') {
 	      strcpy(fname,names[i]);
@@ -337,7 +380,5 @@ void mem_start(){
 	  }	
 	  inimemvec();
 	  return;
-	}
-	exit(1);
 }
 

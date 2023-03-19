@@ -8,6 +8,7 @@
 #include "emu6502.h"
 #include "ccurses.h"
 #include "mem.h"
+#include "mem64.h"
 
 /***********************************************************************/
 /* c64 video manipulation routines                                     */
@@ -25,8 +26,12 @@ int charadr=0;
 void wrvid(scnt a, scnt b){
 	static chtype c;
 	static int line, col;
-	if(a>=screenadr && a<screenadr+1000) {
-		a-=screenadr;
+
+	// may be called with page offset, or with absolute address
+	a &= 0xfff;
+
+	if(a>=(screenadr & 0xfff) && a<(screenadr & 0xfff)+1000) {
+		a-=(screenadr & 0xfff);
 		line=a/40;
 		col =a%40;
 		c=b&0x7f;
@@ -50,16 +55,22 @@ void wrvid(scnt a, scnt b){
 
 void updatevideo(void) {
 	int i, val=vic_reg[24];
-	setwr((screenadr>>12),NULL);
+
+	// clear current
+	mem_set_vaddr((screenadr>>12),NULL);
+
 	screenadr=videopage+1024*(val>>4);
 	charadr=videopage+1024*(val&0x0e);
 	hiresadr=videopage+1024*(val&0x08);
 logout(0,"set videoaddresses: screen=%x, char=%x, hires=%x",
 			screenadr, charadr, hiresadr);
-	setwr((screenadr>>12),wrvid);
+
+	// set new video address in ram bank
+	mem_set_vaddr((screenadr>>12),wrvid);
+
 	update=0;
 	for(i=screenadr;i<screenadr+1000;i++) {
-	  wrvid(i,getvbyt(i));
+	  wrvid(i,mem_getvbyt(i));
 	}
 	update=1;
 /*	touchwin(scr);*/
@@ -87,7 +98,7 @@ void colram_wr(scnt adr, scnt val) {
 	colram[adr]=val&0x0f;
 
 	if(color && adr<1000) {
-	  wrvid(adr+screenadr,getvbyt(adr+screenadr));
+	  wrvid(adr+screenadr,mem_getvbyt(adr+screenadr));
 	}
 }
 

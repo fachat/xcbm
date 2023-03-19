@@ -15,7 +15,7 @@
 
 device *dev = NULL;
 
-void bytein(scnt adr, CPU *cpu) {
+void bytein(CPU *cpu, scnt adr) {
 	uchar status = 0;
 
 	if(!dev) {		
@@ -37,7 +37,7 @@ logout(0,"set timeout pc->0xee42");
 
 }
 
-void byteout(scnt adr, CPU *cpu) {
+void byteout(CPU *cpu, scnt adr) {
 	scnt by=getbyt(0x95);
 	scnt a= by & 0x0f;
 	scnt b= by & 0xf0;
@@ -79,16 +79,16 @@ void byteout(scnt adr, CPU *cpu) {
 	}
 }
 
-void xrts(scnt adr, CPU *cpu) {
+void xrts(CPU *cpu, scnt adr) {
 	cpu->a=cpu->x;
 	cpu->pc=0xeeba;
 }
 
 int iec_init(void) { /* is called _after_ iec_setdrive! */
 	dev=NULL;
-	settrap(MP_KERNEL0,0xed40,byteout,NULL /*"byteout"*/ );
-	settrap(MP_KERNEL0,0xee13,bytein,NULL /*"bytein"*/ );
-	settrap(MP_KERNEL0,0xeeb3,xrts,NULL /*"xrts"*/);	/* delay loop */
+	rom_settrap(0xed40,byteout,"byteout" );
+	rom_settrap(0xee13,bytein,"bytein" );
+	rom_settrap(0xeeb3,xrts,"xrts");	/* delay loop */
 	return(0);
 }
 

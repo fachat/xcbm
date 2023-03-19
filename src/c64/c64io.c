@@ -15,7 +15,6 @@
 #include "c64io.h"
 #include "vicii.h"
 #include "mem.h"
-#include "mem64.h"
 
 typedef struct {
 		byte 	pra;
@@ -73,9 +72,6 @@ int io_init(void) {
 	cia1.timerb=time_register(cia1_tib,"cia1 timerb");
 	cia2.timera=time_register(cia2_tia,"cia2 timera");
 	cia2.timerb=time_register(cia2_tib,"cia2 timerb");
-
-	setrd(MP_IO64,io_rd);
-	setwr(MP_IO64,io_wr);
 
 	return(0);
 }

@@ -6,13 +6,13 @@
 #include  	"alarm.h"
 #include  	"bus.h"
 #include	"emu6502.h"
-#include	"asm6502.h"
 #include	"timer.h"
 #include	"emucmd.h"
 #include 	"mem.h"
 #include 	"speed.h"
 #include 	"mon.h"
 #include 	"config.h"
+#include	"asm6502.h"
 
 #define	MAXLINE	200
 
@@ -60,7 +60,7 @@ void logass(CPU *cpu){
 		cpu->sr & 0x01 ? 'C' : '-'
 		);
 
-	dis6502(cpu->pc, l+47, MAXLINE-47);
+	dis6502(&cpubank, cpu->pc, l+47, MAXLINE-47);
 
 	logout(0, l);
 }

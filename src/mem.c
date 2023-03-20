@@ -89,14 +89,43 @@ trap_t *rm_mem_trap(bank_t *bankp, scnt trapaddr) {
 void bank_mem_poke(bank_t *bank, scnt addr, scnt val) {
 }
 
-scnt bank_mem_peek(bank_t *bank, scnt addr) {
-	return 0;
+scnt bank_mem_peek(bank_t *bankp, scnt addr) {
+        register scnt bank = addr >> 12;
+        register scnt offset = addr & 0xfff;
+        meminfo_t *inf = &((meminfo_t*)(bankp->map))[bank];
+        //memmap_t *cpumap = &((memmap_t*)(bankp->map))[bank];
+
+	// TODO: peek instead of read
+	if (inf->mf_rd != NULL) {
+		return (inf->mf_rd(offset));
+	}
+	if (inf->mt_rd != NULL) {
+		return (inf->mt_rd[offset]);
+	}
+	return addr >> 8;
 }
 
 void bank_cpu_poke(bank_t *bank, scnt addr, scnt val) {
 }
 
-scnt bank_cpu_peek(bank_t *bank, scnt addr) {
+scnt bank_cpu_peek(bank_t *bankp, scnt addr) {
+        register scnt bank = addr >> 12;
+        register scnt offset = addr & 0xfff;
+        memmap_t *cpumap = &((memmap_t*)(bankp->map))[bank];
+
+	if (cpumap->mask && ((offset & cpumap->mask) == cpumap->comp)) {
+		return cpumap->m_rd(offset);
+	}
+
+	meminfo_t *inf = cpumap->inf;
+	// TODO: peek instead of read
+	if (inf->mf_rd != NULL) {
+		return (inf->mf_rd(offset));
+	}
+	if (inf->mt_rd != NULL) {
+		return (inf->mt_rd[offset]);
+	}
+	return addr >> 8;
 	return 0;
 }
 

@@ -75,8 +75,8 @@ int adl[16]= { 1,2,3,2,2,2,3,3,3,1,2,3,2,2,3,3 };
 char *ad1[16]={ "", "#", "", "", "", "", "", "", "(", "", "", "", "(", "(", "(", "(" };
 char *ad2[16]={ "", "", "", "", ",x", ",y", ",x", ",y", ",x)", "", "", "", ",x)", "),y", ")", ")" };
 
-int dis6502(scnt pc, char *l, int maxlen){
-	int c=getbyt(pc);
+int dis6502(bank_t *bank, scnt pc, char *l, int maxlen){
+	int c=bank->peek(bank, pc); //getbyt(pc);
 	int o,a,d,f=0;
 	int olen = 1;
 	scnt ad = 0;
@@ -99,7 +99,7 @@ int dis6502(scnt pc, char *l, int maxlen){
 	    sprintf(l," %02x        %-12s %s                        ", c, al, kt[o]);
 	    break;
 	  case 2:
-	    ad = d = getbyt(pc+1);
+	    ad = d = bank->peek(bank, pc+1); //getbyt(pc+1);
 	    if (a == 10) {
 		ad = pc + 2 + ad - 256*(ad>127);
 	    }
@@ -113,7 +113,7 @@ int dis6502(scnt pc, char *l, int maxlen){
 	    if(a!=1) f=1;
 	    break;
 	  case 3:
-	    ad = getadr(pc+1);
+	    ad = (bank->peek(bank, pc+1) & 0xff ) | (( bank->peek(bank, pc+2) << 8) & 0xff00); //getadr(pc+1);
 	    ln = label_lookup(ad);
 	    if (ln == NULL) {
 	    	snprintf(addrbuf, 10, "$%04x", ad);

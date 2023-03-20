@@ -10,10 +10,10 @@
 #include "alarm.h"
 #include "bus.h"
 #include "emu6502.h"
-#include "asm6502.h"
 #include "labels.h"
 #include "mem.h"
 #include "mon.h"
+#include "asm6502.h"
 #include "ccurses.h"
 #include "labels.h"
 
@@ -30,6 +30,8 @@
 #define	MAXBANKS	16
 
 static bank_t *banks[MAXBANKS];
+static int numbanks = 0;
+static bank_t *mon_bank = NULL;
 
 static struct sigaction monaction;
 static struct sigaction oldaction;
@@ -51,9 +53,24 @@ static int cmd_quit(char *pars) {
 }
 
 static int cmd_bank(char *pars) {
-	/* preliminary */
-	for (int i = 0; i < MAXBANKS && banks[i]; i++) {
-		printf("%s\n", banks[i]->name);
+
+	if (*pars) {
+		// we have a bank parameter
+		for (int i = 0; i < numbanks; i++) {
+			if (!strcmp(pars, banks[i]->name)) {
+				// found it
+				mon_bank = banks[i];
+				break;
+			}
+		}
+	} else {
+		// no bank parameter - print list of available banks
+		/* preliminary */
+		int i = 0;
+		while(i < numbanks) {
+			printf("%s\n", banks[i]->name);
+			i++;
+		}
 	}
 	return R_CONT;
 }
@@ -91,7 +108,7 @@ static int cmd_dis(char *pars) {
 	}
 
 	do {
-		l = dis6502(from, line, llen);
+		l = dis6502(mon_bank, from, line, llen);
 
 		printf(": %05x %s", from, line);
 
@@ -128,7 +145,7 @@ static int cmd_mem(char *pars) {
 				l = i;
 				break;
 			}
-			buf[i] = getbyt(from + i);
+			buf[i] = mon_bank->peek(mon_bank, from + i); //getbyt(from + i);
 		}
 		
 		for (i = 0; i < l; i++) {
@@ -190,18 +207,23 @@ static int mon_parse(char *line) {
 		while (c->name[p] == line[p]) {
 			p++;
 		}
+
 		// end condition
 		if (line[p] == 0 || isspace(line[p])) {
+			// skip whitespace before parameter
+			while (isspace(line[p])) {
+				p++;
+			}
 			// found
 			return c->func(line+p);
 		}
-		c = &c[1];
+		c++;
 	}
 	return R_ERR;
 }
 
 static void mon_prompt() {
-	printf("%s: ", cpu->name);
+	printf("%s/%s: ", cpu->name, mon_bank->name);
 }
 
 void mon_line(CPU *tocpu) {
@@ -303,17 +325,19 @@ void mon_init() {
 
 	}
 
-	memset(banks, 0, sizeof(banks));
+	// set CPU bank as initial bank
+	cmd_bank("cpu");
 }
 
 
 void mon_register_bank(bank_t *bank) {
 
-	for (int i = 0; i < MAXBANKS; i++) {
-		if (banks[i] == NULL) {
-			banks[i] = bank;
-			return;
-		}
+	int i = numbanks;
+
+	if (i < MAXBANKS) {
+		banks[i] = bank;
+		numbanks++;
+		return;
 	}
 
 	logout(4, "Too many banks - should not happen");

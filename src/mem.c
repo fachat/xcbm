@@ -36,6 +36,7 @@ static inline trap_t* add_trap(trap_t ***traplistp, scnt offset, void (*exec)(CP
 		}
 		traplist = malloc(PAGESIZE * sizeof(trap_t*));
 		memset(traplist, 0, PAGESIZE * sizeof(trap_t*));
+		*traplistp = traplist;
 	}
 
 	if (exec == NULL) {

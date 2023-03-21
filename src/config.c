@@ -19,6 +19,7 @@ static char cf_esc_char = 'p';
 static float cf_speed_ratio = 0.;
 static float cf_target_speed = 0.;
 static int cf_shiftmap = 0;
+static int cf_cfg_mode = 0;
 int cf_trace_enabled = 0;
 
 #define	MAXLINE 80
@@ -159,12 +160,13 @@ void config_print() {
 
 static void config_update() {
 
-        snprintf(line, MAXLINE, "Speed: % 3.0lf%%, limit=% 3.0lf%%  Esc: C-%c  Shift:%c%c %s", 
+        snprintf(line, MAXLINE, "Speed: % 3.0lf%%, limit=% 3.0lf%%  Esc: C-%c  Shift:%c%c %s %s", 
 		cf_speed_ratio, cf_target_speed,
 		cf_esc_char,
 		cf_shiftmap & SLINE_SHIFT_L ? 'L' : '-',
 		cf_shiftmap & SLINE_SHIFT_R ? 'R' : '-',
-		cf_trace_enabled ? "TRACE" : " "
+		cf_trace_enabled ? "TRACE" : " ",
+		cf_cfg_mode ? "h=help" : " "
 	);
         line[MAXLINE-1]=0;
         video_set_status_line(line);
@@ -196,6 +198,78 @@ void config_toggle_trace() {
 	cf_trace_enabled = !cf_trace_enabled;
 }
 
+/*************************************************************************/
+
+typedef struct {
+	const char	*opts;		// one or more characters that trigger the cmd
+	int		(*cmd)(void);	// function to execute
+	const char	*desc;		// description of the command (for help)
+} cfgmode_t;
+
+int cmd_trace() {
+	config_toggle_trace();
+	return ERR;
+}
+
+int cmd_mon() {
+	mon_line(NULL);
+	return ERR;
+}
+
+int cmd_exit() {
+	exit(0);
+	return ERR;
+}
+
+int cmd_help();
+
+/* table of config options; table ends with NULL option */
+static cfgmode_t cmds[] = {
+	{ "m",		cmd_mon, 	"Enter the monitor" },
+	{ "t",		cmd_trace, 	"Toggle trace mode (output in log file)" },
+	{ "x",		cmd_exit, 	"Exit the emulator" },
+	{ "?h",		cmd_help,	"Show this help" },
+	{ NULL }
+};
+
+int cmd_help() {
+	cfgmode_t *p = cmds;
+
+	logout(0, "showing help for C-%c", config_get_esc_char());
+	cur_exit();
+
+	while (p->opts) {
+		// print name
+		const char *cp = p->opts;
+		while (*cp) {
+			if (cp != p->opts) {
+				printf(", ");
+			}
+			printf("'%c'", *cp);
+			cp++;
+		}
+		printf("\n");
+		printf("\t%s\n", p->desc);
+
+		p++;
+	}
+
+	printf("Press command or other key to continue\n");
+
+	// read any character immediately, but without going back to curses
+	// window mode, which getch() would do - as that would overwrite
+	// our help text we just displayed
+	raw();
+	int c = fgetc(stdin);
+
+	cur_setup();
+
+	return c;
+}
+
+
+/*************************************************************************/
+
 /* get an escaped character from the keyboard */
 int esc_getch() {
 
@@ -208,44 +282,38 @@ int esc_getch() {
 	}
 
 	logout(1, "escape: Entering wait loop");
+	
+	cf_cfg_mode = 1;
+	config_update();
 
 	c = cur_getch();
-#if 0
-	// wait test
-	c = ERR;
-	while (c == ERR) {
-		c = getch();
-		
-		// wait a bit to release CPU
-		sleep.tv_sec = 0;
-		sleep.tv_nsec = 20000000;
-		nanosleep(&sleep, NULL);
-	}
-#endif
 
 	// if Ctrl-P again, exit pause/config mode
 	if (c == (config_get_esc_char() & 0x1f)) {
 		c = ERR;
 	}
 
-	switch (c) {
-	case 't':
-		// toggle trace
-		config_toggle_trace();
-		c = ERR;
-		break;
-	case 'm':
-		mon_line(NULL);
-		c = ERR;
-		break;
-	case 'x':
-		exit(0);
-		break;
-	default:
-		break;
-	}
+	int newc = c;
 
-	return c;
+	do {
+		c = newc;
+		newc = ERR;
+
+		cfgmode_t *p = cmds;
+		while (p->opts) {
+			if (index(p->opts, c)) {
+				// found
+				newc = p->cmd();
+				break;
+			}
+			p++;
+		}
+	} while (newc != ERR);
+
+	cf_cfg_mode = 0;
+	config_update();
+
+	return ERR;
 }
 
 /* ------------------------------------------------------------------- */

@@ -92,6 +92,8 @@ void cur_setup(void) {
 }
 
 void cur_exit(void) {
+	logout(1,"Exiting curses window mode");
+	fflush(stdout);
 	nocbreak();
 	endwin();
 }

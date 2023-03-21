@@ -40,7 +40,8 @@ static bank_t cpubank = {
 	rm_cpu_trap,
 	bank_cpu_peek,
 	bank_cpu_poke,
-	cpumap
+	cpumap,
+	PAGESMASK
 };
 
 void logass(CPU *cpu){

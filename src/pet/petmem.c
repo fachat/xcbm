@@ -38,7 +38,7 @@ uchar *colram = NULL;
 /* in prep for extra 8296 memory banks */
 /* includes 32k RAM, 4k Video, and all ROM + I/O */
 
-static meminfo_t pet_info[16];
+static meminfo_t pet_info[PAGES];
 
 static bank_t petbank = {
 	"pet",
@@ -46,7 +46,8 @@ static bank_t petbank = {
 	rm_mem_trap,
 	bank_mem_peek,
 	bank_mem_poke,
-	pet_info
+	pet_info,
+	PAGESMASK
 };
 
 /* 

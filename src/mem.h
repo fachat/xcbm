@@ -9,6 +9,7 @@ void update_mem(int);
 
 #define	PAGESIZE	4096
 #define	PAGES		16
+#define	PAGESMASK	0xffff
 
 
 typedef struct trap_s trap_t;
@@ -26,10 +27,11 @@ struct bank_s {
 		const char	*name;
 		trap_t* 	(*addtrap)(bank_t *bank, scnt trapaddr, void (*execaddr)(CPU *cpu, scnt addr), const char *name);
 		trap_t* 	(*rmtrap)(bank_t *bank, scnt trapaddr);
-		scnt		(*peek)(bank_t *bank, scnt addr);
-		void		(*poke)(bank_t *bank, scnt addr, scnt val);
+		scnt		(*peek)(bank_t *bank, saddr addr);
+		void		(*poke)(bank_t *bank, saddr addr, scnt val);
 		void		*map;	// either ptr to memmap_t array (cpu bank), or meminfo_t array (mem bank), 
 					// or anything else the corresponding addtrap/rmtrap understands
+		int		mapmask; // mask of valid address bits for map index (typically 0xffff)
 };
 
 /* information on a memory page (4k) */
@@ -73,11 +75,11 @@ trap_t *rm_cpu_trap(bank_t *bank, scnt trapaddr);
 trap_t *add_mem_trap(bank_t *bank, scnt trapaddr, void (*exec)(CPU *cpu, scnt addr), const char *name);
 trap_t *rm_mem_trap(bank_t *bank, scnt trapaddr);
 
-scnt bank_mem_peek(bank_t *bank, scnt addr);
-void bank_mem_poke(bank_t *bank, scnt addr, scnt val);
+scnt bank_mem_peek(bank_t *bank, saddr addr);
+void bank_mem_poke(bank_t *bank, saddr addr, scnt val);
 
-scnt bank_cpu_peek(bank_t *bank, scnt addr);
-void bank_cpu_poke(bank_t *bank, scnt addr, scnt val);
+scnt bank_cpu_peek(bank_t *bank, saddr addr);
+void bank_cpu_poke(bank_t *bank, saddr addr, scnt val);
 
 static inline scnt getbyt(scnt a) {
 	register scnt bank = a >> 12;

@@ -34,15 +34,17 @@ PETOBJ = 	pet/petemu.o \
 		pia.o \
 		via.o \
 		parallel.o \
+		pet/piavia.o \
 
 CSAOBJ = 	csa/xcsa.o \
 		csa/csamem.o \
-		pet/petio.o \
+		csa/csaio.o \
 		pet/petvideo.o \
 		pet/petkeys.o \
 		pia.o \
 		via.o \
 		parallel.o \
+		pet/piavia.o \
 
 MONOBJ =	mon/mon.o \
 		mon/labels.o

@@ -13,6 +13,8 @@
 #include 	"mem.h"
 #include 	"csamem.h"
 #include 	"petio.h"
+#include 	"petvideo.h"
+#include 	"mon.h"
 
 #define	MAXLINE	200
 	
@@ -44,73 +46,127 @@
 #define 	BASIC	(MP_BASIC*4096l)
 #define		EDITOR	(MP_EDIT*4096l)
 
-#define		MEMLEN	0x10000
+#define		ROMLEN	0x08000
+#define		VRAMLEN	0x10000
+#define		RAMLEN	0x80000
+
 
 /*******************************************************************/
 
-meminfo memtab[MP_NUM];
+static uchar rom[ROMLEN];
+static uchar ram[RAMLEN];
+static uchar vram[RAMLEN];
 
-uchar *colram = NULL;
+static int mmu_init = 0;	// on RESET the MMU goes 1:1 - after first write we actually map
+static uchar mmu[16];		// MMU mapping (TODO: MMU ctrl bits go elsewhere)
+
+static meminfo_t bus_info[CSAPAGES];
+
+static bank_t physbank = {
+	"bus",
+	add_mem_trap,
+	rm_mem_trap,
+	bank_mem_peek,
+	bank_mem_poke,
+	bus_info,
+	CSAPAGES
+};
+
+
+/*******************************************************************/
 
 void setmap(void) {
 	int i;
 
-	for(i=0;i<16;i++) {
-		updatemw(i,i);
-		updatemr(i,i);
-	}
-}
+	if (mmu_init == 0) {
+		// not initialized yet
+		for(i=0;i<16;i++) {
+			cpumap[i].inf = &bus_info[i];
 
+		}	
+	} else {
+		for(i=0;i<16;i++) {
+			cpumap[i].inf = &bus_info[mmu[i]];
+
+		}	
+	}
+
+	// I/O memory space 
+	// note: limited to 4k page
+	cpumap[14].mask = 0x0800;
+	cpumap[14].comp = 0x0800;
+	cpumap[14].m_wr = &io_wr;
+	cpumap[14].m_rd = &io_rd;
+}
 
 /*******************************************************************/
 
 void inimemvec(void){
 	int i;
-	for(i=0;i<MP_NUM;i++) {
-		memtab[i].mt_wr=NULL;
-		memtab[i].mt_rd=NULL;
-		memtab[i].ntraps=0;
-		memtab[i].mf_wr=NULL;
-		memtab[i].mf_rd=NULL;
+	for(i=0;i<CSAPAGES;i++) {
+		bus_info[i].mt_wr=NULL;
+		bus_info[i].mt_rd=NULL;
+		bus_info[i].traplist=NULL;
+		bus_info[i].mf_wr=NULL;
+		bus_info[i].mf_rd=NULL;
 	}
-	/* RAM (including VRAM) */
-	for(i=MP_RAM0;i<MP_RAM0+9;i++) {
-	 	memtab[i].mt_wr=mem+i*0x1000;
-	 	memtab[i].mt_rd=mem+i*0x1000;
+	/* low32k RAM */
+	for(i=0;i<8;i++) {
+	 	bus_info[i].mt_wr=ram+i*0x1000;
+	 	bus_info[i].mt_rd=ram+i*0x1000;
 	}
-	/* video + color RAM at $8800 */
-	colram = memtab[MP_VRAM].mt_wr + 0x0800;
 
-	/* KERNEL */
-	memtab[MP_KERNEL].mt_rd = mem+KERNEL;
-	/* BASIC */
-	memtab[MP_BASIC].mt_rd = mem+BASIC;
-	memtab[MP_BASIC+1].mt_rd = mem+BASIC+0x1000;
-	memtab[MP_BASIC+2].mt_rd = mem+BASIC+0x2000;
-	/* EDITOR */
-	memtab[MP_EDIT].mt_rd = mem+EDITOR;
+	/* next 32k (ROM) */
+	for(i=8;i<16;i++) {
+	 	bus_info[i].mt_wr=rom+(i-8)*0x1000;
+	 	bus_info[i].mt_rd=rom+(i-8)*0x1000;
+	}
 
+	/* video RAM */
+	for(i=16;i<32;i++) {
+	 	bus_info[i].mt_wr=vram+(i-16)*0x1000;
+	 	bus_info[i].mt_rd=vram+(i-16)*0x1000;
+	}
+
+	/* upper 512k RAM */
+	for(i=128;i<256;i++) {
+	 	bus_info[i].mt_wr=ram+(i-128)*0x1000;
+	 	bus_info[i].mt_rd=ram+(i-128)*0x1000;
+	}
+
+	/* video RAM access at $10000 */
+	bus_info[16].mf_wr = vmem_wr;
+
+	/* the CPU map parts that may need to survive a setmap() */
 	for(i=0;i<16;i++) {
-		// video memory address */
-		if(i==8) {
-			m[i].vr=mem+VRAM;
-		} else {
-			m[i].vr=NULL;
-		}
-		// current page
-		m[i].wr=m[i].rd=-1;
-		// mask/comp flags
-		if (i == 14) {
-			// I/O memory space
-			m[i].mask = 0xff00;
-			m[i].comp = 0xe800;
-			m[i].m_wr = &io_wr;
-			m[i].m_rd = &io_rd;
-		} else {
-			m[i].mask = 0;
-		}
+                cpumap[i].mask = 0;
+                cpumap[i].comp = 0;
+
+                cpumap[i].traplist=NULL;
 	}
+
+	/* MMU */
+	mmu_init = 0;
+	for(i=0; i<16; i++) {
+		mmu[i] = 0;
+	}
+	
 	setmap();
+}
+
+/* ---------------------------------------------------------------*/
+
+void mmu_wr(scnt addr, scnt val) {
+
+	mmu_init = 1;
+	
+	mmu[addr & 0x0f] = val;
+
+	setmap();
+}
+
+scnt mmu_rd(scnt addr) {
+	return mmu[addr & 0x0f];
 }
 
 /* ---------------------------------------------------------------*/
@@ -142,6 +198,9 @@ static int mem_set_edit(const char *param) {
 	return 0;
 }
 
+/**
+ * TODO: load single CSA ROM instead
+ */
 static config_t mem_pars[] = {
 	{ "rom-dir", 'd', "rom_directory", mem_set_rom_dir, "set common ROM directory (default = /var/lib/cbm/pet)" },
 	{ "kernal-rom", 'K', "kernal_rom_filename", mem_set_kernal, "set kernal ROM file name (in ROM directory; default 'petkernal4.rom')" },
@@ -153,6 +212,8 @@ static config_t mem_pars[] = {
 
 void mem_init() {
 	config_register(mem_pars);
+
+	mon_register_bank(&physbank);
 }
 
 void mem_start() {
@@ -160,9 +221,7 @@ void mem_start() {
 	size_t offset[]={ 0, KERNEL, BASIC, EDITOR };
 	size_t len[]=   { 0, 4096,   3*4096,  2048 };
 	int i;
-	mem=malloc(MEMLEN);
-	if(mem){
-	  atexit(mem_exit);
+
 	  for(i=1;i<4;i++) {
 	    if(names[i][0]=='/') {
 	      strcpy(fname,names[i]);
@@ -171,11 +230,9 @@ void mem_start() {
 	      if(fname[strlen(fname)-1]!='/') strcat(fname,"/");
 	      strcat(fname,names[i]);
 	    }
-	    loadrom(fname, offset[i], len[i]);
+	    loadrom(fname, rom+offset[i], len[i]);
 	  }	
 	  inimemvec();
 	  return;
-	}
-	exit(1);
 }
 

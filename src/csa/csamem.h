@@ -1,14 +1,18 @@
 
 
-#define MP_RAM0		0	/* RAM1-7= MP_RAM0+{1-7} */
-#define	MP_VRAM		8	
-#define	MP_EXT9		9
-#define	MP_EXTA		10
-#define	MP_BASIC	11	/* 11, 12, 13 */
-#define	MP_EDIT		14
-#define	MP_KERNEL	15
+#define	MP_VRAM		0	
+#define	MP_EXT9		1
+#define	MP_EXTA		2
+#define	MP_BASIC	3	/* 11, 12, 13 */
+#define	MP_EDIT		6
+#define	MP_KERNEL	7
 
-#define	MP_NUM		16
+#define	CSAPAGES	256
+#define	CSAPAGESMASK	0xfffff
+
 
 extern uchar *colram;
+
+void mmu_wr(scnt addr, scnt val);
+scnt mmu_rd(scnt addr);
 

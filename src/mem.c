@@ -86,10 +86,11 @@ trap_t *rm_mem_trap(bank_t *bankp, scnt trapaddr) {
 /*******************************************************************/
 /* TODO bank_[mem|cpu]_[peek|poke]() */
 
-void bank_mem_poke(bank_t *bank, scnt addr, scnt val) {
+void bank_mem_poke(bank_t *bank, saddr addr, scnt val) {
 }
 
-scnt bank_mem_peek(bank_t *bankp, scnt addr) {
+scnt bank_mem_peek(bank_t *bankp, saddr addr) {
+	addr &= bankp->mapmask;
         register scnt bank = addr >> 12;
         register scnt offset = addr & 0xfff;
         meminfo_t *inf = &((meminfo_t*)(bankp->map))[bank];
@@ -105,10 +106,11 @@ scnt bank_mem_peek(bank_t *bankp, scnt addr) {
 	return addr >> 8;
 }
 
-void bank_cpu_poke(bank_t *bank, scnt addr, scnt val) {
+void bank_cpu_poke(bank_t *bank, saddr addr, scnt val) {
 }
 
-scnt bank_cpu_peek(bank_t *bankp, scnt addr) {
+scnt bank_cpu_peek(bank_t *bankp, saddr addr) {
+	addr &= bankp->mapmask;
         register scnt bank = addr >> 12;
         register scnt offset = addr & 0xfff;
         memmap_t *cpumap = &((memmap_t*)(bankp->map))[bank];

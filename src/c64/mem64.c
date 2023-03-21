@@ -31,7 +31,8 @@ static bank_t rambank = {
 	rm_mem_trap,
 	bank_mem_peek,
 	bank_mem_poke,
-	ram_info
+	ram_info,
+	PAGESMASK
 };
 
 static meminfo_t rom_info[16];
@@ -42,7 +43,8 @@ static bank_t rombank = {
 	rm_mem_trap,
 	bank_mem_peek,
 	bank_mem_poke,
-	rom_info
+	rom_info,
+	PAGESMASK
 };
 
 static meminfo_t io_info[16];
@@ -53,7 +55,8 @@ static bank_t iobank = {
 	rm_mem_trap,
 	bank_mem_peek,
 	bank_mem_poke,
-	io_info
+	io_info,
+	PAGESMASK
 };
 
 static meminfo_t cart_info[16];
@@ -64,7 +67,8 @@ static bank_t cartbank = {
 	rm_mem_trap,
 	bank_mem_peek,
 	bank_mem_poke,
-	cart_info
+	cart_info,
+	PAGESMASK
 };
 
 

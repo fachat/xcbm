@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	mem_start();
 	cur_init();
 
-	CPU *cpu = cpu_init("main", 1000000, 16);
+	CPU *cpu = cpu_init("main", 1000000, 16, 1);
 
 	video_init(cpu);
 	key_init(cpu);	

@@ -29,6 +29,10 @@ int	hirq=0;
 int 	dismode	=0;
 int 	traplines =0;
 
+typedef void (*sim_f)();
+
+static sim_f *simp;
+
 int	xxmode =0;
 
 uchar zero,carry,overfl,neg,irq,dez,cbrk;
@@ -70,23 +74,6 @@ void cpu_reset(CPU *cpu){
 	cpu->pc=getadr(0xfffc);
 	cpu->sr=IRQ+STRUE;
 	err=0;
-}
-
-CPU *cpu_init(const char *n, int cyclespersec, int msperframe) {
-
-	alarm_context_init(&bus.actx, "main cpu");
-
-	cpu.name = n;
-	cpu.bus = &bus;
-	bus.cpu = &cpu;
-
-	speed_init(&cpu, cyclespersec, msperframe);
-
-	cpu_reset(&cpu);
-
-	mon_register_bank(&cpubank);
-
-	return &cpu;
 }
 
 // TODO: add time offset to getbyt/getadr, so fetches are done at correct cycle
@@ -197,6 +184,18 @@ void pha(){
 	next(6);	// clock cycles;
 }
 
+void phx(){
+	phbyt(cpu.x);
+	cpu.pc++;
+	next(6);	// clock cycles;
+}
+
+void phy(){
+	phbyt(cpu.y);
+	cpu.pc++;
+	next(6);	// clock cycles;
+}
+
 void rts(){
 	plpc();
 	cpu.pc++;
@@ -205,6 +204,20 @@ void rts(){
 
 void pla(){
 	register scnt a=cpu.a=plbyt();
+	setnz(a);
+	cpu.pc++;
+	next(4);
+}
+
+void plx(){
+	register scnt a=cpu.x=plbyt();
+	setnz(a);
+	cpu.pc++;
+	next(4);
+}
+
+void ply(){
+	register scnt a=cpu.y=plbyt();
 	setnz(a);
 	cpu.pc++;
 	next(4);
@@ -729,6 +742,27 @@ void adc_absx(){
 	next(4);	// TODO page xing
 }
 
+void stz_zp(){
+	setbyt(azp(cpu.pc),0);
+	cpu.pc+=2;
+	next(3);
+}
+void stz_abs(){
+	setbyt(aabs(cpu.pc),0);
+	cpu.pc+=3;
+	next(4);
+}
+void stz_zpx(){
+	setbyt(azpx(cpu.pc),0);
+	cpu.pc+=2;
+	next(4);
+}
+void stz_absx(){
+	setbyt(aabsx(cpu.pc),0);
+	cpu.pc+=3;
+	next(5);
+}
+
 void sta_indx(){
 	setbyt(aindx(cpu.pc),cpu.a);
 	cpu.pc+=2;
@@ -1000,6 +1034,21 @@ void dec_absx(){
 	next(7);
 }
 
+void dec(){
+	register scnt a=(cpu.a - 1) & 0xff;
+	setnz(a);
+	cpu.a = a;
+	cpu.pc += 1;
+	next(2);
+}
+
+void inc(){
+	register scnt a=(cpu.a + 1) & 0xff;
+	setnz(a);
+	cpu.a = a;
+	cpu.pc += 1;
+	next(2);
+}
 void inc_zp(){
 	register scnt a=azp(cpu.pc);
 	madd(1,2);
@@ -1180,7 +1229,8 @@ void sbc_absx(){
 	next(4);	// TODO page xing
 }
 
-void (*sim[256])(void)=
+//void (*sim[256])(void)=
+sim_f sim[256] =
    {    brk,		ora_indx,	ill,		ill,	ill,		ora_zp,		asl_zp,		ill,
         php,		ora_imm,	asl_acc,	ill,	ill,		ora_abs,	asl_abs,	ill,
 	bpl,		ora_indy,	ill,		ill,	ill,		ora_zpx,	asl_zpx,	ill,
@@ -1220,6 +1270,49 @@ void (*sim[256])(void)=
    	inx,		sbc_imm,	nop,		ill,	cpx_abs,	sbc_abs,	inc_abs,	ill,
    	beq,		sbc_indy,	ill,		ill,	ill,		sbc_zpx,	inc_zpx,	ill,
    	sed,		sbc_absy,	ill,		ill,	ill,		sbc_absx,	inc_absx,	ill
+};
+
+//void (*simcmos[256])(void)=
+sim_f simcmos[256] =
+   {    brk,		ora_indx,	ill,		ill,	ill,		ora_zp,		asl_zp,		ill,
+        php,		ora_imm,	asl_acc,	ill,	ill,		ora_abs,	asl_abs,	ill,
+	bpl,		ora_indy,	ill,		ill,	ill,		ora_zpx,	asl_zpx,	ill,
+   	clc,		ora_absy,	inc,		ill,	ill,		ora_absx,	asl_absx,	ill,
+
+   	jsr_abs,	and_indx,	ill,		ill,	bit_zp,		and_zp,		rol_zp,		ill,
+   	plp,		and_imm,	rol_acc,	ill,	bit_abs,	and_abs,	rol_abs,	ill,
+   	bmi,		and_indy,	ill,		ill,	ill,		and_zpx,	rol_zpx,	ill,
+   	sec,		and_absy,	dec,		ill,	ill,		and_absx,	rol_absx,	ill,
+
+   	rti,		eor_indx,	ill,		ill,	ill,		eor_zp,		lsr_zp,		ill,
+   	pha,		eor_imm,	lsr_acc,	ill,	jmp_abs,	eor_abs,	lsr_abs,	ill,
+   	bvc,		eor_indy,	ill,		ill,	ill,		eor_zpx,	lsr_zpx,	ill,
+   	cli,		eor_absy,	phy,		ill,	ill,		eor_absx,	lsr_absx,	ill,
+
+   	rts,		adc_indx,	ill,		ill,	stz_zp,		adc_zp,		ror_zp,		ill,
+   	pla,		adc_imm,	ror_acc,	ill,	jmp_absi,	adc_abs,	ror_abs,	ill,
+   	bvs,		adc_indy,	ill,		ill,	stz_zpx,	adc_zpx,	ror_zpx,	ill,
+   	sei,		adc_absy,	ply,		ill,	ill,		adc_absx,	ror_absx,	ill,
+   	
+   	ill,		sta_indx,	ill,		ill,	sty_zp,		sta_zp,		stx_zp,		ill,
+   	dey,		ill,		txa,		ill,	sty_abs,	sta_abs,	stx_abs,	ill,
+   	bcc,		sta_indy,	ill,		ill,	sty_zpx,	sta_zpx,	stx_zpy,	ill,
+   	tya,		sta_absy,	txs,		ill,	stz_abs,	sta_absx,	stz_absx,	ill,
+   	
+   	ldy_imm,	lda_indx,	ldx_imm,	ill,	ldy_zp,		lda_zp,		ldx_zp,		ill,
+   	tay,		lda_imm,	tax,		ill,	ldy_abs,	lda_abs,	ldx_abs,	ill,
+   	bcs,		lda_indy,	ill,		ill,	ldy_zpx,	lda_zpx,	ldx_zpy,	ill,
+   	clv,		lda_absy,	tsx,		ill,	ldy_absx,	lda_absx,	ldx_absy,	ill,
+   	
+   	cpy_imm,	cmp_indx,	ill,		ill,	cpy_zp,		cmp_zp,		dec_zp,		ill,
+   	iny,		cmp_imm,	dex,		ill,	cpy_abs,	cmp_abs,	dec_abs,	ill,
+   	bne,		cmp_indy,	ill,		ill,	ill,		cmp_zpx,	dec_zpx,	ill,	
+   	cld,		cmp_absy,	phx,		ill,	ill,		cmp_absx,	dec_absx,	ill,
+   	
+   	cpx_imm,	sbc_indx,	ill,		ill,	cpx_zp,		sbc_zp,		inc_zp,		ill,
+   	inx,		sbc_imm,	nop,		ill,	cpx_abs,	sbc_abs,	inc_abs,	ill,
+   	beq,		sbc_indy,	ill,		ill,	ill,		sbc_zpx,	inc_zpx,	ill,
+   	sed,		sbc_absy,	plx,		ill,	ill,		sbc_absx,	inc_absx,	ill
 };
 
 
@@ -1294,7 +1387,7 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
 			logass(&cpu);
 		}
 		c=getbyt(cpu.pc);
-		(*sim[c])();
+		(*simp[c])();
 		inc_time(10);
 /*
 		if(dismode>1) {
@@ -1308,4 +1401,29 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
 	
 	return(0);
 }
+
+
+CPU *cpu_init(const char *n, int cyclespersec, int msperframe, int cmos) {
+
+	if (cmos) {
+		simp = simcmos;
+	} else {
+		simp = sim;
+	}
+
+	alarm_context_init(&bus.actx, "main cpu");
+
+	cpu.name = n;
+	cpu.bus = &bus;
+	bus.cpu = &cpu;
+
+	speed_init(&cpu, cyclespersec, msperframe);
+
+	cpu_reset(&cpu);
+
+	mon_register_bank(&cpubank);
+
+	return &cpu;
+}
+
 

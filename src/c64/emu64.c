@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 	cur_init();
 
 	// PAL
-	CPU *cpu = cpu_init("main", 985248, 20);
+	CPU *cpu = cpu_init("main", 985248, 20, 0);
 
 	mon_init();
 	mon_register_cpu(cpu);

@@ -173,7 +173,7 @@ void rom_settrap(scnt addr, void (*trapfunc)(CPU *cpu, scnt addr), const char *n
 }
 
 /* set video character memory address callback */
-void mem_set_vaddr(scnt addr, void (*wrvid)(scnt addr, scnt val)) {
+void mem_set_vaddr(scnt addr, void (*wrvid)(meminfo_t *inf, scnt addr, scnt val)) {
 
 	int page = addr >> 12;
 

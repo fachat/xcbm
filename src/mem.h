@@ -39,9 +39,9 @@ struct meminfo_s {
 		int		page;			// page number in bank
                 uchar   	*mt_wr;
 		uchar		*mt_rd;
-                void    	(*mf_wr)(scnt,scnt);
-                scnt    	(*mf_rd)(scnt);
-                scnt    	(*mf_peek)(scnt);
+                void    	(*mf_wr)(meminfo_t* inf, scnt,scnt);
+                scnt    	(*mf_rd)(meminfo_t* inf, scnt);
+                scnt    	(*mf_peek)(meminfo_t* inf, scnt);
                 trap_t 		**traplist;		// array of 4k trap_t* pointers if at least one is set
 };
 
@@ -96,7 +96,7 @@ static inline scnt getbyt(scnt a) {
 	meminfo_t *inf = cpupage->inf;
 
         if(inf->mf_rd != NULL) {
-                return(inf->mf_rd(a));
+                return(inf->mf_rd(inf, a));
         }
         if(inf->mt_rd != NULL) {
              	return(inf->mt_rd[offset]);
@@ -126,7 +126,7 @@ static inline void setbyt(scnt a, scnt b) {
              	inf->mt_wr[offset] = b;
         }
         if(inf->mf_wr != NULL) {
-                inf->mf_wr(a,b);
+                inf->mf_wr(inf, a,b);
         }
 }
 

@@ -23,7 +23,7 @@ int videopage=0;
 int hiresadr=0;
 int charadr=0;
 
-void wrvid(scnt a, scnt b){
+void wrvid(meminfo_t *inf, scnt a, scnt b){
 	static chtype c;
 	static int line, col;
 
@@ -70,7 +70,7 @@ logout(0,"set videoaddresses: screen=%x, char=%x, hires=%x",
 
 	update=0;
 	for(i=screenadr;i<screenadr+1000;i++) {
-	  wrvid(i,mem_getvbyt(i));
+	  wrvid(NULL, i,mem_getvbyt(i));
 	}
 	update=1;
 /*	touchwin(scr);*/
@@ -98,7 +98,7 @@ void colram_wr(scnt adr, scnt val) {
 	colram[adr]=val&0x0f;
 
 	if(color && adr<1000) {
-	  wrvid(adr+screenadr,mem_getvbyt(adr+screenadr));
+	  wrvid(NULL, adr+screenadr,mem_getvbyt(adr+screenadr));
 	}
 }
 

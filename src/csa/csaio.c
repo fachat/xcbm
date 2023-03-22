@@ -18,10 +18,65 @@
 #include "parallel.h"
 #include "piavia.h"
 #include "csamem.h"
+#include "mem.h"
+#include "petvideo.h"
 
 
+static uchar ctrl_port = 0;
+static uchar ctrl_irq = 0;
+
+static void bios_ctrl_cb(struct alarm_s *alarm, CLOCK current);
+
+
+static alarm_t bios_ctrl_irq = {
+        "50Hz IRQ",
+        NULL,
+        bios_ctrl_cb,
+        NULL,
+        CLOCK_MAX
+};
+
+static void set_ctrl_irq(uchar fl) {
+
+	if (fl) {
+		// set
+		if ((ctrl_irq == 0)
+			&& (ctrl_port & 0x02)) {
+			// not yet set, and clkirqen is set
+			cpu_set_irq(CTRL_IRQ_MASK, 1);
+		}
+	} else {
+		// clr
+		cpu_set_irq(CTRL_IRQ_MASK, 0);
+	}
+
+	ctrl_irq = fl;
+}
+
+static void ctrl_wr(scnt val) {
+
+	set_ctrl_irq(0);
+	
+	ctrl_port = val;
+}
+
+static scnt ctrl_rd() {
+
+	return (ctrl_port & 0x3e) | 0x40 | (ctrl_irq ? 0x80 : 0) | (hirq ? 0 : 0x01);
+}
+
+static void bios_ctrl_cb(struct alarm_s *alarm, CLOCK current) {
+
+	set_ctrl_irq(1);
+
+	// toggle 50hz
+        set_alarm_clock_plus(&bios_ctrl_irq, 50000);
+}
 
 int io_init(BUS *bus) {
+
+        alarm_register(&bus->actx, &bios_ctrl_irq);
+        set_alarm_clock(&bios_ctrl_irq, 0);
 
 	return piavia_init(bus);
 }
@@ -42,7 +97,10 @@ void io_wr(scnt adr, scnt val) {
 		via_wr(&via, adr, val);
 		break;
 	case 0x80:
-		// todo CRTC
+		crtc_wr(adr, val);
+		break;
+	case 0x7e0:
+		ctrl_wr(val);
 		break;
 	case 0x7f0:
 		mmu_wr(adr, val);
@@ -63,7 +121,9 @@ scnt io_rd(scnt adr) {
 	case 0x40:
 		return via_rd(&via, adr);
 	case 0x80:
-		// todo CRTC
+		return crtc_rd(adr);
+	case 0x7e0:
+		return ctrl_rd();
 	case 0x7f0:
 		return mmu_rd(adr);
 	default:

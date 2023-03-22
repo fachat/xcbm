@@ -12,9 +12,9 @@
 #include "video.h"
 #include "keys.h"
 #include "sound.h"
+#include "mem.h"
 #include "c64io.h"
 #include "vicii.h"
-#include "mem.h"
 
 typedef struct {
 		byte 	pra;
@@ -76,7 +76,7 @@ int io_init(void) {
 	return(0);
 }
 
-void io_wr(scnt adr, scnt val) {
+void io_wr(meminfo_t *inf, scnt adr, scnt val) {
 	register scnt a=(adr&0x0c00);
 	switch(a) {
 	case 0:
@@ -102,7 +102,7 @@ void io_wr(scnt adr, scnt val) {
 	}
 }
 
-scnt io_rd(scnt adr) {
+scnt io_rd(meminfo_t *inf, scnt adr) {
         register scnt a=(adr&0x0c00);
         switch(a) {
         case 0:
@@ -130,7 +130,7 @@ scnt io_rd(scnt adr) {
 	return(0);
 }
 
-scnt io_peek(scnt adr) {
+scnt io_peek(meminfo_t *inf, scnt adr) {
         register scnt a=(adr&0x0c00);
         switch(a) {
         case 0:

@@ -141,16 +141,32 @@ static inline void colram_wr(scnt adr, scnt val) {
 	}
 }
 
-void vmem_wr(scnt addr,scnt val ) {
-	register scnt a = addr & 0x0fff;
+/* 
+ * note that vmem_wr is called with a mapped (CPU) address.
+ * Therefore we include meminfo_t to understand where in
+ * vram physical space we actually are
+ */
+void vmem_wr(meminfo_t *inf, scnt addr,scnt val ) {
+	scnt offset = addr & 0x0fff;
 
-	vram[a&vrmask] = val;
+	// calculate physical address
+	scnt phys = vrmask & (offset + ((inf->page & 0x0f) << 12));
 
-	if (a & 0x800) {
+	logout(2, "vmem_wr(addr=%04x, page=%d, -> offset=%04x, phys=%04x, vrbase=%04x", 
+			addr, inf->page, offset, phys, vrbase);
+
+	if (phys < vrbase || phys > vrbase + 2000) {
+		return;
+	}
+
+	// this should have been done by setbyt() already
+	//vram[(phys + offset) & vrmask] = val;
+
+	if (offset & 0x800) {
 		// write col RAM
-		colram_wr(a, val);
+		colram_wr(offset, val);
 	} else {
-		wrvid(a, val);
+		wrvid(offset, val);
 	}
 }
 

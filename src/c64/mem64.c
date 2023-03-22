@@ -198,25 +198,36 @@ scnt mem_getvbyt(scnt addr) {
 void inimemvec(void){
 	int i;
 	for(i=0;i<PAGES;i++) {
+		ram_info[i].page=i;
 		ram_info[i].mt_wr=NULL;
 		ram_info[i].mt_rd=NULL;
 		ram_info[i].mf_wr=NULL;
 		ram_info[i].mf_rd=NULL;
+		ram_info[i].mf_peek=NULL;
 		ram_info[i].traplist=NULL;
+
+		rom_info[i].page=i;
 		rom_info[i].mt_wr=NULL;
 		rom_info[i].mt_rd=NULL;
 		rom_info[i].mf_wr=NULL;
 		rom_info[i].mf_rd=NULL;
+		rom_info[i].mf_peek=NULL;
 		rom_info[i].traplist=NULL;
+
+		io_info[i].page=i;
 		io_info[i].mt_wr=NULL;
 		io_info[i].mt_rd=NULL;
 		io_info[i].mf_wr=NULL;
 		io_info[i].mf_rd=NULL;
+		io_info[i].mf_peek=NULL;
 		io_info[i].traplist=NULL;
+
+		cart_info[i].page=i;
 		cart_info[i].mt_wr=NULL;
 		cart_info[i].mt_rd=NULL;
 		cart_info[i].mf_wr=NULL;
 		cart_info[i].mf_rd=NULL;
+		cart_info[i].mf_peek=NULL;
 		cart_info[i].traplist=NULL;
 	}
 	/* 64k RAM */
@@ -259,6 +270,7 @@ void inimemvec(void){
 	/* IO */
 	io_info[13].mf_wr = io_wr;
 	io_info[13].mf_rd = io_rd;
+	io_info[13].mf_peek = io_peek;
 
 	/* CPU virtual address space */
 	for(i=0;i<16;i++) {

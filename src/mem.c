@@ -96,9 +96,8 @@ scnt bank_mem_peek(bank_t *bankp, saddr addr) {
         meminfo_t *inf = &((meminfo_t*)(bankp->map))[bank];
         //memmap_t *cpumap = &((memmap_t*)(bankp->map))[bank];
 
-	// TODO: peek instead of read
-	if (inf->mf_rd != NULL) {
-		return (inf->mf_rd(offset));
+	if (inf->mf_peek != NULL) {
+		return (inf->mf_peek(offset));
 	}
 	if (inf->mt_rd != NULL) {
 		return (inf->mt_rd[offset]);
@@ -116,19 +115,18 @@ scnt bank_cpu_peek(bank_t *bankp, saddr addr) {
         memmap_t *cpumap = &((memmap_t*)(bankp->map))[bank];
 
 	if (cpumap->mask && ((offset & cpumap->mask) == cpumap->comp)) {
-		return cpumap->m_rd(offset);
+		return cpumap->m_peek(offset);
 	}
 
 	meminfo_t *inf = cpumap->inf;
 	// TODO: peek instead of read
 	if (inf->mf_rd != NULL) {
-		return (inf->mf_rd(offset));
+		return (inf->mf_peek(offset));
 	}
 	if (inf->mt_rd != NULL) {
 		return (inf->mt_rd[offset]);
 	}
 	return addr >> 8;
-	return 0;
 }
 
 

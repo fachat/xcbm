@@ -1,0 +1,76 @@
+
+#define SYSPORT         $efe0
+#define SYS_IRQEN       %00000010
+#define SYS_LED         %00001000
+
+	; this program is patched into the RESET routine
+	; of the KERNEL, to init the MMU and switch between
+	; 40 and 80 column (i.e. 1MHz vs 2MHz) operation
+
+	*=$fe00
+	.(
+	sei
+	cld
+
+	; Clear CPU control port
+	; i.e. all MMU mappings are writable, enabled, and executable
+	lda #0
+	sta $efd0	
+
+	; init MMU, start with current page first, 
+	; as first write switches from pass-through
+	; to mapping enabled
+
+	; lowest 64k from BIOS board are mapped directly
+	ldy #15
+loop	tya
+	sta $eff0,y
+	dey
+	bpl loop
+
+	; map video memory at $8xxx
+	lda #$11
+	sta $eff8
+
+#if 0
+	; now check our system frequency
+        lda #SYS_IRQEN
+        sta SYSPORT
+gf1     lda SYSPORT
+        bpl gf1
+        sta SYSPORT
+        bit SYSPORT
+        bmi gf1
+        lda #0
+        tay
+        tax
+gf2     bit SYSPORT
+        bmi gfe
+        clc
+        adc #1
+        bne gf2
+        inx
+        bne gf2
+        iny
+        bne gf2
+gfe     cpx #8    	; more than 2 MHZ
+        bcs endfrq	; two mhz is default ROM setup
+
+	; switch to 1MHz
+	lda #$08
+	sta $effe	; switch editor ROM
+
+#endif
+
+endfrq  
+	; BIOS board control port
+	; disable /EXTIO and switch off LED
+	lda #$18
+	sta SYSPORT
+
+	; original RESET
+	jmp $fd16
+
+	.)
+
+

@@ -1,5 +1,5 @@
 
-#define MAXLOG 100
+#define MAXLOG 250
 
 int loginit(char *name);
 

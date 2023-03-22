@@ -369,19 +369,21 @@ int open_1541dir(vcFile *vf, vc1541_name *n1) {
 void get_next1541(vcFile *vf, struct dirent **de) {
 	int i;
 	char *m;
+	char *n;
 	while(*de=readdir(vf->f.dir)) {
 /*logout(0,"dirmask=%s, filename=%s",vf->mask,(*de)->d_name);*/
 	  if(!vf->mask[0]) break;
 	  m=vf->mask;
+	  n=(*de)->d_name;
 	  i=0; 
 	  while(m[i]) {
-	    if(m[i]=='?') i++;
-	    else if(m[i]=='*') { i=strlen(m); break; }
+	    if(m[i]=='?' && *n) i++;
+	    else if(m[i]=='*') break; 
 	    else if(m[i]!=(*de)->d_name[i]) break;
 	    else i++;
 /* TODO: *=[P|U|S|R] file type selection */
 	  }
-	  if(!m[i]) break; 
+	  if(m[i]=='*' || (!m[i] && !n[i])) break; 
 	}
 }
 

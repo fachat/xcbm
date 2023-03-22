@@ -1,0 +1,8 @@
+
+	; this is the reset vector to be patched into
+	; the kernel
+
+	*=$fffc
+	.word $fe00
+
+

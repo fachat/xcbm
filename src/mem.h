@@ -36,10 +36,12 @@ struct bank_s {
 
 /* information on a memory page (4k) */
 struct meminfo_s {
+		int		page;			// page number in bank
                 uchar   	*mt_wr;
 		uchar		*mt_rd;
                 void    	(*mf_wr)(scnt,scnt);
                 scnt    	(*mf_rd)(scnt);
+                scnt    	(*mf_peek)(scnt);
                 trap_t 		**traplist;		// array of 4k trap_t* pointers if at least one is set
 };
 
@@ -50,6 +52,7 @@ typedef struct {
 		scnt		comp;			/* compare after mask */
                 void    	(*m_wr)(scnt,scnt);	/* if mask/comp match, use this to write */
                 scnt    	(*m_rd)(scnt);		/* is mask/comp match, use this to read */
+                scnt    	(*m_peek)(scnt);	/* is mask/comp match, use this to peek */
 		// CPU bank based traps
                 trap_t 		**traplist;		// array of 4k trap_t* pointers if at least one is set
 		// actual memory mapping
@@ -93,7 +96,7 @@ static inline scnt getbyt(scnt a) {
 	meminfo_t *inf = cpupage->inf;
 
         if(inf->mf_rd != NULL) {
-                return(inf->mf_rd(offset));
+                return(inf->mf_rd(a));
         }
         if(inf->mt_rd != NULL) {
              	return(inf->mt_rd[offset]);

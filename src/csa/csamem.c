@@ -97,6 +97,7 @@ void setmap(void) {
 	cpumap[14].comp = 0x0800;
 	cpumap[14].m_wr = &io_wr;
 	cpumap[14].m_rd = &io_rd;
+	cpumap[14].m_peek = &io_peek;
 }
 
 /*******************************************************************/
@@ -104,11 +105,13 @@ void setmap(void) {
 void inimemvec(void){
 	int i;
 	for(i=0;i<CSAPAGES;i++) {
+		bus_info[i].page=i;
 		bus_info[i].mt_wr=NULL;
 		bus_info[i].mt_rd=NULL;
 		bus_info[i].traplist=NULL;
 		bus_info[i].mf_wr=NULL;
 		bus_info[i].mf_rd=NULL;
+		bus_info[i].mf_peek=NULL;
 	}
 	/* low32k RAM */
 	for(i=0;i<8;i++) {
@@ -118,7 +121,6 @@ void inimemvec(void){
 
 	/* next 32k (ROM) */
 	for(i=8;i<16;i++) {
-	 	bus_info[i].mt_wr=rom+(i-8)*0x1000;
 	 	bus_info[i].mt_rd=rom+(i-8)*0x1000;
 	}
 
@@ -126,6 +128,7 @@ void inimemvec(void){
 	for(i=16;i<32;i++) {
 	 	bus_info[i].mt_wr=vram+(i-16)*0x1000;
 	 	bus_info[i].mt_rd=vram+(i-16)*0x1000;
+	 	bus_info[i].mf_wr=vmem_wr;
 	}
 
 	/* upper 512k RAM */
@@ -133,9 +136,6 @@ void inimemvec(void){
 	 	bus_info[i].mt_wr=ram+(i-128)*0x1000;
 	 	bus_info[i].mt_rd=ram+(i-128)*0x1000;
 	}
-
-	/* video RAM access at $10000 */
-	bus_info[16].mf_wr = vmem_wr;
 
 	/* the CPU map parts that may need to survive a setmap() */
 	for(i=0;i<16;i++) {
@@ -172,10 +172,8 @@ scnt mmu_rd(scnt addr) {
 /* ---------------------------------------------------------------*/
 
 static const char *names[] = { 
-		"/var/lib/cbm/pet",
-		"petkernel4.rom",
-		"petbasic4.rom",
-		"petedit4.rom"
+		"/var/lib/cbm/csa",
+		"csa.rom"
 };
 
 static int mem_set_rom_dir(const char *param) {
@@ -183,18 +181,8 @@ static int mem_set_rom_dir(const char *param) {
 	return 0;
 }
 
-static int mem_set_kernal(const char *param) {
+static int mem_set_rom(const char *param) {
 	names[1] = param;
-	return 0;
-}
-
-static int mem_set_basic(const char *param) {
-	names[2] = param;
-	return 0;
-}
-
-static int mem_set_edit(const char *param) {
-	names[3] = param;
 	return 0;
 }
 
@@ -203,9 +191,7 @@ static int mem_set_edit(const char *param) {
  */
 static config_t mem_pars[] = {
 	{ "rom-dir", 'd', "rom_directory", mem_set_rom_dir, "set common ROM directory (default = /var/lib/cbm/pet)" },
-	{ "kernal-rom", 'K', "kernal_rom_filename", mem_set_kernal, "set kernal ROM file name (in ROM directory; default 'petkernal4.rom')" },
-	{ "basic-rom", 'B', "basic_rom_filename", mem_set_basic, "set basic ROM file name (in ROM directory; default 'petbasic4.rom')" },
-	{ "edit-rom", 'E', "edit_rom_filename", mem_set_edit, "set edit ROM file name (in ROM directory; default 'petedit4.rom')" },
+	{ "rom", 'R', "rom_filename", mem_set_rom, "set 32k ROM file name (in ROM directory; default 'pet.rom')" },
 	{ NULL }
 };
 
@@ -214,15 +200,17 @@ void mem_init() {
 	config_register(mem_pars);
 
 	mon_register_bank(&physbank);
+
+	vmem_set(vram, 0xffff);
 }
 
 void mem_start() {
 	char fname[MAXLINE];
-	size_t offset[]={ 0, KERNEL, BASIC, EDITOR };
-	size_t len[]=   { 0, 4096,   3*4096,  2048 };
+	size_t offset[]={ 0, 0 };
+	size_t len[]=   { 0, 32768 };
 	int i;
 
-	  for(i=1;i<4;i++) {
+	  for(i=1;i<2;i++) {
 	    if(names[i][0]=='/') {
 	      strcpy(fname,names[i]);
 	    } else {

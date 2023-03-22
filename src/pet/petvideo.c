@@ -20,17 +20,34 @@
 
 #include "video.h"
 
-int screenadr=0x8000;
 int crtc_reg[16];
 int videopage=0;
 
 static const int width=80;
 static const int scrlen=width*25;
 
-/* video RAM (mirrors 0x8xxx of CPU pet bank */
-static uchar vram[0x1000];
+/* video RAM (mirrors 0x8xxx of CPU pet bank 
+ * ... or the 64k video dRAM on the CS/A CRTC board 
+ * The values are set from the memory module
+ */
+static uchar *vram;
+static scnt vrmask = 0;
 
-void wrvid(scnt a, scnt b){
+/* screen (character memory) offset in VRAM 
+ * This is set via CRTC or CS/A video control
+ * register in crtc_wr()
+ */
+static scnt vrbase = 0;
+
+/* current CRTC register (for register read/write) */
+static scnt reg = 0;
+
+void vmem_set(uchar *vramp, scnt mask) {
+	vram = vramp;
+	vrmask = mask;
+}
+
+static void wrvid(scnt a, scnt b){
 	static chtype c;
 	static int line, col;
 	if(a<scrlen) {
@@ -42,7 +59,7 @@ void wrvid(scnt a, scnt b){
 		if(b&0x80)
 			c|=A_REVERSE;
 		if(color) {
-		 	c|=COLOR_PAIR(vram[a+0x800]);
+		 	c|=COLOR_PAIR(vram[(vrbase+a+0x800)&vrmask]);
 		}
 
 		mvaddch(line,col,c);
@@ -61,7 +78,7 @@ void updatevideo(void) {
 	//screenadr=videopage+1024*(val>>4);
 	update=0;
 	for(i=0;i<scrlen;i++) {
-	  wrvid(i,vram[i]);
+	  wrvid(i,vram[(vrbase+i)&vrmask]);
 	}
 	update=1;
 /*	touchwin(scr);*/
@@ -103,7 +120,7 @@ int video_init(CPU *cpu){
 	int i;
 	update=0;
 	for(i=0;i<16;i++) crtc_reg[i]=0;
-	screenadr=0x8000;
+	//screenadr=0x8000;
 //	crtc_wr(33,0);
 
 	// 128 cycles VDRIVE pulse
@@ -120,14 +137,14 @@ int video_init(CPU *cpu){
 
 static inline void colram_wr(scnt adr, scnt val) {
 	if(color && adr<1000) {
-	  wrvid(adr,vram[adr]);
+	  wrvid(adr,vram[(vrbase+adr)&vrmask]);
 	}
 }
 
 void vmem_wr(scnt addr,scnt val ) {
 	register scnt a = addr & 0x0fff;
 
-	vram[a] = val;
+	vram[a&vrmask] = val;
 
 	if (a & 0x800) {
 		// write col RAM
@@ -139,26 +156,38 @@ void vmem_wr(scnt addr,scnt val ) {
 
 
 void crtc_wr(scnt xreg,scnt val ) {
-#if 0
-	int i;
-	vic_reg[xreg]=val;
-	switch(xreg) {
-	case 24:
-		updatevideo();
-		break;
-	case 33:	/* background color 0 */
-		if(color) {
-		    for(i=0;i<16;i++) {
-			init_pair(i,rgb[i].fg,rgb[val&0x0f].fg);
-	logout(0,"set color: %d -> fg=%d, bg=%d",i,rgb[i].fg,rgb[val&0x0f].fg);
-		    }
-		    updatevideo();
+
+	xreg &= 0x0f;
+	if (xreg < 8) {
+		// CRTC
+		xreg &= 1;
+		if (xreg == 0) {
+			reg = val & 0x1f;
+			return;
 		}
-		break;
-	default:
-		break;
+
+		logout(0, "CRTC reg %d <- %02x", reg, val);
+
+		// write to actual register
+		switch(reg) {
+		case 12:
+			// display start address high (6 bit)
+			vrbase = vrbase & 0xff | ((val & 0x3f) << 8);
+			updatevideo();
+			break;
+		case 13:
+			// display start address low (8 bit)
+			vrbase = vrbase & 0xff00 | (val & 0xff);
+			updatevideo();
+			break;
+		default:
+			break;
+		}
+	} else {
+		// CRTC board control register (TODO: CS/A only)
+		// bits 0/1 are vrbase 14/15
+		vrbase = vrbase & 0x3fff | ((val & 0x03) << 14);
 	}
-#endif
 }
 
 scnt crtc_rd(scnt xreg) {

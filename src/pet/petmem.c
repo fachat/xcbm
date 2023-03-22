@@ -67,6 +67,7 @@ void setmap(void) {
 			cpumap[i].comp = 0x0800;
 			cpumap[i].m_wr = &io_wr;
 			cpumap[i].m_rd = &io_rd;
+			cpumap[i].m_peek = &io_peek;
 		}
 	}
 }
@@ -80,11 +81,13 @@ void setmap(void) {
 void inimemvec(void){
 	int i;
 	for(i=0;i<PAGES;i++) {
+		pet_info[i].page=i;
 		pet_info[i].mt_wr=NULL;
 		pet_info[i].mt_rd=NULL;
 		pet_info[i].traplist=NULL;
 		pet_info[i].mf_wr=NULL;
 		pet_info[i].mf_rd=NULL;
+		pet_info[i].mf_peek=NULL;
 	}
 
 	/* RAM (including VRAM) */
@@ -156,6 +159,8 @@ void mem_init() {
 	config_register(mem_pars);
 
 	mon_register_bank(&petbank);
+
+	vmem_set(ram + 0x8000, 0x0fff);
 }
 
 void mem_start() {

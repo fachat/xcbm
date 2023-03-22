@@ -49,8 +49,6 @@ typedef struct {
 		int 	timerb;
 } CIA;
 
-void	io_wr(scnt,scnt);
-scnt	io_rd(scnt);
 CIA	cia1, cia2;
 
 void cia1_tia(int); 
@@ -62,6 +60,8 @@ void cia1_wr(scnt,scnt);
 void cia2_wr(scnt,scnt);
 scnt cia1_rd(scnt);
 scnt cia2_rd(scnt);
+scnt cia1_peek(scnt);
+scnt cia2_peek(scnt);
 
 int io_init(void) {
 	iec_init();
@@ -122,6 +122,35 @@ scnt io_rd(scnt adr) {
                         break;
                 case 0x100:
                         return(cia2_rd(adr&0x0f));
+                        break;
+                default:
+                        return((adr&0xff00)>>8);
+                }
+ 	}
+	return(0);
+}
+
+scnt io_peek(scnt adr) {
+        register scnt a=(adr&0x0c00);
+        switch(a) {
+        case 0:
+		// VIC-II does not auto-clear interrupts on read
+                return(video_rd(adr&0x3f));
+                break;
+        case 0x400:
+                return(sid_rd(adr&0x1f));
+                break;
+        case 0x800:
+                return(colram_rd(adr&0x3ff));
+                break;
+        case 0xc00:
+                a=adr&0x300;
+                switch(a) {
+                case 0:
+                        return(cia1_peek(adr&0x0f));
+                        break;
+                case 0x100:
+                        return(cia2_peek(adr&0x0f));
                         break;
                 default:
                         return((adr&0xff00)>>8);
@@ -305,7 +334,7 @@ void cia2_wr(scnt reg, scnt val) {
 } 
 
  
-scnt cia1_rd(scnt reg) {
+static scnt cia1_rd_int(scnt reg, int ispeek) {
 	scnt i; 
 	switch(reg) {
 	case 0:
@@ -327,7 +356,9 @@ scnt cia1_rd(scnt reg) {
 	case 13:
 		if(cia1.icr&0x80) hirq--;
 		i=cia1.icr;
-		cia1.icr=0;
+		if (!ispeek) {
+			cia1.icr=0;
+		}
 		return(i);
 	case 14:
 		return(cia1.cra);
@@ -337,7 +368,15 @@ scnt cia1_rd(scnt reg) {
 	return(0);
 }	
 
-scnt cia2_rd(scnt reg) {
+scnt cia1_rd(scnt reg) {
+	return cia1_rd_int(reg, 0);
+}
+
+scnt cia1_peek(scnt reg) {
+	return cia1_rd_int(reg, 1);
+}
+
+static scnt cia2_rd_int(scnt reg, int ispeek) {
         scnt i;
         switch(reg) {
         case 0:
@@ -359,7 +398,9 @@ scnt cia2_rd(scnt reg) {
         case 13:
                 if(cia2.icr&0x80) hirq--;
                 i=cia2.icr;
-                cia2.icr=0;
+		if (!ispeek) {
+                	cia2.icr=0;
+		}
                 return(i);
         case 14:
                 return(cia2.cra);
@@ -368,4 +409,13 @@ scnt cia2_rd(scnt reg) {
         }
         return(0);
 }
-  
+
+scnt cia2_rd(scnt reg) {
+	return cia2_rd_int(reg, 0);
+}
+
+scnt cia2_peek(scnt reg) {
+	return cia2_rd_int(reg, 1);
+}
+
+ 

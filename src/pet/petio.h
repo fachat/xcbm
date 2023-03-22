@@ -4,6 +4,7 @@
 #define	VIA_INT_MASK	0x04
 
 
+scnt io_peek(scnt addr);
 scnt io_rd(scnt addr);
 void io_wr(scnt addr, scnt val);
 

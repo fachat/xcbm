@@ -77,7 +77,10 @@ char *ad2[16]={ "", "", "", "", ",x", ",y", ",x", ",y", ",x)", "", "", "", ",x)"
 
 int dis6502(bank_t *bank, scnt pc, char *l, int maxlen){
 	int c=bank->peek(bank, pc); //getbyt(pc);
-	int o,a,d,f=0;
+	int o;
+	int a = 0;
+	int d;
+	int f = 0;
 	int olen = 1;
 	scnt ad = 0;
 	const char *ln = NULL;
@@ -126,6 +129,10 @@ int dis6502(bank_t *bank, scnt pc, char *l, int maxlen){
 	  default:
 	    break;
 	  }
+	}
+	if (a == 13) {
+		// indirect, y-indexed
+		sprintf(l+40, "; (%02x) -> %04x", ad, (bank->peek(bank, ad) & 0xff) | ((bank->peek(bank, ad+1) << 8) & 0xff00));
 	}
 	if(f) {
 #if 0 	/* clears interrupt flags? */

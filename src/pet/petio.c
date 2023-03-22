@@ -65,4 +65,9 @@ scnt io_rd(scnt adr) {
 	}
 }
 
+// note: PET I/O chips do not change state on read
+scnt io_peek(scnt addr) {
+	return io_rd(addr);
+}
+
 

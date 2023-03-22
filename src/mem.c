@@ -91,10 +91,10 @@ void bank_mem_poke(bank_t *bank, saddr addr, scnt val) {
 
 scnt bank_mem_peek(bank_t *bankp, saddr addr) {
 	addr &= bankp->mapmask;
-        register scnt bank = addr >> 12;
+        register scnt page = addr >> 12;
         register scnt offset = addr & 0xfff;
-        meminfo_t *inf = &((meminfo_t*)(bankp->map))[bank];
-        //memmap_t *cpumap = &((memmap_t*)(bankp->map))[bank];
+
+        meminfo_t *inf = &((meminfo_t*)(bankp->map))[page];
 
 	if (inf->mf_peek != NULL) {
 		return (inf->mf_peek(inf, offset));
@@ -110,17 +110,18 @@ void bank_cpu_poke(bank_t *bank, saddr addr, scnt val) {
 
 scnt bank_cpu_peek(bank_t *bankp, saddr addr) {
 	addr &= bankp->mapmask;
-        register scnt bank = addr >> 12;
+        register scnt page = addr >> 12;
         register scnt offset = addr & 0xfff;
-        memmap_t *cpumap = &((memmap_t*)(bankp->map))[bank];
+
+        memmap_t *cpumap = &((memmap_t*)(bankp->map))[page];
 
 	if (cpumap->mask && ((offset & cpumap->mask) == cpumap->comp)) {
 		return cpumap->m_peek(offset);
 	}
 
 	meminfo_t *inf = cpumap->inf;
-	// TODO: peek instead of read
-	if (inf->mf_rd != NULL) {
+
+	if (inf->mf_peek != NULL) {
 		return (inf->mf_peek(inf, offset));
 	}
 	if (inf->mt_rd != NULL) {

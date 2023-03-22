@@ -69,7 +69,7 @@ static bank_t physbank = {
 	bank_mem_peek,
 	bank_mem_poke,
 	bus_info,
-	CSAPAGES
+	CSAPAGESMASK
 };
 
 

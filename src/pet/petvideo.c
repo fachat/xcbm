@@ -53,13 +53,15 @@ static void wrvid(scnt a, scnt b){
 	if(a<scrlen) {
 		line=a/width;
 		col =a%width;
+		//logout(0, "wrvid(%d,%d)-> %d, update=%d", line, col, b, update);
 		c=b&0x7f;
 		if(c<32)
 			c+=96;
 		if(b&0x80)
 			c|=A_REVERSE;
 		if(color) {
-		 	c|=COLOR_PAIR(vram[(vrbase+a+0x800)&vrmask]);
+// NOTE: color makes stuff invisible on xcsa running GeckOS 1.3
+//		 	c|=COLOR_PAIR(vram[(vrbase+a+0x800)&vrmask]);
 		}
 
 		mvaddch(line,col,c);
@@ -152,8 +154,8 @@ void vmem_wr(meminfo_t *inf, scnt addr,scnt val ) {
 	// calculate physical address
 	scnt phys = vrmask & (offset + ((inf->page & 0x0f) << 12));
 
-	logout(2, "vmem_wr(addr=%04x, page=%d, -> offset=%04x, phys=%04x, vrbase=%04x", 
-			addr, inf->page, offset, phys, vrbase);
+	//logout(2, "vmem_wr(addr=%04x, page=%d, -> offset=%04x, phys=%04x, vrbase=%04x", 
+	//		addr, inf->page, offset, phys, vrbase);
 
 	if (phys < vrbase || phys > vrbase + 2000) {
 		return;

@@ -128,6 +128,7 @@ void inimemvec(void){
 	for(i=16;i<32;i++) {
 	 	bus_info[i].mt_wr=vram+(i-16)*0x1000;
 	 	bus_info[i].mt_rd=vram+(i-16)*0x1000;
+		/* TODO: optimize so only the actual page is trapped */
 	 	bus_info[i].mf_wr=vmem_wr;
 	}
 

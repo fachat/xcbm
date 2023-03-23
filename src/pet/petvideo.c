@@ -53,7 +53,7 @@ static void wrvid(scnt a, scnt b){
 	if(a<scrlen) {
 		line=a/width;
 		col =a%width;
-		//logout(0, "wrvid(%d,%d)-> %d, update=%d", line, col, b, update);
+//logout(0, "wrvid(%d,%d)-> %d, update=%d", line, col, b, update);
 		c=b&0x7f;
 		if(c<32)
 			c+=96;
@@ -154,8 +154,8 @@ void vmem_wr(meminfo_t *inf, scnt addr,scnt val ) {
 	// calculate physical address
 	scnt phys = vrmask & (offset + ((inf->page & 0x0f) << 12));
 
-	//logout(2, "vmem_wr(addr=%04x, page=%d, -> offset=%04x, phys=%04x, vrbase=%04x", 
-	//		addr, inf->page, offset, phys, vrbase);
+	logout(2, "vmem_wr(addr=%04x, page=%d, -> offset=%04x, phys=%04x, vrbase=%04x", 
+			addr, inf->page, offset, phys, vrbase);
 
 	if (phys < vrbase || phys > vrbase + 2000) {
 		return;
@@ -164,12 +164,12 @@ void vmem_wr(meminfo_t *inf, scnt addr,scnt val ) {
 	// this should have been done by setbyt() already
 	//vram[(phys + offset) & vrmask] = val;
 
-	if (offset & 0x800) {
+	//if (offset & 0x800) {
 		// write col RAM
-		colram_wr(offset, val);
-	} else {
-		wrvid(offset, val);
-	}
+	//	colram_wr(offset, val);
+	//} else {
+		wrvid(phys - vrbase, val);
+	//}
 }
 
 

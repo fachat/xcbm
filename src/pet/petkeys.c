@@ -136,8 +136,8 @@ void key_alarm_cb(struct alarm_s *alarm, CLOCK current) {
 
 	key_irq(0, NULL);
 
-	// every 40ms
-	set_alarm_clock_plus(alarm, 40000);
+	// every 100ms
+	set_alarm_clock_plus(alarm, 100000);
 }
 
 static alarm_t key_alarm = {

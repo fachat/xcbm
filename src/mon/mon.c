@@ -44,15 +44,15 @@ static void cmd_err(const char *msg) {
 
 typedef struct {
 	const char *name;
-	int (*func)(char *pars);
+	int (*func)(char *pars, CPU *cpu, unsigned int *default_addr);
 	const char *desc;
 } cmd_t;
 
-static int cmd_quit(char *pars) {
+static int cmd_quit(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	return R_QUIT;
 }
 
-static int cmd_bank(char *pars) {
+static int cmd_bank(char *pars, CPU *tocpu, unsigned int *default_addr) {
 
 	if (*pars) {
 		// we have a bank parameter
@@ -94,17 +94,20 @@ static int getpars(const char *pars, unsigned int *from, unsigned int *to) {
 	return R_CONT;
 }
 
-static int cmd_dis(char *pars) {
+static int cmd_dis(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	unsigned int from, to;
 	int l, r;
 	char line[MAXLEN];
 	int llen = MAXLEN;
 
+	to = *default_addr;
+	from = to;
+
 	if (r = getpars(pars, &from, &to)) {
 		return r;
 	}
 	if (to == from) {
-		to = from + 16;
+		to = from + 32;
 	}
 
 	do {
@@ -117,19 +120,24 @@ static int cmd_dis(char *pars) {
 		from += l;
 	} while (from < to);
 
+	*default_addr = from;
+
 	return R_CONT;
 }
 
-static int cmd_mem(char *pars) {
+static int cmd_mem(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	unsigned int from, to;
 	char buf[16];
 	int l, r;
+
+	to = *default_addr;
+	from = to;
 
 	if (r = getpars(pars, &from, &to)) {
 		return r;
 	}
 	if (to == from) {
-		to = from + 16;
+		to = from + 64;
 	}
 
 	do {
@@ -169,23 +177,41 @@ static int cmd_mem(char *pars) {
 		from += l;
 	} while (from < to);
 
+	*default_addr = from;
+
+	return R_CONT;
+}
+
+static int cmd_reg(char *pars, CPU *tocpu, unsigned int *default_addr) {
+	printf("   PC  AC XR YR SP NV1BDIZC\n");
+	printf(": %04x %02x %02x %02x %02x %c%c%c%c%c%c%c%c\n", tocpu->pc, tocpu->a, tocpu->x, tocpu->y, tocpu->sp, 
+	        cpu->sr & 0x80 ? 'N' : '-',
+                cpu->sr & 0x40 ? 'V' : '-',
+                cpu->sr & 0x20 ? '1' : '-',
+                cpu->sr & 0x10 ? 'B' : '-',
+                cpu->sr & 0x08 ? 'D' : '-',
+                cpu->sr & 0x04 ? 'I' : '-',
+                cpu->sr & 0x02 ? 'Z' : '-',
+                cpu->sr & 0x01 ? 'C' : '-');
+
 	return R_CONT;
 }
 
 
-static int cmd_help(char *pars);
 
+static int cmd_help(char *pars, CPU *tocpu, unsigned int *default_addr);
 
 static cmd_t cmds[] = {
 	{ "mem", cmd_mem, "Show a memory dump in hex: m <from_in_hex> [<to_in_hex>]" },
 	{ "dis", cmd_dis, "Disassemble a memory area: d <from_in_hex> [<to_in_hex>]" },
+	{ "reg", cmd_reg, "show current set of CPU registers" },
 	{ "bank", cmd_bank, "show current bank or set new one" },
 	{ "help", cmd_help, "Show this help" },
 	{ "x", cmd_quit, "Leave the monitor" },
 	{ NULL }
 };
 
-static int cmd_help(char *pars) {
+static int cmd_help(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	
 	cmd_t *p = cmds;
 
@@ -196,9 +222,10 @@ static int cmd_help(char *pars) {
 	return R_CONT;
 }
 
-static int mon_parse(char *line) {
+static cmd_t* mon_parse(char *line, char **pp) {
 	
 	cmd_t *c = cmds;
+	*pp = NULL;
 
 	while (c-> name != NULL) {
 
@@ -214,12 +241,14 @@ static int mon_parse(char *line) {
 			while (isspace(line[p])) {
 				p++;
 			}
+
 			// found
-			return c->func(line+p);
+			*pp = line+p;
+			return c;
 		}
 		c++;
 	}
-	return R_ERR;
+	return NULL;
 }
 
 static void mon_prompt() {
@@ -231,12 +260,15 @@ void mon_line(CPU *tocpu) {
 	char *line = NULL;
 	ssize_t len = 0;
 	size_t buflen = 0;
-	char *p;
+	char *p, *pp;
 	int r;
+	cmd_t *c = NULL;
 
 	if (tocpu != NULL) {
 		cpu = tocpu;
 	}
+
+	unsigned int default_addr = cpu->pc;
 
 	logout(0, "Entering monitor!");
 
@@ -264,14 +296,23 @@ void mon_line(CPU *tocpu) {
 		}
 
 		if (*p) {
-			if (r = mon_parse(p)) {
-				if (r == R_ERR) {
-					printf(" ?\r\n");
-				}
-				if (r == R_QUIT) {
-					break;
-				}
-			}
+			// we can parse, so get back cmd_t and params (in pp)
+			c = mon_parse(p, &pp);
+		} else {
+			// use previous command, but clear params (then default_addr is used where applicable)
+			pp = "";
+		}
+
+		if (c != NULL) {
+			r = c->func(pp, cpu, &default_addr);
+		} else {
+			r = R_ERR;
+		}
+		if (r == R_ERR) {
+			printf(" ?\r\n");
+		}
+		if (r == R_QUIT) {
+			break;
 		}
 		mon_prompt();
 	}
@@ -326,7 +367,7 @@ void mon_init() {
 	}
 
 	// set CPU bank as initial bank
-	cmd_bank("cpu");
+	cmd_bank("cpu", NULL, 0);
 }
 
 

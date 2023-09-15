@@ -75,7 +75,8 @@ int adl[16]= { 1,2,3,2,2,2,3,3,3,1,2,3,2,2,3,3 };
 char *ad1[16]={ "", "#", "", "", "", "", "", "", "(", "", "", "", "(", "(", "(", "(" };
 char *ad2[16]={ "", "", "", "", ",x", ",y", ",x", ",y", ",x)", "", "", "", ",x)", "),y", ")", ")" };
 
-int dis6502(bank_t *bank, scnt pc, char *l, int maxlen){
+// note: pc is unsigned int, as a bank can have > 64k
+int dis6502(bank_t *bank, unsigned int pc, char *l, int maxlen){
 	int c=bank->peek(bank, pc); //getbyt(pc);
 	int o;
 	int a = 0;

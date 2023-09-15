@@ -28,6 +28,7 @@ int	hnmi=0;
 int	hirq=0;
 int 	dismode	=0;
 int 	traplines =0;
+int	is_ill = 0;
 
 typedef void (*sim_f)();
 
@@ -134,7 +135,7 @@ void cpu_reset(CPU *cpu){
 #define	next(a)		advance_clock(&(cpu.bus->actx), (a))
 
 void ill(){
-	err=1;
+	is_ill=1;
 	logout(4,"Illegal Intruction %02x %02x %02x at adress %04x\n",
 		getbyt(cpu.pc),getbyt(cpu.pc+1),getbyt(cpu.pc+2),cpu.pc);
 }
@@ -1348,7 +1349,8 @@ int cpu_run(void){
 	do{
 /*if(dismode || hirq) printf("\n\nhirq=%d, irq=%d, hnmi=%d\n",hirq,irq,hnmi);*/
 
-		if (is_mon()) {
+		if (is_ill || is_mon()) {
+			is_ill = 0;
 			cpu2struct(&cpu);
 			mon_line(&cpu);
 			struct2cpu(&cpu);

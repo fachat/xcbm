@@ -40,6 +40,7 @@
 PIA pia1;
 
 static uchar key_row = 0;
+static uchar vdrive = 0;
 
 static uchar pia1_get_porta(uchar origdata) {
 	uchar rv = key_row;
@@ -79,6 +80,7 @@ void io_set_vdrive(uchar flag) {
 	//logout(0, "io_set_vdrive(%d)", flag);
 
 	pia_cb1(&pia1, flag ? PIA_CX1_HIGH : PIA_CX1_LOW);
+	vdrive = flag;
 }
 
 // PIA2
@@ -143,7 +145,7 @@ uchar portb;
 
 static uchar via_get_portb(uchar outdata) {
 
-	uchar rv = outdata & 0x3e;
+	uchar rv = outdata & 0x1e;
 
 	if (!parallel_get_ndac()) {
 		rv |= 0x01;
@@ -154,6 +156,11 @@ static uchar via_get_portb(uchar outdata) {
 	if (!parallel_get_dav()) {
 		rv |= 0x80;
 	}
+
+	if (vdrive) {
+		rv |= 0x20;
+	}
+
 	return rv;
 }
 

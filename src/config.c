@@ -211,6 +211,11 @@ int cmd_trace() {
 	return ERR;
 }
 
+int cmd_reset() {
+	maincpu_reset();
+	return ERR;
+}
+
 int cmd_mon() {
 	mon_line(NULL);
 	return ERR;
@@ -227,6 +232,7 @@ int cmd_help();
 static cfgmode_t cmds[] = {
 	{ "m",		cmd_mon, 	"Enter the monitor" },
 	{ "t",		cmd_trace, 	"Toggle trace mode (output in log file)" },
+	{ "r",		cmd_reset, 	"Reset the emulator" },
 	{ "x",		cmd_exit, 	"Exit the emulator" },
 	{ "?h",		cmd_help,	"Show this help" },
 	{ NULL }

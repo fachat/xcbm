@@ -44,9 +44,126 @@ static int trace_n;
 
 static CPU *cpu;
 
+/**************************************************************************/
+
 static void cmd_err(const char *msg) {
 	printf("%s", msg);
 }
+
+/**************************************************************************/
+// parameter scanner
+
+static char *scan_name(char *p, char *buf, int len) {
+	
+	int i = 0;
+
+	if (len == 0) {
+		cmd_err("Short buffer in scan_name");		
+		return NULL;
+	}
+	
+	len--;
+
+	while (*p && isspace(*p)) {
+		p++;
+	}
+
+	while (p[i] && isalnum(p[i])) {
+		if (i >= len) {
+			cmd_err("Length overflow in scan_name");		
+			return NULL;
+		}
+		buf[i] = p[i];
+		i++;
+	}
+	buf[i] = 0;
+
+	return p+i;		
+}
+
+// decimal
+static char *scan_dec(char *p, unsigned int *res) {
+
+	unsigned int r = 0;
+
+	while (*p && isspace(*p)) {
+		p++;
+	}
+
+	if (!isdigit(*p)) {
+		return NULL;
+	}
+
+	while(*p && isdigit(*p)) {
+		r = r*10 + (*p & 0x0f);
+		p++;
+	}
+
+	*res = r;
+	return p;
+}
+
+
+// default hex
+static char *scan_addr(char *p, unsigned int *res) {
+
+	unsigned int r = 0;
+	int i;
+	char tmp;
+
+	while (*p && isspace(*p)) {
+		p++;
+	}
+
+	if (isalpha(*p)) {
+		i=1;
+		while (isalnum(p[i])) {
+			i++;
+		}
+		tmp = p[i];
+		p[i]= 0;
+
+		if (label_byname(p, (int*) &r) == 0) {
+			p[i]=tmp;
+			*res = r;
+			return p+i;
+		}
+		p[i]=tmp;
+	}
+
+	if (*p == '.') {
+		p++;
+		while(*p && isdigit(*p)) {
+			r = r*10 + (*p & 0x0f);
+			p++;
+		}
+	} else {
+		if (*p == '$') {
+			p++;
+		}
+
+		if (!isxdigit(*p)) {
+			// error
+			return NULL;
+		}
+
+		while (*p && isxdigit(*p)) {
+			if (isdigit(*p)) {
+				r = r*16 + (*p & 0x0f);
+			} else {
+				r = r*16 + (*p & 0x0f) + 9;
+			}
+			p++;
+		}
+	}
+	*res = r;
+	return p;
+}
+
+
+
+
+/**************************************************************************/
 
 typedef struct {
 	const char *name;
@@ -86,9 +203,9 @@ static void trap(CPU *tcpu, scnt addr) {
 }
 
 static int cmd_step(char *pars, CPU *tocpu, unsigned int *default_addr) {
-	int n = 0;
-	int r = sscanf(pars, "%d", &n);
-	if (r == 1) {
+	unsigned int n = 0;
+	char *p = scan_dec(pars, &n);
+	if (p != NULL) {
 		trace_n = n;
 	}
 	return R_TRACE;
@@ -97,38 +214,45 @@ static int cmd_step(char *pars, CPU *tocpu, unsigned int *default_addr) {
 static int cmd_break(char *pars, CPU *tocpu, unsigned int *default_addr) {
 
 	static int break_no = 0;
-
+	
+	char *p;
 	unsigned int addr;
 	char name[100];
 
 	if (*pars && pars[0]) {
 		// we have a break address?
-		int r = sscanf(pars, "%x %99s", &addr, name);
-		if (r == 0) {
+		p = scan_addr(pars, &addr);
+		if (p == NULL) {
 			cmd_err("Missing parameters");
 			return R_ERR;
 		}
-		if (r == 1) {
+		p = scan_name(p, name, 99);
+		if (p == NULL) {
 			snprintf(name, 99, "%d", break_no++);
 			name[99]=0;
 		}
 		mon_bank->addtrap(mon_bank, addr, trap, name);
 	} else {
 		// no break parameter - print list of defined breaks
+		// TODO
 	}
 	return R_CONT;
 }
 
 
-static int getpars(const char *pars, unsigned int *from, unsigned int *to) {
+static int getpars(char *pars, unsigned int *from, unsigned int *to) {
 
-	int r = sscanf(pars, "%x %x", from, to);
+	char *p;
 
-	if (r == 0) {
-		cmd_err("Missing parameters");
-		return R_ERR;
+	p = scan_addr(pars, from);
+
+	if (p == NULL) {
+		return R_CONT;
 	}
-	if (r == 1) {
+
+	p = scan_addr(p, to);
+
+	if (p == NULL) {
 		*to = *from;
 	}
 

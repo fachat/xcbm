@@ -17,6 +17,19 @@ const char *label_lookup(int addr) {
 	return labels[addr & 0xffff];
 }
 
+int label_byname(const char *name, int *value) {
+
+	// totally slow
+	for (int i = 0; i< 0xffff; i++) {
+
+		if (labels[i] && strcmp(labels[i],name)==0) {
+			*value = i;
+			return 0;
+		}
+	}
+	return -1;
+}
+
 static void label_register(int addr, const char *lname) {
 
 

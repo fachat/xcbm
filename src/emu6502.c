@@ -83,6 +83,10 @@ void cpu_reset(CPU *cpu){
 	err=0;
 }
 
+void maincpu_reset() {
+	cpu_reset(&cpu);
+}
+
 // TODO: add time offset to getbyt/getadr, so fetches are done at correct cycle
  
 #define azp(a)		getbyt(a+1)

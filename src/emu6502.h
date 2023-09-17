@@ -35,6 +35,8 @@ extern 	int 	traplines;
 CPU *cpu_init(const char *name, int cyclespersec, int msperframe, int cmos);	/* init trap etc */
 int cpu_run(void);	/* start execution at RESET address */
 
+void maincpu_reset();
+
 int logcpu(CPU *cpu, char *line, int maxlen);
 
 static inline void cpu_set_irq(scnt int_mask, uchar flag) {
@@ -62,14 +64,5 @@ static inline void cpu_set_nmi(scnt int_mask, uchar flag) {
                 hnmi &= ~int_mask;
         }
 }
-
-/* Counter-Verwaltung fr im CPU-Takt taktende Counter */
-/* Die Counter werden abw„rts gez„hlt, bei erreichen von NULL wird */
-/* die angegebene Routine aufgerufen und der Z„hler mit dem */
-/* Rckgabewert gesetzt */
-
-int cnt_init(cnt initval, int exec(int cntnr));
-int cntset(int cntnr, cnt val);
-int cntget(int cntnr, cnt *val);
 
 

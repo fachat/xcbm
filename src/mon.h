@@ -15,11 +15,7 @@ enum mon_rc mon_run();
 extern int monflag;
 
 static inline int is_mon() {
-	if (monflag) {
-		monflag = 0;
-		return 1;
-	}
-	return 0;
+	return monflag;
 }
 
 void mon_register_cpu(CPU *cpu);

@@ -35,6 +35,8 @@ extern 	int 	traplines;
 CPU *cpu_init(const char *name, int cyclespersec, int msperframe, int cmos);	/* init trap etc */
 int cpu_run(void);	/* start execution at RESET address */
 
+int logcpu(CPU *cpu, char *line, int maxlen);
+
 static inline void cpu_set_irq(scnt int_mask, uchar flag) {
         if (((hirq & int_mask) && !flag)
                 || (!(hirq & int_mask) && flag)) {

@@ -49,12 +49,23 @@ static bank_t cpubank = {
 	PAGESMASK
 };
 
+
 void logass(CPU *cpu){
 	char l[MAXLINE];
+	int ll; 
+
+	ll = snprintf(l, MAXLINE, "% 8ld", cpu->bus->actx.clk);
+
+	ll += logcpu(cpu, l+ll, MAXLINE - ll);
+
+	dis6502(&cpubank, cpu->pc, l+ll-1, MAXLINE-ll);
+
+	logout(0, l);
+}
+
+int logcpu(CPU *cpu, char *line, int maxlen){
 	
-/*	sprintf(l,"\033[15;1H%04x %02x %02x %02x %02x %02x \n  ",*/
-	sprintf(l,"% 8ld %04x A:%02x X:%02x Y:%02x P:%02x  S:%c%c%c%c%c%c%c%c            \n  ",
-		cpu->bus->actx.clk,
+	return snprintf(line, maxlen, "  %04x A:%02x X:%02x Y:%02x P:%02x  S:%c%c%c%c%c%c%c%c   ",
 		cpu->pc,cpu->a,cpu->x,cpu->y,cpu->sp,
 		cpu->sr & 0x80 ? 'N' : '-',
 		cpu->sr & 0x40 ? 'V' : '-',
@@ -65,10 +76,6 @@ void logass(CPU *cpu){
 		cpu->sr & 0x02 ? 'Z' : '-',
 		cpu->sr & 0x01 ? 'C' : '-'
 		);
-
-	dis6502(&cpubank, cpu->pc, l+47, MAXLINE-47);
-
-	logout(0, l);
 }
 
 void cpu_reset(CPU *cpu){
@@ -1349,6 +1356,11 @@ int cpu_run(void){
 	do{
 /*if(dismode || hirq) printf("\n\nhirq=%d, irq=%d, hnmi=%d\n",hirq,irq,hnmi);*/
 
+                if(v=trap6502(cpu.pc)) {
+			cpu2struct(&cpu);
+			v(&cpu, cpu.pc);
+			struct2cpu(&cpu);
+		}
 		if (is_ill || is_mon()) {
 			is_ill = 0;
 			cpu2struct(&cpu);
@@ -1374,11 +1386,6 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
                         cpu.sr |= IRQ;
 			struct2cpu(&cpu);
                 }
-                if(v=trap6502(cpu.pc)) {
-			cpu2struct(&cpu);
-			v(&cpu, cpu.pc);
-			struct2cpu(&cpu);
-		}
 
  		if(traplines) {
 			if(!(--traplines))

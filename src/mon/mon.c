@@ -21,6 +21,7 @@
 #define	R_QUIT	1
 #define	R_ERR	2
 #define	R_NOPAR	3
+#define	R_TRACE	4
 
 #define	min(a,b)	((a)<(b)?(a):(b))
 
@@ -35,6 +36,11 @@ static bank_t *mon_bank = NULL;
 
 static struct sigaction monaction;
 static struct sigaction oldaction;
+
+// monitor flag
+int monflag = 0;
+// number of ops to trace (if monflag == 2)
+static int trace_n;
 
 static CPU *cpu;
 
@@ -54,7 +60,7 @@ static int cmd_quit(char *pars, CPU *tocpu, unsigned int *default_addr) {
 
 static int cmd_bank(char *pars, CPU *tocpu, unsigned int *default_addr) {
 
-	if (*pars) {
+	if (*pars && pars[0]) {
 		// we have a bank parameter
 		for (int i = 0; i < numbanks; i++) {
 			if (!strcmp(pars, banks[i]->name)) {
@@ -75,6 +81,44 @@ static int cmd_bank(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	return R_CONT;
 }
 
+static void trap(CPU *tcpu, scnt addr) {
+	monflag = 2;
+}
+
+static int cmd_step(char *pars, CPU *tocpu, unsigned int *default_addr) {
+	int n = 0;
+	int r = sscanf(pars, "%d", &n);
+	if (r == 1) {
+		trace_n = n;
+	}
+	return R_TRACE;
+}
+
+static int cmd_break(char *pars, CPU *tocpu, unsigned int *default_addr) {
+
+	static int break_no = 0;
+
+	unsigned int addr;
+	char name[100];
+
+	if (*pars && pars[0]) {
+		// we have a break address?
+		int r = sscanf(pars, "%x %99s", &addr, name);
+		if (r == 0) {
+			cmd_err("Missing parameters");
+			return R_ERR;
+		}
+		if (r == 1) {
+			snprintf(name, 99, "%d", break_no++);
+			name[99]=0;
+		}
+		mon_bank->addtrap(mon_bank, addr, trap, name);
+	} else {
+		// no break parameter - print list of defined breaks
+	}
+	return R_CONT;
+}
+
 
 static int getpars(const char *pars, unsigned int *from, unsigned int *to) {
 
@@ -91,6 +135,20 @@ static int getpars(const char *pars, unsigned int *from, unsigned int *to) {
 	if (to < from) {
 		return R_NOPAR;
 	}
+	return R_CONT;
+}
+
+static int trace_dis(CPU *tocpu, unsigned int addr) {
+	char line[MAXLEN];
+	int llen = MAXLEN;
+	int l = 0;
+
+	l = logcpu(tocpu, line, llen);
+	
+	dis6502(mon_bank, addr, line + l - 1, llen - l);
+
+	printf(": %05x %s\n", addr, line);
+
 	return R_CONT;
 }
 
@@ -183,16 +241,11 @@ static int cmd_mem(char *pars, CPU *tocpu, unsigned int *default_addr) {
 }
 
 static int cmd_reg(char *pars, CPU *tocpu, unsigned int *default_addr) {
-	printf("   PC  AC XR YR SP NV1BDIZC\n");
-	printf(": %04x %02x %02x %02x %02x %c%c%c%c%c%c%c%c\n", tocpu->pc, tocpu->a, tocpu->x, tocpu->y, tocpu->sp, 
-	        cpu->sr & 0x80 ? 'N' : '-',
-                cpu->sr & 0x40 ? 'V' : '-',
-                cpu->sr & 0x20 ? '1' : '-',
-                cpu->sr & 0x10 ? 'B' : '-',
-                cpu->sr & 0x08 ? 'D' : '-',
-                cpu->sr & 0x04 ? 'I' : '-',
-                cpu->sr & 0x02 ? 'Z' : '-',
-                cpu->sr & 0x01 ? 'C' : '-');
+	char buf[100];
+	printf("   PC  AC   XR   YR   SP      NV1BDIZC\n");
+	logcpu(tocpu, buf, 100);
+
+	printf("%s\n", buf);
 
 	return R_CONT;
 }
@@ -206,8 +259,11 @@ static cmd_t cmds[] = {
 	{ "dis", cmd_dis, "Disassemble a memory area: d <from_in_hex> [<to_in_hex>]" },
 	{ "reg", cmd_reg, "show current set of CPU registers" },
 	{ "bank", cmd_bank, "show current bank or set new one" },
+	{ "break", cmd_break, "show current break points in current bank or set new one" },
+	{ "step", cmd_step, "step CPU one or more operations: s [num of ops]" },
 	{ "help", cmd_help, "Show this help" },
-	{ "x", cmd_quit, "Leave the monitor" },
+	{ "x", cmd_quit, "Leave the monitor (eXit)" },
+	{ "c", cmd_quit, "Leave the monitor (continue)" },
 	{ NULL }
 };
 
@@ -261,25 +317,42 @@ void mon_line(CPU *tocpu) {
 	ssize_t len = 0;
 	size_t buflen = 0;
 	char *p, *pp;
-	int r;
-	cmd_t *c = NULL;
+	int r = R_CONT;
+	static cmd_t *c = NULL;
+
+	unsigned int default_addr = cpu->pc;
+
+	logout(0, "Entering monitor!");
+	cur_exit();
+
+	if (monflag == 2) {
+		trace_dis(tocpu, default_addr);
+		if (trace_n > 0) {
+			trace_n --;
+			if (trace_n > 0) {
+				r = R_TRACE;
+			}
+		} 
+	}
+
+	monflag = 0;
 
 	if (tocpu != NULL) {
 		cpu = tocpu;
 	}
 
-	unsigned int default_addr = cpu->pc;
-
-	logout(0, "Entering monitor!");
-
-	cur_exit();
-
-	mon_prompt();
 
 	monflag = 0;
 
-	// monitor loop
-	while ((len = cur_getline(&line, &buflen)) >= 0) {
+	// monitor loop (skipped on continuous trace)
+	while ( r == R_CONT ) {
+
+		mon_prompt();
+
+		len = cur_getline(&line, &buflen);
+		if (len <= 0) {
+			break;
+		}
 
 		// remove trailing newline
 		if (len > 0 
@@ -308,13 +381,15 @@ void mon_line(CPU *tocpu) {
 		} else {
 			r = R_ERR;
 		}
+
 		if (r == R_ERR) {
 			printf(" ?\r\n");
+			r = R_CONT;
 		}
-		if (r == R_QUIT) {
-			break;
-		}
-		mon_prompt();
+	}
+
+	if (r == R_TRACE) {
+		monflag = 2;
 	}
 	
 	if (len < 0) {
@@ -331,11 +406,8 @@ void mon_line(CPU *tocpu) {
 	free(line);
 
 	cur_setup();
-
-	monflag = 0;
 }
 
-int monflag = 0;
 
 //static void mon_sigaction(int sig, siginfo_t siginfo, void *p);
 static void mon_sighandler(int sig) {

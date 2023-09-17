@@ -7,7 +7,6 @@
 #include  	"bus.h"
 #include	"emu6502.h"
 #include	"timer.h"
-#include	"emucmd.h"
 #include 	"mem.h"
 #include 	"speed.h"
 #include 	"mon.h"
@@ -1398,14 +1397,7 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
 		c=getbyt(cpu.pc);
 		(*simp[c])();
 		inc_time(10);
-/*
-		if(dismode>1) {
-			int er;
-			while( (er=command()) == 1 ) ;
-			if( er==2 )
-				break;
-		}
-*/
+
 	} while(!err);
 	
 	return(0);

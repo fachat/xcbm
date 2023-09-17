@@ -7,7 +7,6 @@
 #include  	"bus.h"
 #include	"emu6502.h"
 #include	"timer.h"
-#include	"emucmd.h"
 #include 	"mem.h"
 #include 	"speed.h"
 #include 	"mon.h"

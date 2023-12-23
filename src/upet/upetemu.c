@@ -19,6 +19,7 @@
 #include	"mon.h"
 #include	"labels.h"
 #include	"config.h"
+#include	"spi.h"
 
 #include	"io.h"
 #include	"video.h"
@@ -58,6 +59,8 @@ int main(int argc, char *argv[])
 
 	label_init();
 
+	spi_init();
+
 	mem_init();
 
 	logout(4,"65816-Emulation \n(c) 1993/2023 A.Fachat");
@@ -71,6 +74,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	spi_start();
 	mem_start();
 	cur_init();
 

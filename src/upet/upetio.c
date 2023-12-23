@@ -18,6 +18,8 @@
 #include "parallel.h"
 #include "piavia.h"
 
+#include "ctrl.h"
+
 
 
 int io_init(BUS *bus) {
@@ -31,11 +33,23 @@ void io_wr(scnt adr, scnt val) {
 
 	register uchar a = (adr & 0xf0);
 	switch(a) {
+	case 0x00:
+		if (adr & 0x08 == 0) {
+			// e800-e807
+			ctrl_wr(adr, val);
+		} else {
+			// e808-e80f
+			//spi_wr(adr, val);
+		}
+		break;
 	case 0x10:
 		pia_wr(&pia1, adr, val);
 		break;
 	case 0x20:
 		pia_wr(&pia2, adr, val);
+		break;
+	case 0x30:
+		//dac_wr(&dac, adr, val);
 		break;
 	case 0x40: 
 		via_wr(&via, adr, val);
@@ -52,6 +66,15 @@ scnt io_rd(scnt adr) {
 
 	register uchar a = (adr & 0xf0);
 	switch(a) {
+        case 0x00:
+                if (adr & 0x08 == 0) {
+                        // e800-e807
+                        return ctrl_rd(adr);
+                } else {
+                        // e808-e80f
+                        //spi_wr(adr, val);
+                }
+                break;
 	case 0x10:
 		return pia_rd(&pia1, adr);
 	case 0x20:
@@ -60,9 +83,11 @@ scnt io_rd(scnt adr) {
 		return via_rd(&via, adr);
 	case 0x80:
 		// todo CRTC
+		break;
 	default:
-		return adr >> 8;
+		break;
 	}
+	return adr >> 8;
 }
 
 // note: PET I/O chips do not change state on read

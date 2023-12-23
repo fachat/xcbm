@@ -42,6 +42,8 @@ UPETOBJ = 	upet/upetemu.o \
 		upet/upetmem.o \
 		upet/upetio.o \
 		upet/upetvideo.o \
+		upet/ctrl.o \
+		upet/spi.o \
 		pet/petkeys.o \
 		pia.o \
 		via.o \

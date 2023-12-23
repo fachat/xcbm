@@ -11,6 +11,8 @@
 #define	MP_EDIT		5
 #define	MP_KERNEL	6
 
+void mem_set_map(byte bank);
+void mem_set_bank(byte bank);
+void mem_set_vidblk(byte bank);
 
-extern uchar *colram;
 

@@ -12,5 +12,6 @@ rompatch: rompatch.c
 clean:
 	make -C c64 clean
 	make -C pet clean
+	make -C csa clean
 	rm -f romcheck rompatch
 

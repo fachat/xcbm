@@ -26,8 +26,6 @@ void cpu2struct(CPU*);
 
 int	hnmi=0;
 int	hirq=0;
-int 	dismode	=0;
-int 	traplines =0;
 
 typedef void (*sim_f)();
 
@@ -1413,10 +1411,6 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
 			struct2cpu(&cpu);
 		}
 
- 		if(traplines) {
-			if(!(--traplines))
-				dismode =2;
-		}
 		if(config_is_trace_enabled()) {
 			cpu2struct(&cpu);
 			logass(&cpu);
@@ -1424,14 +1418,7 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
 		c=getbyt(cpu.pc);
 		(*simp[c])();
 		inc_time(10);
-/*
-		if(dismode>1) {
-			int er;
-			while( (er=command()) == 1 ) ;
-			if( er==2 )
-				break;
-		}
-*/
+
 	} while(!err);
 	
 	return(0);

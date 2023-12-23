@@ -16,7 +16,6 @@
 #include 	"speed.h"
 #include 	"mon.h"
 #include 	"config.h"
-#include	"asm6502.h"
 
 #define	MAXLINE	200
 
@@ -30,12 +29,8 @@ void cpu2struct(CPU*);
 
 int	hnmi=0;
 int	hirq=0;
-int 	dismode	=0;
-int 	traplines =0;
 
 typedef void (*sim_f)();
-
-static sim_f *simp;
 
 int	xxmode =0;
 
@@ -52,27 +47,7 @@ static bank_t cpubank = {
 	PAGESMASK
 };
 
-void logass(CPU *cpu){
-	char l[MAXLINE];
-	
-/*	sprintf(l,"\033[15;1H%04x %02x %02x %02x %02x %02x \n  ",*/
-	sprintf(l,"% 8ld %04x A:%02x X:%02x Y:%02x P:%02x  S:%c%c%c%c%c%c%c%c            \n  ",
-		cpu->bus->actx.clk,
-		cpu->pc,cpu->a,cpu->x,cpu->y,cpu->sp,
-		cpu->sr & 0x80 ? 'N' : '-',
-		cpu->sr & 0x40 ? 'V' : '-',
-		cpu->sr & 0x20 ? '1' : '-',
-		cpu->sr & 0x10 ? 'B' : '-',
-		cpu->sr & 0x08 ? 'D' : '-',
-		cpu->sr & 0x04 ? 'I' : '-',
-		cpu->sr & 0x02 ? 'Z' : '-',
-		cpu->sr & 0x01 ? 'C' : '-'
-		);
-
-	dis6502(&cpubank, cpu->pc, l+47, MAXLINE-47);
-
-	logout(0, l);
-}
+#define next(a)         advance_clock(&(cpu.bus->actx), (a))
 
 
 /*******************************************************************/
@@ -109,46 +84,56 @@ void cpu_set_nmi(scnt int_mask, uchar flag) {
 }
 
 void cpu2struct(CPU *cpu){
-	cpu->sr=STRUE;
-#if 0
-	if(carry()) 	cpu->sr+=CARRY;
-	if(zero())  	cpu->sr+=ZERO;
-	if(overfl())	cpu->sr+=OVL;
-	if(neg())	cpu->sr+=NEG;
-	if(isbrk())	cpu->sr+=BRK;
-	if(dez())	cpu->sr+=DEC;
-	if(irq())	cpu->sr+=IRQ;
-#endif
+	cpu->a = A.W;
+	cpu->x = X.W;
+	cpu->y = Y.W;
+	cpu->sp = S.W;
+	cpu->sr = P;
+	// TODO: E, D, DB, high bytes
 }
 
 void struct2cpu(CPU *cpu){
-	carry		=cpu->sr&CARRY;
-	zero		=cpu->sr&ZERO;
-	neg		=cpu->sr&NEG;
-	cbrk		=cpu->sr&BRK;
-	dez		=cpu->sr&DEC;
-	overfl		=cpu->sr&OVL;
-	irq		=cpu->sr&IRQ;
+	A.W = cpu->a;
+	X.W = cpu->x;
+	Y.W = cpu->y;
+	S.W = cpu->sp;
+	P = cpu->sr;
 }
 
 struct CPUEvent timer_ev;
 
+#define	TIMER_INTERVAL	2
+
 void timer_handler( word32 timestamp ) {
+
+	void (*v)(CPU*, scnt);
+
 //	printf("timer_handler\n\r", timestamp);
 
-	CPUEvent_schedule( &timer_ev, 10000, timer_handler);
-}
+                if (is_mon()) {
+                        cpu2struct(&cpu);
+                        mon_line(&cpu);
+                        struct2cpu(&cpu);
+                }
+                if(v=trap6502(cpu.pc)) {
+                        cpu2struct(&cpu);
+                        v(&cpu, cpu.pc);
+                        struct2cpu(&cpu);
+                }
 
-//struct CPUEvent timer_ev = {
-//	NULL, NULL, 10000, timer_handler
-//};
+	// handle alarms. This is needed to handle the alarms that create timer
+	// interrupts
+	next(TIMER_INTERVAL);
+
+	// currently we do impedance mismatch by calling during
+	// basically every instruction...
+	CPUEvent_schedule( &timer_ev, TIMER_INTERVAL, timer_handler);
+}
 
 extern FILE *flog;
 	
 int cpu_run(void){
-	scnt c;
-	void (*v)(CPU*, scnt);
-	//mycpu_reset(&cpu);
+
 	struct2cpu(&cpu);
 
 	CPUEvent_initialize();
@@ -162,42 +147,7 @@ int cpu_run(void){
 	CPU_setTrace(1);
 
 	CPU_run();
-	
-	do{
-/*if(dismode || hirq) printf("\n\nhirq=%d, irq=%d, hnmi=%d\n",hirq,irq,hnmi);*/
 
-		if (is_mon()) {
-			cpu2struct(&cpu);
-			mon_line(&cpu);
-			struct2cpu(&cpu);
-		}
-                if(v=trap6502(cpu.pc)) {
-			cpu2struct(&cpu);
-			v(&cpu, cpu.pc);
-			struct2cpu(&cpu);
-		}
-
- 		if(traplines) {
-			if(!(--traplines))
-				dismode =2;
-		}
-		if(config_is_trace_enabled()) {
-			cpu2struct(&cpu);
-			logass(&cpu);
-		}
-		//c=getbyt(cpu.pc);
-		//(*simp[c])();
-		//inc_time(10);
-/*
-		if(dismode>1) {
-			int er;
-			while( (er=command()) == 1 ) ;
-			if( er==2 )
-				break;
-		}
-*/
-	} while(!err);
-	
 	return(0);
 }
 

@@ -91,19 +91,10 @@ int main(int argc, char *argv[])
 	// 200% speed for now
 	speed_set_percent(1000);
 
-	// TODO: move that into CPU struct
-	//dismode=1;
-
 	cpu_run();
 	
 	return(er);	
 }
 
-
-/*
-void trap1(scnt trapadr, CPU *cpu) {
-        dismode=1;
-}
-*/
 
 

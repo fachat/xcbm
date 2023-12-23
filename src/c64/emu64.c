@@ -89,10 +89,4 @@ int main(int argc, char *argv[])
 	return(er);	
 }
 
-/*
-void trap1(scnt trapadr, CPU *cpu) {
-        dismode=1;
-}
-*/
-
 

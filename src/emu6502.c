@@ -76,6 +76,41 @@ void cpu_reset(CPU *cpu){
 	err=0;
 }
 
+int cpu_is_irq() {
+	return hirq;
+}
+
+void cpu_set_irq(scnt int_mask, uchar flag) {
+        if (((hirq & int_mask) && !flag)
+                || (!(hirq & int_mask) && flag)) {
+                logout(0, "set IRQ %02x to %d", int_mask, flag);
+        }
+
+        if (flag) {
+                hirq |= int_mask;
+        } else {
+                hirq &= ~int_mask;
+        }
+}
+
+void cpu_set_nmi(scnt int_mask, uchar flag) {
+        if (((hnmi & int_mask) && !flag)
+                || (!(hnmi & int_mask) && flag)) {
+                logout(0, "set NMI %02x to %d", int_mask, flag);
+        }
+
+        if (flag) {
+                hnmi |= int_mask;
+        } else {
+                hnmi &= ~int_mask;
+        }
+}
+
+
+
+
+
+
 // TODO: add time offset to getbyt/getadr, so fetches are done at correct cycle
  
 #define azp(a)		getbyt(a+1)

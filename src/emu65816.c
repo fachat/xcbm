@@ -77,6 +77,37 @@ void logass(CPU *cpu){
 
 /*******************************************************************/
 
+void cpu_set_irq(scnt int_mask, uchar flag) {
+        if (((hirq & int_mask) && !flag)
+                || (!(hirq & int_mask) && flag)) {
+                logout(0, "set IRQ %02x to %d", int_mask, flag);
+        }
+
+        if (flag) {
+                CPU_addIRQ(int_mask);
+                hirq |= int_mask;
+        } else {
+                CPU_clearIRQ(int_mask);
+                hirq &= ~int_mask;
+        }
+}
+
+void cpu_set_nmi(scnt int_mask, uchar flag) {
+        if (((hnmi & int_mask) && !flag)
+                || (!(hnmi & int_mask) && flag)) {
+                logout(0, "set NMI %02x to %d", int_mask, flag);
+        }
+
+        if (flag) {
+                if (!hnmi) {
+                        CPU_nmi();
+                }
+                hnmi |= int_mask;
+        } else {
+                hnmi &= ~int_mask;
+        }
+}
+
 void cpu2struct(CPU *cpu){
 	cpu->sr=STRUE;
 #if 0
@@ -112,7 +143,7 @@ void timer_handler( word32 timestamp ) {
 //	NULL, NULL, 10000, timer_handler
 //};
 
-
+extern FILE *flog;
 	
 int cpu_run(void){
 	scnt c;
@@ -126,6 +157,8 @@ int cpu_run(void){
 
 	CPU_reset();
 
+	CPU_setDbgOutfile(flog);
+
 	CPU_setTrace(1);
 
 	CPU_run();
@@ -138,26 +171,6 @@ int cpu_run(void){
 			mon_line(&cpu);
 			struct2cpu(&cpu);
 		}
-#if 0
-		if(hirq && !(irq)) {
-			aclb();
-			cpu2struct(&cpu);
-logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, getadr(0xfffe));
-			phpc();
-			phbyt(cpu.sr);
-			cpu.pc=getadr(0xfffe);
-			asei();
-		}
-                if(hnmi) {
-			hnmi=0;
-                        cpu2struct(&cpu);
-                        phpc();
-                        phbyt(cpu.sr);
-                        cpu.pc=getadr(0xfffa);
-                        cpu.sr |= IRQ;
-			struct2cpu(&cpu);
-                }
-#endif
                 if(v=trap6502(cpu.pc)) {
 			cpu2struct(&cpu);
 			v(&cpu, cpu.pc);

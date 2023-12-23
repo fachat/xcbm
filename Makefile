@@ -19,5 +19,6 @@ lib65816.a: lib65816/build/lib65816.a
 	cp lib65816/build/lib65816.a .
 	
 lib65816:
-	git clone https://github.com/sam-falvo/lib65816.git
+	git clone https://github.com/fachat/lib65816.git
+	(cd lib65816; git checkout upet)
 	

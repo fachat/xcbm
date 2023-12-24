@@ -23,7 +23,7 @@ int	charen;
 static uchar ram[0x10000];	// 64k RAM
 static uchar rom[0x9000];	// 36 ROM (8k Kernal, 8k BASIC, 4k charrom, 8k loram, 8k hiram)
 
-static meminfo_t ram_info[16];
+static meminfo_t ram_info[C64PAGES];
 
 static bank_t rambank = {
 	"ram",
@@ -197,7 +197,7 @@ scnt mem_getvbyt(scnt addr) {
 
 void inimemvec(void){
 	int i;
-	for(i=0;i<PAGES;i++) {
+	for(i=0;i<C64PAGES;i++) {
 		ram_info[i].page=i;
 		ram_info[i].mt_wr=NULL;
 		ram_info[i].mt_rd=NULL;

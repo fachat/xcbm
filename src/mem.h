@@ -8,7 +8,7 @@ void update_mem(int);
 /* some needed structs */
 
 #define	PAGESIZE	4096
-#define	PAGES		16
+//#define	PAGES		256
 #define	PAGESMASK	0xffff
 
 
@@ -65,7 +65,8 @@ typedef struct {
  * Note: needs to be refined if we add drive CPUs
  */
 
-extern memmap_t cpumap[PAGES];
+//extern memmap_t cpumap[PAGES];
+extern memmap_t cpumap[];
 
 
 /*****************************************************************************/
@@ -84,7 +85,7 @@ void bank_mem_poke(bank_t *bank, saddr addr, scnt val);
 scnt bank_cpu_peek(bank_t *bank, saddr addr);
 void bank_cpu_poke(bank_t *bank, saddr addr, scnt val);
 
-static inline scnt getbyt(scnt a) {
+static inline scnt getbyt(saddr a) {
 	register scnt bank = a >> 12;
 	register scnt offset = a & 0xfff;
 	memmap_t *cpupage = &cpumap[bank];
@@ -105,13 +106,13 @@ static inline scnt getbyt(scnt a) {
 
 }
 
-static inline scnt getadr(scnt a) {
+static inline scnt getaddr(saddr a) {
 
 	return (getbyt(a) & 0xff) | ((getbyt(a+1) & 0xff) << 8);
 }
 
 
-static inline void setbyt(scnt a, scnt b) {
+static inline void setbyt(saddr a, scnt b) {
 	register scnt bank =  a >> 12;
 	register scnt offset = a & 0xfff;
 	memmap_t *cpupage = &cpumap[bank];

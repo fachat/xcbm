@@ -17,6 +17,7 @@
 #include 	"mon.h"
 #include 	"config.h"
 
+#define	PAGES	256
 #define	MAXLINE	200
 
 BUS		bus;

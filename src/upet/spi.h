@@ -26,3 +26,7 @@ void spi_start();
 
 void spi_ipl(uchar *iplblk);
 
+void spi_wr(scnt addr, scnt val);
+
+scnt spi_rd(scnt addr);
+

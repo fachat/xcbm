@@ -1,4 +1,5 @@
 
+#define	PETPAGES	16
 
 #define MP_RAM0		0	/* RAM1-7= MP_RAM0+{1-7} */
 #define	MP_VRAM		8	

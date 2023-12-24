@@ -19,6 +19,7 @@
 #include "piavia.h"
 
 #include "ctrl.h"
+#include "spi.h"
 
 
 
@@ -27,67 +28,72 @@ int io_init(BUS *bus) {
 	return piavia_init(bus);
 }
 
-void io_wr(scnt adr, scnt val) {
+void io_wr(scnt addr, scnt val) {
 
-	//logout(0, "io_wr %02x to %04x", val, adr);
+	logout(0, "io_wr %02x to %04x", val, addr);
 
-	register uchar a = (adr & 0xf0);
+	register uchar a = (addr & 0xf0);
 	switch(a) {
 	case 0x00:
-		if (adr & 0x08 == 0) {
+		logout(0, "io_wr(0) %02x to %04x", val, addr);
+
+		if ((addr & 0x08) == 0) {
+			logout(0, "to ctrl_wr(0) %02x to %04x", val, addr);
 			// e800-e807
-			ctrl_wr(adr, val);
+			ctrl_wr(addr, val);
 		} else {
 			// e808-e80f
-			//spi_wr(adr, val);
+			spi_wr(addr, val);
 		}
 		break;
 	case 0x10:
-		pia_wr(&pia1, adr, val);
+		pia_wr(&pia1, addr, val);
 		break;
 	case 0x20:
-		pia_wr(&pia2, adr, val);
+		pia_wr(&pia2, addr, val);
 		break;
 	case 0x30:
-		//dac_wr(&dac, adr, val);
+		//dac_wr(&dac, addr, val);
 		break;
 	case 0x40: 
-		via_wr(&via, adr, val);
+		via_wr(&via, addr, val);
 		break;
-	case 0x80:
-		// todo CRTC
-		break;
-	}
-}
-
-scnt io_rd(scnt adr) {
-
-	//logout(0, "io_rd from %04x", adr);
-
-	register uchar a = (adr & 0xf0);
-	switch(a) {
-        case 0x00:
-                if (adr & 0x08 == 0) {
-                        // e800-e807
-                        return ctrl_rd(adr);
-                } else {
-                        // e808-e80f
-                        //spi_wr(adr, val);
-                }
-                break;
-	case 0x10:
-		return pia_rd(&pia1, adr);
-	case 0x20:
-		return pia_rd(&pia2, adr);
-	case 0x40:
-		return via_rd(&via, adr);
 	case 0x80:
 		// todo CRTC
 		break;
 	default:
 		break;
 	}
-	return adr >> 8;
+}
+
+scnt io_rd(scnt addr) {
+
+	//logout(0, "io_rd from %04x", addr);
+
+	register uchar a = (addr & 0xf0);
+	switch(a) {
+        case 0x00:
+                if (addr & 0x08 == 0) {
+                        // e800-e807
+                        return ctrl_rd(addr);
+                } else {
+                        // e808-e80f
+                        return spi_rd(addr);
+                }
+                break;
+	case 0x10:
+		return pia_rd(&pia1, addr);
+	case 0x20:
+		return pia_rd(&pia2, addr);
+	case 0x40:
+		return via_rd(&via, addr);
+	case 0x80:
+		// todo CRTC
+		break;
+	default:
+		break;
+	}
+	return addr >> 8;
 }
 
 // note: PET I/O chips do not change state on read

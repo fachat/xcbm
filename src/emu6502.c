@@ -16,6 +16,8 @@
 
 #define	MAXLINE	200
 
+#define	PAGES	16
+
 BUS		bus;
 CPU		cpu;
 
@@ -69,7 +71,7 @@ void logass(CPU *cpu){
 }
 
 void cpu_reset(CPU *cpu){
-	cpu->pc=getadr(0xfffc);
+	cpu->pc=getaddr(0xfffc);
 	cpu->sr=IRQ+STRUE;
 	err=0;
 }
@@ -109,17 +111,17 @@ void cpu_set_nmi(scnt int_mask, uchar flag) {
 
 
 
-// TODO: add time offset to getbyt/getadr, so fetches are done at correct cycle
+// TODO: add time offset to getbyt/getaddr, so fetches are done at correct cycle
  
 #define azp(a)		getbyt(a+1)
 #define azpx(a)		((getbyt(a+1)+cpu.x)&0xff)
 #define azpy(a)		((getbyt(a+1)+cpu.y)&0xff)
-#define aabs(a)		getadr(a+1)
-#define aabsx(a)	(getadr(a+1)+cpu.x)
-#define aabsy(a)	(getadr(a+1)+cpu.y)
-#define aindx(a)	getadr(getbyt(a+1)+cpu.x)
-#define aindy(a)	(getadr(getbyt(a+1))+cpu.y)
-#define aabsi(a)	getadr(getadr(a+1))
+#define aabs(a)		getaddr(a+1)
+#define aabsx(a)	(getaddr(a+1)+cpu.x)
+#define aabsy(a)	(getaddr(a+1)+cpu.y)
+#define aindx(a)	getaddr(getbyt(a+1)+cpu.x)
+#define aindy(a)	(getaddr(getbyt(a+1))+cpu.y)
+#define aabsi(a)	getaddr(getaddr(a+1))
 
 #define zp(a)		getbyt(azp(a))
 #define zpx(a)		getbyt(azpx(a))
@@ -184,7 +186,7 @@ logout(0,"brk @ $%04x",cpu.pc);
 	cpu2struct(&cpu);
 	phpc();
 	phbyt(cpu.sr);
-	cpu.pc=getadr(0xfffe);
+	cpu.pc=getaddr(0xfffe);
 	next(7);	// clock cycles;
 }
 
@@ -196,7 +198,7 @@ void php(){
 }
 
 void jsr_abs(){
-	register scnt a=getadr(cpu.pc+1); 
+	register scnt a=getaddr(cpu.pc+1); 
 	cpu.pc+=2;
 	phpc();
 	cpu.pc=a;
@@ -1390,10 +1392,10 @@ int cpu_run(void){
 		if(hirq && !(irq)) {
 			aclb();
 			cpu2struct(&cpu);
-logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, getadr(0xfffe));
+logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, getaddr(0xfffe));
 			phpc();
 			phbyt(cpu.sr);
-			cpu.pc=getadr(0xfffe);
+			cpu.pc=getaddr(0xfffe);
 			asei();
 		}
                 if(hnmi) {
@@ -1401,7 +1403,7 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
                         cpu2struct(&cpu);
                         phpc();
                         phbyt(cpu.sr);
-                        cpu.pc=getadr(0xfffa);
+                        cpu.pc=getaddr(0xfffa);
                         cpu.sr |= IRQ;
 			struct2cpu(&cpu);
                 }

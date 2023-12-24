@@ -38,7 +38,7 @@ uchar *colram = NULL;
 /* in prep for extra 8296 memory banks */
 /* includes 32k RAM, 4k Video, and all ROM + I/O */
 
-static meminfo_t pet_info[PAGES];
+static meminfo_t pet_info[PETPAGES];
 
 static bank_t petbank = {
 	"pet",
@@ -80,7 +80,7 @@ void setmap(void) {
  */
 void inimemvec(void){
 	int i;
-	for(i=0;i<PAGES;i++) {
+	for(i=0;i<PETPAGES;i++) {
 		pet_info[i].page=i;
 		pet_info[i].mt_wr=NULL;
 		pet_info[i].mt_rd=NULL;

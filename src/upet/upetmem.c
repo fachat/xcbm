@@ -15,39 +15,29 @@
 #include 	"petio.h"
 #include 	"petvideo.h"
 #include 	"mon.h"
-
-#define	MAXLINE	200
-	
-#define		VRAM	0x8000
-#define 	KERNEL	(MP_KERNEL*PAGESIZE)
-#define 	BASIC	(MP_BASIC*PAGESIZE)
-#define		EDITOR	(MP_EDIT*PAGESIZE)
-#define		ROM9	(MP_ROM9*PAGESIZE)
-#define		ROMA	(MP_ROMA*PAGESIZE)
-
-#define		MEMLEN	0x10000
+#include 	"spi.h"
 
 /*******************************************************************/
 
 
-static uchar ram[0x09000];	// 32k main RAM + 4k video RAM
-static uchar rom[0x07000];	// 4k ROM9, 4k ROMA, 12k BASIC, 4k EDIT, 4k KERNEL
+static uchar fram[0x80000];	// 512k Fast RAM
+static uchar vram[0x80000];	// 512k Video RAM
 
-uchar *colram = NULL;
+static int swap;		// if set, swap FRAM and VRAM
+static int bank;		// where in fram is the low 32k mapped from?
+static int vidblk;		// location of the video window in vram
+static int wprot;		// write protect bits from $e801
 
-/* in prep for extra 8296 memory banks */
-/* includes 32k RAM, 4k Video, and all ROM + I/O */
+static meminfo_t pet_info[UPETPAGES];
 
-static meminfo_t pet_info[PAGES];
-
-static bank_t petbank = {
-	"pet",
+static bank_t rambank = {
+	"ram",
 	add_mem_trap,
 	rm_mem_trap,
 	bank_mem_peek,
 	bank_mem_poke,
 	pet_info,
-	PAGESMASK
+	UPETPAGESMASK
 };
 
 /* 
@@ -56,8 +46,25 @@ static bank_t petbank = {
 void setmap(void) {
 	int i;
 
-	for(i=0;i<16;i++) {
-		cpumap[i].inf = &pet_info[i];
+	int j=UPETPAGES/2;
+
+	logout(0, "set map (bank=%d, swap=%d)\n", bank, swap);
+
+	for(i=0;i<UPETPAGES;i++) {
+
+		if (i < j) {
+			if (swap) {
+				cpumap[i].inf = &pet_info[i + j];
+			} else {
+				cpumap[i].inf = &pet_info[i];
+			}
+		} else {
+			if (swap) {
+				cpumap[i].inf = &pet_info[i - j];
+			} else {
+				cpumap[i].inf = &pet_info[i];
+			}
+		}
 
 		// mask/comp flags for I/O area
 		if (i == 14) {
@@ -72,6 +79,22 @@ void setmap(void) {
 	}
 }
 
+void mem_set_bank(byte newbank) {
+	bank = newbank & 0x0f;
+	setmap();
+}
+
+void mem_set_map(byte newmap) {
+	wprot = newmap & 0xf0;
+	swap = newmap & 0x02;
+	setmap();
+}
+
+void mem_set_vidblk(byte newblk) {
+	vidblk = newblk;
+	setmap();
+}
+
 
 /*******************************************************************/
 /*
@@ -80,35 +103,30 @@ void setmap(void) {
  */
 void inimemvec(void){
 	int i;
-	for(i=0;i<PAGES;i++) {
+
+	int j = UPETPAGES/2;
+
+	for(i=0; i<j; i++) {
 		pet_info[i].page=i;
-		pet_info[i].mt_wr=NULL;
-		pet_info[i].mt_rd=NULL;
+		pet_info[i].mt_wr=fram+i*4096;
+		pet_info[i].mt_rd=fram+i*4096;
+		pet_info[i].traplist=NULL;
+		pet_info[i].mf_wr=NULL;
+		pet_info[i].mf_rd=NULL;
+		pet_info[i].mf_peek=NULL;
+	}
+	for(i=j; i<UPETPAGES; i++) {
+		pet_info[i].page=i;
+		pet_info[i].mt_wr=vram+(i-j)*4096;
+		pet_info[i].mt_rd=vram+(i-j)*4096;
 		pet_info[i].traplist=NULL;
 		pet_info[i].mf_wr=NULL;
 		pet_info[i].mf_rd=NULL;
 		pet_info[i].mf_peek=NULL;
 	}
 
-	/* RAM (including VRAM) */
-	for(i=MP_RAM0;i<=MP_VRAM;i++) {
-	 	pet_info[i].mt_wr=ram+i*0x1000;
-	 	pet_info[i].mt_rd=ram+i*0x1000;
-	}
-	/* video + color RAM at $8800 */
-	pet_info[MP_VRAM].mf_wr = vmem_wr;
-
-	/* KERNEL */
-	pet_info[MP_ROM_OFFSET+MP_KERNEL].mt_rd = rom+KERNEL;
-	/* BASIC */
-	pet_info[MP_ROM_OFFSET+MP_BASIC].mt_rd = rom+BASIC;
-	pet_info[MP_ROM_OFFSET+MP_BASIC+1].mt_rd = rom+BASIC+0x1000;
-	pet_info[MP_ROM_OFFSET+MP_BASIC+2].mt_rd = rom+BASIC+0x2000;
-	/* EDITOR */
-	pet_info[MP_ROM_OFFSET+MP_EDIT].mt_rd = rom+EDITOR;
-
 	/* the CPU map parts that may need to survive a setmap() */
-	for(i=0;i<16;i++) {
+	for(i=0;i<UPETPAGES;i++) {
 		cpumap[i].mask = 0;
 		cpumap[i].comp = 0;
 
@@ -117,69 +135,21 @@ void inimemvec(void){
 	setmap();
 }
 
-/* ---------------------------------------------------------------*/
-
-static const char *names[] = { 
-		"/var/lib/cbm/pet",
-		"petkernel4.rom",
-		"petbasic4.rom",
-		"petedit4.rom"
-};
-
-static int mem_set_rom_dir(const char *param) {
-	names[0] = param;
-	return 0;
-}
-
-static int mem_set_kernal(const char *param) {
-	names[1] = param;
-	return 0;
-}
-
-static int mem_set_basic(const char *param) {
-	names[2] = param;
-	return 0;
-}
-
-static int mem_set_edit(const char *param) {
-	names[3] = param;
-	return 0;
-}
-
-static config_t mem_pars[] = {
-	{ "rom-dir", 'd', "rom_directory", mem_set_rom_dir, "set common ROM directory (default = /var/lib/cbm/pet)" },
-	{ "kernal-rom", 'K', "kernal_rom_filename", mem_set_kernal, "set kernal ROM file name (in ROM directory; default 'petkernal4.rom')" },
-	{ "basic-rom", 'B', "basic_rom_filename", mem_set_basic, "set basic ROM file name (in ROM directory; default 'petbasic4.rom')" },
-	{ "edit-rom", 'E', "edit_rom_filename", mem_set_edit, "set edit ROM file name (in ROM directory; default 'petedit4.rom')" },
-	{ NULL }
-};
-
-
 void mem_init() {
-	config_register(mem_pars);
+	//config_register(mem_pars);
 
-	mon_register_bank(&petbank);
+	mon_register_bank(&rambank);
 
-	vmem_set(ram + 0x8000, 0x0fff);
+	vmem_set(vram + 0x9000, 0x0fff);
 }
 
 void mem_start() {
-	char fname[MAXLINE];
-	size_t offset[]={ 0, KERNEL, BASIC, EDITOR };
-	size_t len[]=   { 0, 4096,   3*4096,  2048 };
-	int i;
+	inimemvec();
 
-	  for(i=1;i<4;i++) {
-	    if(names[i][0]=='/') {
-	      strcpy(fname,names[i]);
-	    } else {
-	      strcpy(fname,names[0]);
-	      if(fname[strlen(fname)-1]!='/') strcat(fname,"/");
-	      strcat(fname,names[i]);
-	    }
-	    loadrom(fname, rom+offset[i], len[i]);
-	  }	
-	  inimemvec();
-	  return;
+	mem_set_map(0x02);	// reset state
+
+	spi_ipl(vram+0xff00);
+
+	return;
 }
 

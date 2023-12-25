@@ -5,8 +5,9 @@ typedef struct CPU {
 
 		BUS		*bus;
 
-		scnt		pc;
-		
+		saddr		pc;
+		saddr		mask;
+
 		scnt		sp;
 		scnt		a;
 		scnt		x;
@@ -27,7 +28,7 @@ typedef struct CPU {
 #define	ZERO		2
 #define	CARRY		1
 
-CPU *cpu_init(const char *name, int cyclespersec, int msperframe, int cmos);	/* init trap etc */
+CPU *cpu_init(const char *name, int cyclespersec, int msperframe, int cmos, int addrmask);	/* init trap etc */
 
 int cpu_run(void);	/* start execution at RESET address */
 

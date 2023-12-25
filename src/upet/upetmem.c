@@ -47,6 +47,7 @@ void setmap(void) {
 	int i;
 
 	int j=UPETPAGES/2;
+	int k;
 
 	logout(0, "set map (bank=%d, swap=%d)\n", bank, swap);
 
@@ -54,17 +55,29 @@ void setmap(void) {
 
 		if (i < j) {
 			if (swap) {
-				cpumap[i].inf = &pet_info[i + j];
+				k = i + j;
 			} else {
-				cpumap[i].inf = &pet_info[i];
+				if (i < 8) {
+					k = (bank * 8) + i;
+				} else {
+					k = i;
+				}
 			}
 		} else {
 			if (swap) {
-				cpumap[i].inf = &pet_info[i - j];
+				if ((i-j) < 8) {
+					k = (bank * 8) + i - j;
+				} else {
+					k = i - j;
+				}
 			} else {
-				cpumap[i].inf = &pet_info[i];
+				k = i;
 			}
 		}
+
+		logout(0, "map page %02x to ram bank at %02x", i, k);
+
+		cpumap[i].inf = &pet_info[k];
 
 		// mask/comp flags for I/O area
 		if (i == 14) {
@@ -139,6 +152,8 @@ void mem_init() {
 	//config_register(mem_pars);
 
 	mon_register_bank(&rambank);
+
+	bank = 0;
 
 	vmem_set(vram + 0x9000, 0x0fff);
 }

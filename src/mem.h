@@ -106,6 +106,32 @@ static inline scnt getbyt(saddr a) {
 
 }
 
+static inline scnt peekbyt(saddr a) {
+	register scnt bank = a >> 12;
+	register scnt offset = a & 0xfff;
+	memmap_t *cpupage = &cpumap[bank];
+
+	if (cpupage->mask && ((offset & cpupage->mask) == cpupage->comp)) {
+		if (cpupage->m_peek) {
+			return cpupage->m_peek(offset);
+		}
+		return 0;	// no side effects
+	}
+
+	meminfo_t *inf = cpupage->inf;
+
+        if(inf->mf_rd != NULL) {
+		if (inf->mf_peek) {
+                	return(inf->mf_peek(inf, a));
+		}
+                return 0;	// no side effects
+        }
+        if(inf->mt_rd != NULL) {
+             	return(inf->mt_rd[offset]);
+        }
+        return(a>>8);
+}
+
 static inline scnt getaddr(saddr a) {
 
 	return (getbyt(a) & 0xff) | ((getbyt(a+1) & 0xff) << 8);

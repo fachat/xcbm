@@ -4,7 +4,7 @@ CFLAGS = -g -O5 -finline-functions -Wall -pedantic -Wno-parentheses
 
 LIBS = -lc -lncurses -lm
 
-all: xcbm64 xcbm8032 xcsa
+all: xcbm64 xcbm8032 xcsa xupet
 
 COMMOBJ = 	curses.o \
 		log.o \

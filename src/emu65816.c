@@ -9,7 +9,7 @@
 #include  	"types.h"
 #include  	"alarm.h"
 #include  	"bus.h"
-#include	"emu6502.h"
+#include	"emu65816.h"
 #include	"timer.h"
 #include	"emucmd.h"
 #include 	"mem.h"
@@ -153,18 +153,27 @@ int cpu_run(void){
 }
 
 byte MEM_readMem(word32 address, word32 timestamp, word32 emulFlags) {
-	return getbyt(address);
+	byte v = getbyt(address & cpu.mask);
+	//logout(0, "readMem (%05x) -> %02x", address, v);
+	return v;
+}
+
+byte MEM_peekMem(word32 address, word32 timestamp, word32 emulFlags) {
+	byte v = peekbyt(address & cpu.mask);
+	//logout(0, "peekMem (%05x) -> %02x", address, v);
+	return v;
 }
 
 void MEM_writeMem(word32 address, byte b, word32 timestamp) {
-	setbyt(address, b);
+	//logout(0, "writeMem (%05x)", address);
+	setbyt(address & cpu.mask, b);
 }
 
 void EMUL_handleWDM(byte opcode, word32 timestamp) {
 }
 
 
-CPU *cpu_init(const char *n, int cyclespersec, int msperframe, int cmos) {
+CPU *cpu_init(const char *n, int cyclespersec, int msperframe, int cmos, int addrmask) {
 
 #if 0
 	if (cmos) {
@@ -177,6 +186,7 @@ CPU *cpu_init(const char *n, int cyclespersec, int msperframe, int cmos) {
 	alarm_context_init(&bus.actx, "main cpu");
 
 	cpu.name = n;
+	cpu.mask = addrmask;
 	cpu.bus = &bus;
 	bus.cpu = &cpu;
 

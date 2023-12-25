@@ -27,6 +27,41 @@ static int flash_addr = 0;	// flash addr
 
 // write a byte, and at the same time read one from SPI, and return it... emulated...
 static scnt flash_wr(scnt val, int flag) {
+
+	logout(0, "flash_wr(%02x) with fl=%d, state=%d", val, flag, flash_state);
+
+	switch (flash_state) {
+	case 0:		// initial
+		if (val = 3) {	
+			// READ
+			flash_cmd = val;
+			flash_state = 1;
+		} else {
+			// error
+			flash_state = -1;	
+		}
+		break;
+	case 1:		// address byte 0
+		flash_addr |= (val & 0xff);
+		flash_state ++;
+		break;
+	case 2:		// address byte 1
+		flash_addr |= (val & 0xff) << 8;
+		flash_state ++;
+		break;
+	case 3:		// address byte 2
+		flash_addr |= (val & 0xff) << 16;
+		flash_state ++;
+		break;
+	case 4:		// dummy byte 
+		flash_state ++;
+		break;
+	case 5:
+		switch(flash_cmd) {
+		case 3:
+			return spiimg[(flash_addr++) & 0x1ffff];
+		}
+	}
 	return 0;
 }
 

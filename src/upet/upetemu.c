@@ -11,7 +11,7 @@
 #include	"types.h"
 #include	"alarm.h"
 #include	"bus.h"
-#include	"emu6502.h"
+#include	"emu65816.h"
 #include	"ccurses.h"
 #include	"devices.h"
 #include	"vdrive.h"
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 	mem_start();
 	cur_init();
 
-	CPU *cpu = cpu_init("main", 1000000, 16, 0);
+	CPU *cpu = cpu_init("main", 1000000, 16, 0, 0xfffff);
 
 	video_init(cpu);
 	key_init(cpu);	

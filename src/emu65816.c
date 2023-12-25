@@ -165,7 +165,7 @@ byte MEM_peekMem(word32 address, word32 timestamp, word32 emulFlags) {
 }
 
 void MEM_writeMem(word32 address, byte b, word32 timestamp) {
-	//logout(0, "writeMem (%05x)", address);
+	logout(0, "writeMem (%06x, masked=%06x) -> %02x", address, address & cpu.mask, b);
 	setbyt(address & cpu.mask, b);
 }
 

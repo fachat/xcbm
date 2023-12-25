@@ -41,16 +41,16 @@ static scnt flash_wr(scnt val, int flag) {
 			flash_state = -1;	
 		}
 		break;
-	case 1:		// address byte 0
-		flash_addr |= (val & 0xff);
+	case 1:		// address byte 2
+		flash_addr |= (val & 0xff) << 16;
 		flash_state ++;
 		break;
 	case 2:		// address byte 1
 		flash_addr |= (val & 0xff) << 8;
 		flash_state ++;
 		break;
-	case 3:		// address byte 2
-		flash_addr |= (val & 0xff) << 16;
+	case 3:		// address byte 0
+		flash_addr |= (val & 0xff);
 		flash_state ++;
 		break;
 	case 4:		// dummy byte 
@@ -134,7 +134,7 @@ scnt spi_rd(scnt addr) {
 	default:
 		break;
 	}
-	return 0;
+	return 0xff;
 }
 
 

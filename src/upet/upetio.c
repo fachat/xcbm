@@ -35,7 +35,7 @@ void io_wr(scnt addr, scnt val) {
 	register uchar a = (addr & 0xf0);
 	switch(a) {
 	case 0x00:
-		logout(0, "io_wr(0) %02x to %04x", val, addr);
+		//logout(0, "io_wr(0) %02x to %04x", val, addr);
 
 		if ((addr & 0x08) == 0) {
 			logout(0, "to ctrl_wr(0) %02x to %04x", val, addr);
@@ -98,8 +98,15 @@ scnt io_rd(scnt addr) {
 
 // note: PET I/O chips do not change state on read
 scnt io_peek(scnt addr) {
+
+	register uchar a = (addr & 0xf0);
+	switch(a) {
+	case 0x10:
+	case 0x20:
+	case 0x40:
+		return io_rd(addr);
+	}
 	return 0;
-	//return io_rd(addr);
 }
 
 

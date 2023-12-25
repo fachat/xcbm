@@ -13,7 +13,7 @@
 #include 	"mem.h"
 #include 	"upetmem.h"
 #include 	"petio.h"
-#include 	"petvideo.h"
+#include 	"upetvideo.h"
 #include 	"mon.h"
 #include 	"spi.h"
 

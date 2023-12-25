@@ -27,6 +27,7 @@ static int swap;		// if set, swap FRAM and VRAM
 static int bank;		// where in fram is the low 32k mapped from?
 static int vidblk;		// location of the video window in vram
 static int wprot;		// write protect bits from $e801
+static int vctrl;		// video control
 
 static meminfo_t pet_info[UPETPAGES];
 
@@ -79,6 +80,12 @@ void setmap(void) {
 
 		cpumap[i].inf = &pet_info[k];
 
+		// video window
+		if (i == 8 && !(vctrl & 0x04)) {
+			cpumap[i].mask = 0x0800;
+			cpumap[i].comp = 0x0000;
+			cpumap[i].m_wr = wrvid;
+		}
 		// mask/comp flags for I/O area
 		if (i == 14) {
 			// I/O memory space 
@@ -90,6 +97,11 @@ void setmap(void) {
 			cpumap[i].m_peek = &io_peek;
 		}
 	}
+}
+
+void mem_set_vctrl(byte b) {
+	vctrl = b;
+	setmap();
 }
 
 void mem_set_bank(byte newbank) {

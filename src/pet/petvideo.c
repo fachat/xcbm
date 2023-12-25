@@ -47,7 +47,7 @@ void vmem_set(uchar *vramp, scnt mask) {
 	vrmask = mask;
 }
 
-static void wrvid(scnt a, scnt b){
+void wrvid(scnt a, scnt b){
 	static chtype c;
 	static int line, col;
 	if(a<scrlen) {

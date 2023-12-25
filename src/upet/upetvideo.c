@@ -10,7 +10,7 @@
 #include "ccurses.h"
 #include "mem.h"
 #include "upetmem.h"
-#include "petvideo.h"
+#include "video.h"
 #include "petio.h"
 
 /***********************************************************************/
@@ -18,13 +18,13 @@
 /* Note. we're already implementing the Colour-PET variant             */
 /***********************************************************************/
 
-#include "video.h"
+void updatevideo(void);
 
 int crtc_reg[16];
 int videopage=0;
 
-static const int width=80;
-static const int scrlen=width*25;
+static int width=80;
+static int scrlen=80*25;
 
 /* video RAM (mirrors 0x8xxx of CPU pet bank 
  * ... or the 64k video dRAM on the CS/A CRTC board 
@@ -47,7 +47,13 @@ void vmem_set(uchar *vramp, scnt mask) {
 	vrmask = mask;
 }
 
-static void wrvid(scnt a, scnt b){
+void vset_width(scnt w) {
+	width = w;
+	scrlen = width * 25;
+	updatevideo();
+}
+
+void wrvid(scnt a, scnt b){
 	static chtype c;
 	static int line, col;
 	if(a<scrlen) {
@@ -132,6 +138,8 @@ int video_init(CPU *cpu){
 	clr_vdrive.data = cpu->bus;
 	alarm_register(&cpu->bus->actx, &clr_vdrive);
 	set_alarm_clock(&clr_vdrive, 128);
+
+	vset_width(40);
 
 	updatevideo();
 	return(0);

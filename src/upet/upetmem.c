@@ -80,6 +80,18 @@ void setmap(void) {
 
 		cpumap[i].inf = &pet_info[k];
 
+		// write protect mapping
+		// TODO: check if when swapped FRAM or VRAM is write-protected...
+		if (((i == 9) && (wprot & 0x10))
+			|| ((i == 10) && (wprot & 0x20))
+			|| ((i == 11) && (wprot & 0x40))
+			|| ((i >= 12) && (i <= 15) && (wprot & 0x80))
+			) {
+			cpumap[i].inf->mt_wr = NULL;
+		} else {
+			cpumap[i].inf->mt_wr = cpumap[i].inf->mt_rd;
+		}
+		
 		// video window
 		if (i == 8 && !(vctrl & 0x04)) {
 			cpumap[i].mask = 0x0800;

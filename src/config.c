@@ -160,7 +160,7 @@ void config_print() {
 
 static void config_update() {
 
-        snprintf(line, MAXLINE, "Speed: % 3.0lf%%, limit=% 3.0lf%%  Esc: C-%c  Shift:%c%c %s %s", 
+        snprintf(line, MAXLINE, "Speed: % 5.0lf%%, limit=% 4.0lf%%  Esc: C-%c  Shift:%c%c %s %s", 
 		cf_speed_ratio, cf_target_speed,
 		cf_esc_char,
 		cf_shiftmap & SLINE_SHIFT_L ? 'L' : '-',

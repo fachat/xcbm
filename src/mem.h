@@ -90,7 +90,7 @@ static inline scnt getbyt(saddr a) {
 	register scnt offset = a & 0xfff;
 	memmap_t *cpupage = &cpumap[bank];
 
-	if (cpupage->mask && ((offset & cpupage->mask) == cpupage->comp)) {
+	if (cpupage->mask && ((offset & cpupage->mask) == cpupage->comp) && cpupage->m_rd != NULL) {
 		return cpupage->m_rd(offset);
 	}
 

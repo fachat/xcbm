@@ -5,6 +5,7 @@
 #include  	"types.h"
 #include  	"alarm.h"
 #include  	"bus.h"
+#include	"cpu.h"
 #include	"emu6502.h"
 #include	"timer.h"
 #include	"emucmd.h"
@@ -68,6 +69,14 @@ void logass(CPU *cpu){
 	dis6502(&cpubank, cpu->pc, l+47, MAXLINE-47);
 
 	logout(0, l);
+}
+
+void cpu_set_trace(int flag) {
+	if (flag) {
+		cpu.flags |= CPUFLG_TRACE;
+	} else {
+		cpu.flags &= ~CPUFLG_TRACE;
+	}
 }
 
 void cpu_reset(CPU *cpu){
@@ -1413,7 +1422,7 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
 			struct2cpu(&cpu);
 		}
 
-		if(config_is_trace_enabled()) {
+		if(cpu.flags & CPUFLG_TRACE) {
 			cpu2struct(&cpu);
 			logass(&cpu);
 		}
@@ -1438,6 +1447,7 @@ CPU *cpu_init(const char *n, int cyclespersec, int msperframe, int cmos) {
 	alarm_context_init(&bus.actx, "main cpu");
 
 	cpu.name = n;
+	cpu.flags = 0;
 	cpu.bus = &bus;
 	bus.cpu = &cpu;
 

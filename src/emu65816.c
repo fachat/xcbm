@@ -2,13 +2,14 @@
 #include 	<stdio.h>
 
 /* from lib65816 */
-#include  	"cpu.h"
-#include  	"cpuevent.h"
+#include  	"lib65816/cpu.h"
+#include  	"lib65816/cpuevent.h"
 
 #include  	"log.h"
 #include  	"types.h"
 #include  	"alarm.h"
 #include  	"bus.h"
+#include	"cpu.h"
 #include	"emu65816.h"
 #include	"timer.h"
 #include	"emucmd.h"
@@ -52,6 +53,16 @@ static bank_t cpubank = {
 
 
 /*******************************************************************/
+
+void cpu_set_trace(int flag) {
+        if (flag) {
+                cpu.flags |= CPUFLG_TRACE;
+		CPU_setTrace(1);
+        } else {
+                cpu.flags &= ~CPUFLG_TRACE;
+		CPU_setTrace(0);
+        }
+}
 
 void cpu_set_irq(scnt int_mask, uchar flag) {
         if (((hirq & int_mask) && !flag)
@@ -145,7 +156,7 @@ int cpu_run(void){
 
 	CPU_setDbgOutfile(flog);
 
-	CPU_setTrace(1);
+	//CPU_setTrace(1);
 
 	CPU_run();
 
@@ -165,7 +176,7 @@ byte MEM_peekMem(word32 address, word32 timestamp, word32 emulFlags) {
 }
 
 void MEM_writeMem(word32 address, byte b, word32 timestamp) {
-	logout(0, "writeMem (%06x, masked=%06x) -> %02x", address, address & cpu.mask, b);
+	//logout(0, "writeMem (%06x, masked=%06x) -> %02x", address, address & cpu.mask, b);
 	setbyt(address & cpu.mask, b);
 }
 

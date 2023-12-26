@@ -85,7 +85,7 @@ $(DEPDIR):
 	$(CC) $(CFLAGS) -I. -c -o $@ $<
 
 emu65816.o : emu65816.c $(DEPDIR)
-	$(CC) $(CFLAGS) -I. -I../lib65816 -I../lib65816/lib65816 -I../lib65816/build -c -o $@ $<
+	$(CC) $(CFLAGS) -I. -I../lib65816 -I../lib65816/build -c -o $@ $<
 
 #csa/%.o : csa/%.c $(DEPDIR)
 #	$(MAKECSADEPEND)

@@ -5,7 +5,7 @@
 #include "types.h"
 #include "alarm.h"
 #include "bus.h"
-#include "emu6502.h"
+#include "cpu.h"
 
 #include "timer.h"
 #include "video.h"
@@ -75,6 +75,9 @@ static uchar pia1_get_portb(uchar origdata) {
 }
 
 void io_set_vdrive(uchar flag) {
+
+	logout(0, "io_set_vdrive(%d)", flag);
+
 	pia_cb1(&pia1, flag ? PIA_CX1_HIGH : PIA_CX1_LOW);
 }
 

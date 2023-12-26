@@ -9,7 +9,7 @@
 #include "log.h"
 #include "alarm.h"
 #include "bus.h"
-#include "emu65816.h"
+#include "cpu.h"
 #include "mem.h"
 #include "upetvideo.h"
 

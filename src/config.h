@@ -43,10 +43,4 @@ void config_set_shift(int shiftmap);
 /* get an escaped character from the keyboard */
 int esc_getch();
 
-/* inlined for optimization */
-extern int cf_trace_enabled;
-
-static inline int config_is_trace_enabled() {
-	return cf_trace_enabled;
-}
 

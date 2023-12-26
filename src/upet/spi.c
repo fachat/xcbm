@@ -7,7 +7,7 @@
 #include	"types.h"
 #include	"alarm.h"
 #include	"bus.h"
-#include	"emu6502.h"
+#include	"cpu.h"
 #include 	"mem.h"
 
 #define	MAXLINE		200
@@ -134,7 +134,7 @@ scnt spi_rd(scnt addr) {
 	default:
 		break;
 	}
-	return 0xff;
+	return 0;
 }
 
 

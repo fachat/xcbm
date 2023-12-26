@@ -5,7 +5,7 @@
 #include  	"types.h"
 #include  	"alarm.h"
 #include  	"bus.h"
-#include	"emu6502.h"
+#include	"cpu.h"
 #include	"timer.h"
 #include	"emucmd.h"
 #include 	"mem.h"

@@ -6,7 +6,7 @@
 #include "alarm.h"
 #include "bus.h"
 #include "via.h"
-#include "emu6502.h"
+#include "cpu.h"
 
 
 static void t1alarm_cb(alarm_t *, CLOCK);

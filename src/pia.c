@@ -6,7 +6,7 @@
 #include "alarm.h"
 #include "bus.h"
 #include "pia.h"
-#include "emu6502.h"
+#include "cpu.h"
 
 
 
@@ -15,8 +15,10 @@ static void update_int(PIA *pia) {
 	if ((pia->ctrl_a & (PIA_CR_IRQ1 | PIA_CR_IRQ2))
 		|| (pia->ctrl_b & (PIA_CR_IRQ1 | PIA_CR_IRQ2))) {
 		// set interrupt
+logout(0, "%s: set interrupt #%d to %d", pia->name, pia->int_num, 1);
 		pia->set_interrupt(pia->int_num, 1);
 	} else {
+logout(0, "%s: set interrupt #%d to %d", pia->name, pia->int_num, 0);
 		pia->set_interrupt(pia->int_num, 0);
 	}
 }

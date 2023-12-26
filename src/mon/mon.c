@@ -223,7 +223,7 @@ static int mon_parse(char *line) {
 }
 
 static void mon_prompt() {
-	printf("%s/%s: ", cpu->name, mon_bank->name);
+	printf("%s/%s: ", cpu_name(cpu), mon_bank->name);
 }
 
 void mon_line(CPU *tocpu) {

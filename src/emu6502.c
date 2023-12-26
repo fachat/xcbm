@@ -71,6 +71,14 @@ void logass(CPU *cpu){
 	logout(0, l);
 }
 
+const char *cpu_name(CPU *cpu) {
+	return cpu->name;
+}
+
+saddr cpu_pc(CPU *cpu) {
+	return cpu->pc;
+}
+
 void cpu_set_trace(int flag) {
 	if (flag) {
 		cpu.flags |= CPUFLG_TRACE;
@@ -1451,7 +1459,7 @@ CPU *cpu_init(const char *n, int cyclespersec, int msperframe, int cmos) {
 	cpu.bus = &bus;
 	bus.cpu = &cpu;
 
-	speed_init(&cpu, cyclespersec, msperframe);
+	speed_init(&cpu.bus->actx, cyclespersec, msperframe);
 
 	cpu_reset(&cpu);
 

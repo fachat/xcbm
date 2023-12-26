@@ -29,7 +29,7 @@ void pia_wr(PIA *pia, uchar reg, uchar val) {
 
 	reg = reg & 0x03;
 
-	logout(0, "%04x: %s write %02x to reg %02x", pia->bus->cpu->pc, pia->name, val, reg);
+	logout(0, "%04x: %s write %02x to reg %02x", cpu_pc(pia->bus->cpu), pia->name, val, reg);
 
 	switch(reg) {
 	case 0:
@@ -135,7 +135,7 @@ uchar pia_rd(PIA *pia, uchar reg) {
 		break;
 	}
 
-	logout(0, "%04x: %s read from reg %02x as %02x", pia->bus->cpu->pc, pia->name, reg, rv);
+	logout(0, "%04x: %s read from reg %02x as %02x", cpu_pc(pia->bus->cpu), pia->name, reg, rv);
 	return rv;
 }
 

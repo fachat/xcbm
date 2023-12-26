@@ -51,6 +51,13 @@ static bank_t cpubank = {
 
 #define next(a)         advance_clock(&(cpu.bus->actx), (a))
 
+const char *cpu_name(CPU *cpu) {
+        return cpu->name;
+}
+
+saddr cpu_pc(CPU *cpu) {
+        return cpu->pc;
+}
 
 /*******************************************************************/
 
@@ -201,7 +208,7 @@ CPU *cpu_init(const char *n, int cyclespersec, int msperframe, int cmos, int add
 	cpu.bus = &bus;
 	bus.cpu = &cpu;
 
-	speed_init(&cpu, cyclespersec, msperframe);
+	speed_init(&cpu.bus->actx, cyclespersec, msperframe);
 
 	CPU_reset();
 

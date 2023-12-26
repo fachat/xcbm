@@ -54,14 +54,14 @@ keytab ktab[];
 #define	KEYTIMER	10000	/* each (simulated) ms */
 
 void key_exit(void);
-void key_irq(scnt,CPU* /*int*/);
+void key_irq(scnt);
 
 
 uchar key_read_cols(uchar row) {
 	return prb[row];
 }
 
-void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
+void key_irq(scnt adr) {
 
 	static int xflag;
 	uchar rows;
@@ -134,7 +134,7 @@ void key_irq(scnt adr, CPU *cpu /*int val*/ ) {
 
 void key_alarm_cb(struct alarm_s *alarm, CLOCK current) {
 
-	key_irq(0, NULL);
+	key_irq(0);
 
 	// every 100ms
 	set_alarm_clock_plus(alarm, 100000);
@@ -148,14 +148,14 @@ static alarm_t key_alarm = {
 	CLOCK_MAX
 };
 
-void key_init(CPU *cpu) {
+void key_init(BUS *bus) {
 	int i;
 	
 	for(i=0;i<NUM_ROWS;i++) { 
 		prb[i]=0xff; 
 	}
 
-	alarm_register(&cpu->bus->actx, &key_alarm);
+	alarm_register(&bus->actx, &key_alarm);
 	set_alarm_clock(&key_alarm, 0);
 }
 

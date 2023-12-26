@@ -75,8 +75,8 @@ int main(int argc, char *argv[])
 	mon_init();
 	mon_register_cpu(cpu);
 
-	video_init(cpu);
-	key_init(cpu);
+	video_init(cpu->bus, 985248/60);
+	key_init(cpu->bus);
 	io_init(cpu->bus);	
 
 	vdrive_init();

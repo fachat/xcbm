@@ -45,7 +45,7 @@ keytab ktab[];
 void key_exit(void);
 void key_irq(CPU*, scnt);
 
-void key_init(CPU *cpu) {
+void key_init(BUS *bus) {
 	int i;
 	
 /*

@@ -1,5 +1,12 @@
 
-		
+typedef struct CPU CPU;
+
+const char *cpu_name(CPU *cpu);
+
+saddr cpu_pc(CPU *cpu);
+
+
+/*
 typedef struct CPU {
 		const char 	*name;
 
@@ -20,6 +27,7 @@ typedef struct CPU {
 		//alarm_context_t	actx;
 		alarm_t		speed;
 } CPU;
+*/
 
 /* flag bits */
 #define	CPUFLG_TRACE	0x01

@@ -9,6 +9,7 @@
 #include	"bus.h"
 #include	"cpu.h"
 #include 	"mem.h"
+#include 	"sdcard.h"
 
 #define	MAXLINE		200
 
@@ -26,9 +27,9 @@ static int flash_state = 0;	// where are we in the command?
 static int flash_addr = 0;	// flash addr
 
 // write a byte, and at the same time read one from SPI, and return it... emulated...
-static scnt flash_wr(scnt val, int flag) {
+static scnt flash_wr(scnt val) {
 
-	logout(0, "flash_wr(%02x) with fl=%d, state=%d", val, flag, flash_state);
+	logout(0, "flash_wr(%02x) with state=%d", val, flash_state);
 
 	switch (flash_state) {
 	case 0:		// initial
@@ -53,10 +54,7 @@ static scnt flash_wr(scnt val, int flag) {
 		flash_addr |= (val & 0xff);
 		flash_state ++;
 		break;
-	case 4:		// dummy byte 
-		flash_state ++;
-		break;
-	case 5:
+	case 4:	
 		switch(flash_cmd) {
 		case 3:
 			return spiimg[(flash_addr++) & 0x1ffff];
@@ -79,32 +77,38 @@ void spi_ipl(uchar *iplblk) {
 /* ---------------------------------------------------------------*/
 
 #define	SPI_FLASH	1	/* flash image is this selected device */
+#define	SPI_SDCARD	3	/* flash image is this selected device */
+
+static scnt spi_last = 0xff;
 
 void spi_wr(scnt addr, scnt val) {
 
 	switch (addr & 0x03) {
 	case 0:		// control register
-		switch (val & 0x03) {
-		case 1:
-			selected = 1;
+		switch (val & 0x07) {
+		case SPI_FLASH:
+			sdcard_select(0);
+			selected = SPI_FLASH;
+			break;
+		case SPI_SDCARD:
+			sdcard_select(1);
+			flash_deselect();
+			selected = SPI_SDCARD;
 			break;
 		default:
 			flash_deselect();
+			sdcard_select(0);
 			selected = -1;
 			break;
 		}
 		break;
 	case 1:		// read/write with auto-shift
 		switch (selected) {
-		case 1:	// flash
-			flash_wr(val, 1);
+		case SPI_FLASH:	// flash
+			spi_last = flash_wr(val);
 			break;
-		}
-		break;
-	case 2:		// peek data from last transfer without auto-triggering
-		switch (selected) {
-		case 1:	// flash
-			flash_wr(val, 0);
+		case SPI_SDCARD:
+			spi_last = sdcard_handle(val);
 			break;
 		}
 		break;
@@ -115,22 +119,26 @@ void spi_wr(scnt addr, scnt val) {
 
 scnt spi_rd(scnt addr) {
 
+	scnt tmp;
+
 	switch (addr & 0x03) {
 	case 0:		// control register (ignore state, we're always ready)
 		return 0;
 		break;
 	case 1:		// read/write with auto-shift
+		tmp = spi_last;
 		switch (selected) {
-		case 1:	// flash
-			return flash_wr(0, 1);
+		case SPI_FLASH:	// flash
+			spi_last = flash_wr(0);
+			break;
+		case SPI_SDCARD:
+			spi_last = sdcard_handle(0);
+			break;
 		}
+		return tmp;	
 		break;
 	case 2:		// peek data from last transfer without auto-triggering
-		switch (selected) {
-		case 1:	// flash
-			return flash_wr(0, 0);
-		}
-		break;
+		return spi_last;
 	default:
 		break;
 	}
@@ -157,7 +165,7 @@ static int mem_set_spiimg(const char *param) {
 
 static config_t mem_pars[] = {
 	{ "rom-dir", 'd', "rom_directory", mem_set_rom_dir, "set common ROM directory (default = /var/lib/cbm/pet)" },
-	{ "spi-rom", 'S', "spi_rom", mem_set_spiimg, "set SPI Flash ROM file name (in ROM directory; default 'spi.rom')" },
+	{ "spi-rom", 'R', "spi_rom", mem_set_spiimg, "set SPI Flash ROM file name (in ROM directory; default 'spi.rom')" },
 	{ NULL }
 };
 

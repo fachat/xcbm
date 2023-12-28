@@ -22,6 +22,7 @@
 #include	"labels.h"
 #include	"config.h"
 #include	"spi.h"
+#include	"sdcard.h"
 
 #include	"io.h"
 #include	"video.h"
@@ -29,13 +30,6 @@
 #include	"keys.h"
 #include	"vdrive.h"
 
-
-extern uchar prb[];
-
-
-char *files[] = {
-	"/var/lib/xupet", "petkernel4.rom", "petbasic4.rom", "petedit4.rom"
-}; 
 
 
 void usage(void) {
@@ -48,6 +42,19 @@ void usage(void) {
   	exit(1);
 }
 
+static int sdcard_set_img(const char *name) {
+
+	sdcard_set_path(name);
+	sdcard_attach();
+
+	return 0;
+}
+
+static config_t sdcard_pars[] = {
+	{ "sdcard", 'S', "imgpath", sdcard_set_img, "Set the path for the emulated SD card" },
+	{ NULL }
+};
+
 int main(int argc, char *argv[])
 {
 	int er=0;
@@ -55,6 +62,8 @@ int main(int argc, char *argv[])
 	loginit("upet.log");
 
 	config_init();
+
+	config_register(sdcard_pars);
 
 	// init virtual device table
 	devices_init();

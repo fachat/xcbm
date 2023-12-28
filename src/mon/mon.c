@@ -12,6 +12,7 @@
 #include "labels.h"
 #include "mem.h"
 #include "mon.h"
+#include "stop.h"
 #include "asm6502.h"
 #include "ccurses.h"
 #include "labels.h"

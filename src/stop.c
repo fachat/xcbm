@@ -1,5 +1,6 @@
 
 #include <signal.h>
+#include <string.h>
 
 #include "log.h"
 #include "stop.h"

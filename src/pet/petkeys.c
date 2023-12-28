@@ -9,6 +9,7 @@
 #include "cpu.h"
 #include "mem.h"
 #include "ccurses.h"
+#include "stop.h"
 
 #include "keys.h"
 #include "config.h"
@@ -51,6 +52,8 @@ xkeytab xkeys[];
 // key table - 128 entries, addressed by index
 keytab ktab[];
 
+extern keytab stop;
+
 #define	KEYTIMER	10000	/* each (simulated) ms */
 
 void key_exit(void);
@@ -89,39 +92,44 @@ void key_irq(scnt adr) {
 				}
 			}
 		}
+	}
 
-		// do we have a translation?
-		if(k) {	
-			// yes. so handle it
+	// Stop overrides key
+	if (stop_ack_flag()) {
+		k = &stop;
+	}
 
-			// 1. combine rows for all keys as mask
-			// (just an optimization for the next step)
-	 		rows=0;
-			for (i=0; i<k->cnt; i++) {
-				rows|=k->k[i].row;
-			}
-			// iterate over all NUM_ROWS combinations of rows
-			for(i=0;i<NUM_ROWS;i++) {
-				uchar cols=0xff;
-				// is any of the 8 rows (8 bits in 256 iterations) set?
-				// note: with PET's 10 rows maybe not needed optimization
-				if(1) { //(~i)&rows) {
-					// yes, check which cols to set
-					scnt j=0;
-					while(j<k->cnt) {
-						//if((~i)&k->k[j].row)
-						if(i == k->k[j].row)
-							cols &= k->k[j].col;
-						j++;
-					}
-					prb[i]=cols;
-				} else  {
-					// no, set with $ff
-					prb[i]=0xff;
-				}
-			}
-			xflag =0;
+	// do we have a translation?
+	if(k) {	
+		// yes. so handle it
+
+		// 1. combine rows for all keys as mask
+		// (just an optimization for the next step)
+ 		rows=0;
+		for (i=0; i<k->cnt; i++) {
+			rows|=k->k[i].row;
 		}
+		// iterate over all NUM_ROWS combinations of rows
+		for(i=0;i<NUM_ROWS;i++) {
+			uchar cols=0xff;
+			// is any of the 8 rows (8 bits in 256 iterations) set?
+			// note: with PET's 10 rows maybe not needed optimization
+			if(1) { //(~i)&rows) {
+				// yes, check which cols to set
+				scnt j=0;
+				while(j<k->cnt) {
+					//if((~i)&k->k[j].row)
+					if(i == k->k[j].row)
+						cols &= k->k[j].col;
+					j++;
+				}
+				prb[i]=cols;
+			} else  {
+				// no, set with $ff
+				prb[i]=0xff;
+			}
+		}
+		xflag =0;
 	} else {				/* no char */
 		if(!xflag) {
 			for(i=0;i<NUM_ROWS;i++) {
@@ -248,6 +256,8 @@ void key_init(BUS *bus) {
 //#define	K_F3	{ 0x01,	0xdf }
 //#define	K_F5	{ 0x01,	0xbf }
 #define	CRSRD	{ 1,	0xbf }
+
+keytab stop = { 1, { STP } };
 
 keytab ktab[128] = {
 /* ^@	*/ { 0 }, //2,	{ CTRL, AT }},
@@ -385,6 +395,7 @@ keytab ktab[128] = {
 /* '~'	*/ { 2, { SHIFTR, UPARR }},
 /* 0x7f */ { 0 }
 };
+
 
 xkeytab xkeys[ANZXKEYS] = {
 	{ KEY_UP, 	{ 2, { SHIFTL, CRSRD }}},

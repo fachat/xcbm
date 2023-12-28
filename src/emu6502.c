@@ -1402,12 +1402,13 @@ int cpu_run(void){
 /*if(dismode || hirq) printf("\n\nhirq=%d, irq=%d, hnmi=%d\n",hirq,irq,hnmi);*/
 
 		// this may be changed to signal ctrl-c to the actual emulated machine
+/*
 		if (stop_ack_flag()) {
 			cpu2struct(&cpu);
 			mon_line(&cpu);
 			struct2cpu(&cpu);
 		}
-
+*/
 		if(hirq && !(irq)) {
 			aclb();
 			cpu2struct(&cpu);

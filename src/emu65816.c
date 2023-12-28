@@ -131,11 +131,13 @@ void timer_handler( word32 timestamp ) {
 //	printf("timer_handler\n\r", timestamp);
 
                 // this may be changed to signal ctrl-c to the actual emulated machine
+/*
                 if (stop_ack_flag()) {
                         cpu2struct(&cpu);
                         mon_line(&cpu);
                         struct2cpu(&cpu);
                 }
+*/
                 if(v=trap6502(cpu.pc)) {
                         cpu2struct(&cpu);
                         v(&cpu, cpu.pc);

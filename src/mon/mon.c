@@ -1,6 +1,5 @@
 
 #include <stdio.h>
-#include <signal.h>
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
@@ -32,9 +31,6 @@
 static bank_t *banks[MAXBANKS];
 static int numbanks = 0;
 static bank_t *mon_bank = NULL;
-
-static struct sigaction monaction;
-static struct sigaction oldaction;
 
 static CPU *cpu;
 
@@ -244,7 +240,7 @@ void mon_line(CPU *tocpu) {
 
 	mon_prompt();
 
-	monflag = 0;
+	stop_ack_flag();
 
 	// monitor loop
 	while ((len = cur_getline(&line, &buflen)) >= 0) {
@@ -277,7 +273,7 @@ void mon_line(CPU *tocpu) {
 	}
 	
 	if (len < 0) {
-		if (errno == EINTR && monflag) {
+		if (errno == EINTR && stop_get_flag()) {
 			// interrupted
 			exit(1);
 		}
@@ -291,15 +287,7 @@ void mon_line(CPU *tocpu) {
 
 	cur_setup();
 
-	monflag = 0;
-}
-
-int monflag = 0;
-
-//static void mon_sigaction(int sig, siginfo_t siginfo, void *p);
-static void mon_sighandler(int sig) {
-
-	monflag = 1;
+	stop_ack_flag();
 }
 
 
@@ -309,21 +297,6 @@ void mon_register_cpu(CPU *cpu_p) {
 }
 
 void mon_init() {
-
-	monflag = 0;
-
-	monaction.sa_handler = mon_sighandler;
-	monaction.sa_flags = 0;
-	sigemptyset(&monaction.sa_mask);
-
-	int er = sigaction(SIGINT, &monaction, &oldaction);
-
-	if (er) {
-
-		logout(0, "Could not establish signal handler: %s", 
-			strerror(er));
-
-	}
 
 	// set CPU bank as initial bank
 	cmd_bank("cpu");

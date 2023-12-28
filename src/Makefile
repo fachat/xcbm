@@ -15,6 +15,7 @@ COMMOBJ = 	curses.o \
 		mem.o \
 		speed.o \
 		config.o \
+		stop.o \
 
 C64OBJ = 	c64/mem64.o \
 		c64/emu64.o \

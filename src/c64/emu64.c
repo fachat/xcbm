@@ -15,6 +15,7 @@
 #include	"mem.h"
 #include	"mem64.h"
 #include	"mon.h"
+#include	"stop.h"
 
 #include	"io.h"
 #include	"video.h"
@@ -71,6 +72,8 @@ int main(int argc, char *argv[])
 
 	// PAL
 	CPU *cpu = cpu_init("main", 985248, 20, 0);
+
+	stop_init();
 
 	mon_init();
 	mon_register_cpu(cpu);

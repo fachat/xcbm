@@ -12,6 +12,7 @@
 #include 	"mem.h"
 #include 	"speed.h"
 #include 	"mon.h"
+#include 	"stop.h"
 #include 	"config.h"
 #include	"asm6502.h"
 
@@ -1400,7 +1401,8 @@ int cpu_run(void){
 	do{
 /*if(dismode || hirq) printf("\n\nhirq=%d, irq=%d, hnmi=%d\n",hirq,irq,hnmi);*/
 
-		if (is_mon()) {
+		// this may be changed to signal ctrl-c to the actual emulated machine
+		if (stop_ack_flag()) {
 			cpu2struct(&cpu);
 			mon_line(&cpu);
 			struct2cpu(&cpu);

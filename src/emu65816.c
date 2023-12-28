@@ -16,6 +16,7 @@
 #include 	"mem.h"
 #include 	"speed.h"
 #include 	"mon.h"
+#include 	"stop.h"
 #include 	"config.h"
 
 #define	PAGES	256
@@ -129,7 +130,8 @@ void timer_handler( word32 timestamp ) {
 
 //	printf("timer_handler\n\r", timestamp);
 
-                if (is_mon()) {
+                // this may be changed to signal ctrl-c to the actual emulated machine
+                if (stop_ack_flag()) {
                         cpu2struct(&cpu);
                         mon_line(&cpu);
                         struct2cpu(&cpu);

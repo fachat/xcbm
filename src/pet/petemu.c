@@ -18,6 +18,7 @@
 #include	"vdrive.h"
 #include	"mem.h"
 #include	"mon.h"
+#include	"stop.h"
 #include	"labels.h"
 #include	"config.h"
 
@@ -85,6 +86,8 @@ int main(int argc, char *argv[])
 	vdrive_init();
 	vdrive_setdrive(8,0,".");
 //settrap(MP_KERNEL1,0xfce4,NULL,"test");
+
+	stop_init();
 
 	mon_init();
 	mon_register_cpu(cpu);

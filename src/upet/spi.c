@@ -132,7 +132,7 @@ scnt spi_rd(scnt addr) {
 			spi_last = flash_wr(0);
 			break;
 		case SPI_SDCARD:
-			spi_last = sdcard_handle(0);
+			spi_last = sdcard_handle(0xff);
 			break;
 		}
 		return tmp;	

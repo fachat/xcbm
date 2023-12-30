@@ -76,7 +76,7 @@ void setmap(void) {
 			}
 		}
 
-		logout(0, "map page %02x to ram bank at %02x", i, k);
+		//logout(0, "map page %02x to ram bank at %02x", i, k);
 
 		cpumap[i].inf = &pet_info[k];
 

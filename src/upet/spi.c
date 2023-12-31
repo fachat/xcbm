@@ -29,7 +29,7 @@ static int flash_addr = 0;	// flash addr
 // write a byte, and at the same time read one from SPI, and return it... emulated...
 static scnt flash_wr(scnt val) {
 
-	logout(0, "flash_wr(%02x) with state=%d", val, flash_state);
+	//logout(0, "flash_wr(%02x) with state=%d", val, flash_state);
 
 	switch (flash_state) {
 	case 0:		// initial

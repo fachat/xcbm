@@ -15,10 +15,10 @@ static void update_int(PIA *pia) {
 	if ((pia->ctrl_a & (PIA_CR_IRQ1 | PIA_CR_IRQ2))
 		|| (pia->ctrl_b & (PIA_CR_IRQ1 | PIA_CR_IRQ2))) {
 		// set interrupt
-logout(0, "%s: set interrupt #%d to %d", pia->name, pia->int_num, 1);
+		//logout(0, "%s: set interrupt #%d to %d", pia->name, pia->int_num, 1);
 		pia->set_interrupt(pia->int_num, 1);
 	} else {
-logout(0, "%s: set interrupt #%d to %d", pia->name, pia->int_num, 0);
+		//logout(0, "%s: set interrupt #%d to %d", pia->name, pia->int_num, 0);
 		pia->set_interrupt(pia->int_num, 0);
 	}
 }
@@ -29,7 +29,7 @@ void pia_wr(PIA *pia, uchar reg, uchar val) {
 
 	reg = reg & 0x03;
 
-	logout(0, "%04x: %s write %02x to reg %02x", cpu_pc(pia->bus->cpu), pia->name, val, reg);
+	//logout(0, "%04x: %s write %02x to reg %02x", cpu_pc(pia->bus->cpu), pia->name, val, reg);
 
 	switch(reg) {
 	case 0:
@@ -135,13 +135,13 @@ uchar pia_rd(PIA *pia, uchar reg) {
 		break;
 	}
 
-	logout(0, "%04x: %s read from reg %02x as %02x", cpu_pc(pia->bus->cpu), pia->name, reg, rv);
+	//logout(0, "%04x: %s read from reg %02x as %02x", cpu_pc(pia->bus->cpu), pia->name, reg, rv);
 	return rv;
 }
 
 // extern trigger to set CA1 / CA2 input state
 void pia_ca1(PIA *pia, uchar flag) {
-	logout(0, "set pia1 CA1 to %d", flag);
+	//logout(0, "set pia1 CA1 to %d", flag);
 
 	if (pia->last_ca1 && !flag) {
 		// falling edge
@@ -167,7 +167,7 @@ void pia_ca1(PIA *pia, uchar flag) {
 void pia_ca2(PIA *pia, uchar flag);
 
 void pia_cb1(PIA *pia, uchar flag) {
-	logout(0, "set pia1 CB1 to %d", flag);
+	//logout(0, "set pia1 CB1 to %d", flag);
 
 	if (pia->last_cb1 && !flag) {
 		// falling edge

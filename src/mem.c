@@ -11,6 +11,8 @@
 #include	"cpu.h"
 #include 	"mem.h"
 
+
+#define	MAXLINE	200
 	
 unsigned char *mem;
 
@@ -134,10 +136,28 @@ scnt bank_cpu_peek(bank_t *bankp, saddr addr) {
 /*******************************************************************/
 
 
-int loadrom(char *fname, uchar *mem, size_t len) {
+int loadrom_int(const char *prefix, const char *filename, uchar *mem, size_t len) {
 	FILE *fp;
 	size_t nread;
+	char fname[MAXLINE];
+	int l;
 
+	fname[MAXLINE-1] = 0;
+        if(filename[0]=='/') {
+              strncpy(fname,filename, MAXLINE-1);
+        } else {
+              strncpy(fname,prefix, MAXLINE-1);
+	      l = strlen(fname);
+              if(l < MAXLINE-1 && fname[l-1]!='/') {
+			strcat(fname,"/");
+			l++;
+	      }
+              strncat(fname,filename, MAXLINE-1-l);
+        }
+
+	logout(0, "Trying to load '%s'", fname);
+
+	errno = 0;
 	fp=fopen(fname,"rb");
 	if(fp) {
 		nread=fread(mem,1,len,fp);
@@ -154,5 +174,40 @@ int loadrom(char *fname, uchar *mem, size_t len) {
 	}
 	return(errno);
 }
-	
+
+static char binprefix[MAXLINE+4];
+
+void setbinprefix(char *emu, char *argv0) {
+	int l;
+
+	strncpy(binprefix, argv0, MAXLINE-1);
+	binprefix[MAXLINE-1]=0;
+
+	char *c = rindex(binprefix, '/');
+	if (c) {
+		*c = 0;
+	}
+	c = rindex(binprefix, '/');
+	if (c) {
+		*c = 0;
+	}
+	strncat(c, "/roms/", MAXLINE-1-strlen(binprefix));
+	strncat(c, emu, MAXLINE-1-strlen(binprefix));
+}
+
+int loadrom(const char *prefix, const char *fname, uchar *mem, size_t len) {
+	int r;
+
+	r = loadrom_int(prefix, fname, mem, len);
+	if (r == 0) {
+		return 0;
+	}
+
+	r = loadrom_int(binprefix, fname, mem, len);
+	if (r == 0) {
+		return 0;
+	}
+
+	return r;
+}
 

@@ -51,7 +51,9 @@ int main(int argc, char *argv[])
 {
 	int er=0;
 	
-	loginit("c64.log");
+	loginit("pet.log");
+
+	setbinprefix("pet", argv[0]);
 
 	config_init();
 

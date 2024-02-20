@@ -177,5 +177,6 @@ static inline void (*trap6502(scnt a))(CPU*,scnt) {
 }
 
 
-int loadrom(char *fname, uchar *mem, size_t len);
+void setbinprefix(char *emuname, char *argv0);
+int loadrom(const char *prefix, const char *fname, uchar *mem, size_t len);
 

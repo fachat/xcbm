@@ -1,6 +1,6 @@
 XCBMLIB = ../bin
 
-CFLAGS = -g -O5 -finline-functions -Wall -pedantic -Wno-parentheses
+CFLAGS = -g -finline-functions -Wall -pedantic -Wno-parentheses
 
 LIBS = -lc -lncurses -lm
 

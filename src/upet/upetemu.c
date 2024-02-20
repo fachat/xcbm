@@ -61,6 +61,8 @@ int main(int argc, char *argv[])
 	
 	loginit("upet.log");
 
+	setbinprefix("upet", argv[0]);
+
 	config_init();
 
 	config_register(sdcard_pars);

@@ -378,21 +378,13 @@ void mem_init() {
 
 
 void mem_start(){
-	char fname[MAXLINE];
 	size_t offset[]={ 0, KERNEL, BASIC, CHAROM, ROMH, ROML };
 	size_t len[]=   { 0, 8192,   8192,  4096,   8192, 8192 };
 	int i;
 	loram=hiram=charen=1;
 
 	  for(i=1;i<6;i++) {
-	    if(names[i][0]=='/') {
-	      strcpy(fname,names[i]);
-	    } else {
-	      strcpy(fname,names[0]);
-	      if(fname[strlen(fname)-1]!='/') strcat(fname,"/");
-	      strcat(fname,names[i]);
-	    }
-	    loadrom(fname, rom + offset[i], len[i]);
+	    loadrom(names[0], names[i], rom + offset[i], len[i]);
 	  }	
 	  inimemvec();
 	  return;

@@ -16,8 +16,6 @@
 #include 	"petvideo.h"
 #include 	"mon.h"
 
-#define	MAXLINE	200
-	
 /*******************************************************************
  * Simulated memory map:
  *
@@ -206,20 +204,12 @@ void mem_init() {
 }
 
 void mem_start() {
-	char fname[MAXLINE];
 	size_t offset[]={ 0, 0 };
 	size_t len[]=   { 0, 32768 };
 	int i;
 
 	  for(i=1;i<2;i++) {
-	    if(names[i][0]=='/') {
-	      strcpy(fname,names[i]);
-	    } else {
-	      strcpy(fname,names[0]);
-	      if(fname[strlen(fname)-1]!='/') strcat(fname,"/");
-	      strcat(fname,names[i]);
-	    }
-	    loadrom(fname, rom+offset[i], len[i]);
+	    loadrom(names[0],names[i], rom+offset[i], len[i]);
 	  }	
 	  inimemvec();
 	  return;

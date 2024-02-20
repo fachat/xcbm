@@ -11,8 +11,6 @@
 #include 	"mem.h"
 #include 	"sdcard.h"
 
-#define	MAXLINE		200
-
 // up to 512k Flash ROM
 #define	SPI_LEN		0x20000
 
@@ -175,18 +173,10 @@ void spi_init() {
 }
 
 void spi_start() {
-	char fname[MAXLINE];
 	int i;
 
 	    i = 1;
-	    if(names[i][0]=='/') {
-	      strcpy(fname,names[i]);
-	    } else {
-	      strcpy(fname,names[0]);
-	      if(fname[strlen(fname)-1]!='/') strcat(fname,"/");
-	      strcat(fname,names[i]);
-	    }
-	    loadrom(fname, spiimg, SPI_LEN);
+	    loadrom(names[0],names[i], spiimg, SPI_LEN);
 
 	// reset flash state
 	selected = -1;

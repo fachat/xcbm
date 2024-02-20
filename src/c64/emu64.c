@@ -46,6 +46,8 @@ int main(int argc, char *argv[])
 	
 	loginit("c64.log");
 
+	setbinprefix("c64", argv[0]);
+
 	config_init();
 
 	label_init();

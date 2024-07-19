@@ -153,9 +153,10 @@ void vmem_wr(meminfo_t *inf, scnt addr,scnt val ) {
 
 	// calculate physical address
 	scnt phys = vrmask & (offset + ((inf->page & 0x0f) << 12));
-
+/*
 	logout(2, "vmem_wr(addr=%04x, page=%d, -> offset=%04x, phys=%04x, vrbase=%04x", 
 			addr, inf->page, offset, phys, vrbase);
+*/
 
 	if (phys < vrbase || phys > vrbase + 2000) {
 		return;

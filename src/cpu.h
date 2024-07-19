@@ -1,33 +1,10 @@
 
 typedef struct CPU CPU;
+typedef struct bank_s bank_t;
 
 const char *cpu_name(CPU *cpu);
 
 saddr cpu_pc(CPU *cpu);
-
-
-/*
-typedef struct CPU {
-		const char 	*name;
-
-		BUS		*bus;
-
-		saddr		pc;
-		saddr		mask;
-		
-		scnt		sp;
-		scnt		a;
-		scnt		x;
-		scnt		y;
-
-		scnt		sr;
-
-		scnt		flags;
-
-		//alarm_context_t	actx;
-		alarm_t		speed;
-} CPU;
-*/
 
 /* flag bits */
 #define	CPUFLG_TRACE	0x01
@@ -52,4 +29,12 @@ void cpu_set_nmi(scnt int_mask, uchar flag);
 
 // returns the interrupt mask with all bits set that currently set an interrupt.
 int cpu_is_irq();
+
+// log CPU registers 
+int cpu_log(CPU *cpu, char *line, int maxlen);
+
+// print disassembly to line buffer
+int cpu_dis(bank_t *bank, int addr, char *line, int maxlen);
+
+void cpu_res();
 

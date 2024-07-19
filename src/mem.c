@@ -178,7 +178,6 @@ int loadrom_int(const char *prefix, const char *filename, uchar *mem, size_t len
 static char binprefix[MAXLINE+4];
 
 void setbinprefix(char *emu, char *argv0) {
-	int l;
 
 	strncpy(binprefix, argv0, MAXLINE-1);
 	binprefix[MAXLINE-1]=0;

@@ -6,7 +6,7 @@
 #include "types.h"
 #include "alarm.h"
 #include "bus.h"
-#include "emu6502.h"
+#include "cpu.h"
 #include "mem.h"
 #include "mem64.h"
 #include "ccurses.h"
@@ -45,7 +45,7 @@ keytab ktab[];
 void key_exit(void);
 void key_irq(CPU*, scnt);
 
-void key_init(CPU *cpu) {
+void key_init(BUS *bus) {
 	int i;
 	
 /*

@@ -9,15 +9,13 @@
 #include	"types.h"
 #include	"alarm.h"
 #include	"bus.h"
-#include	"emu6502.h"
+#include	"cpu.h"
 #include 	"mem.h"
 #include 	"petmem.h"
 #include 	"petio.h"
 #include 	"petvideo.h"
 #include 	"mon.h"
 
-#define	MAXLINE	200
-	
 #define		VRAM	0x8000
 #define 	KERNEL	(MP_KERNEL*PAGESIZE)
 #define 	BASIC	(MP_BASIC*PAGESIZE)
@@ -38,7 +36,7 @@ uchar *colram = NULL;
 /* in prep for extra 8296 memory banks */
 /* includes 32k RAM, 4k Video, and all ROM + I/O */
 
-static meminfo_t pet_info[PAGES];
+static meminfo_t pet_info[PETPAGES];
 
 static bank_t petbank = {
 	"pet",
@@ -80,7 +78,7 @@ void setmap(void) {
  */
 void inimemvec(void){
 	int i;
-	for(i=0;i<PAGES;i++) {
+	for(i=0;i<PETPAGES;i++) {
 		pet_info[i].page=i;
 		pet_info[i].mt_wr=NULL;
 		pet_info[i].mt_rd=NULL;
@@ -164,20 +162,12 @@ void mem_init() {
 }
 
 void mem_start() {
-	char fname[MAXLINE];
 	size_t offset[]={ 0, KERNEL, BASIC, EDITOR };
 	size_t len[]=   { 0, 4096,   3*4096,  2048 };
 	int i;
 
 	  for(i=1;i<4;i++) {
-	    if(names[i][0]=='/') {
-	      strcpy(fname,names[i]);
-	    } else {
-	      strcpy(fname,names[0]);
-	      if(fname[strlen(fname)-1]!='/') strcat(fname,"/");
-	      strcat(fname,names[i]);
-	    }
-	    loadrom(fname, rom+offset[i], len[i]);
+	    loadrom(names[0],names[i], rom+offset[i], len[i]);
 	  }	
 	  inimemvec();
 	  return;

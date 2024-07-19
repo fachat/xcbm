@@ -1,14 +1,12 @@
 XCBMLIB = ../bin
 
-CFLAGS = -g -O5 -finline-functions -Wall -pedantic -Wno-parentheses
+CFLAGS = -g -finline-functions -Wall -pedantic -Wno-parentheses
 
 LIBS = -lc -lncurses -lm
 
-all: xcbm64 xcbm8032 xcsa
+all: xcbm64 xcbm8032 xcsa xupet
 
 COMMOBJ = 	curses.o \
-		emu6502.o \
-		asm6502.o \
 		log.o \
 		timer.o \
 		convert.o\
@@ -17,6 +15,7 @@ COMMOBJ = 	curses.o \
 		mem.o \
 		speed.o \
 		config.o \
+		stop.o \
 
 C64OBJ = 	c64/mem64.o \
 		c64/emu64.o \
@@ -25,6 +24,8 @@ C64OBJ = 	c64/mem64.o \
 		c64/sound.o \
 		c64/c64keys.o \
 		c64/vicii.o \
+		emu6502.o \
+		asm6502.o \
 
 PETOBJ = 	pet/petemu.o \
 		pet/petmem.o \
@@ -35,6 +36,23 @@ PETOBJ = 	pet/petemu.o \
 		via.o \
 		parallel.o \
 		pet/piavia.o \
+		emu6502.o \
+		asm6502.o \
+
+UPETOBJ = 	upet/upetemu.o \
+		upet/upetmem.o \
+		upet/upetio.o \
+		upet/upetvideo.o \
+		upet/ctrl.o \
+		upet/spi.o \
+		pet/petkeys.o \
+		pia.o \
+		via.o \
+		parallel.o \
+		pet/piavia.o \
+		emu65816.o \
+		asm6502.o \
+		sdcard.o \
 
 CSAOBJ = 	csa/xcsa.o \
 		csa/csamem.o \
@@ -45,11 +63,13 @@ CSAOBJ = 	csa/xcsa.o \
 		via.o \
 		parallel.o \
 		pet/piavia.o \
+		emu6502.o \
+		asm6502.o \
 
 MONOBJ =	mon/mon.o \
 		mon/labels.o
 
-ALLOBJ =	$(COMMONOBJ) $(C64OBJ) $(PETOBJ) $(MONOBJ) $(CSAOBJ)
+ALLOBJ =	$(COMMONOBJ) $(C64OBJ) $(PETOBJ) $(MONOBJ) $(CSAOBJ) $(UPETOBJ)
 
 DEPDIR=.dep
 
@@ -60,11 +80,14 @@ MAKEDEPEND = $(CC) -E -MM -I. $< > $(DEPDIR)/$*.d
 #MAKECSADEPEND = $(CC) -E -MM -I. -Ipet $< > $(DEPDIR)/$*.d
 
 $(DEPDIR):
-	@mkdir -p $@ $@/pet $@/c64 $@/csa $@/mon
+	@mkdir -p $@ $@/pet $@/c64 $@/csa $@/mon $@/upet
 
 %.o : %.c $(DEPDIR)
 	$(MAKEDEPEND)
 	$(CC) $(CFLAGS) -I. -c -o $@ $<
+
+emu65816.o : emu65816.c $(DEPDIR)
+	$(CC) $(CFLAGS) -I. -I../lib65816 -I../lib65816/build -c -o $@ $<
 
 #csa/%.o : csa/%.c $(DEPDIR)
 #	$(MAKECSADEPEND)
@@ -84,6 +107,9 @@ xcbm64: $(XCBMLIB) $(C64OBJ) $(COMMOBJ) $(MONOBJ)
 
 xcsa: $(XCBMLIB) $(CSAOBJ) $(COMMOBJ) $(MONOBJ)
 	cc  -o $(XCBMLIB)/xcsa  $(CSAOBJ) $(COMMOBJ) $(MONOBJ) $(LIBS)
+
+xupet: $(XCBMLIB) $(UPETOBJ) $(COMMOBJ) $(MONOBJ)
+	cc  -o $(XCBMLIB)/xupet  $(UPETOBJ) $(COMMOBJ) $(MONOBJ) $(LIBS) ../lib65816.a
 
 clean:
 	rm -f $(COMMOBJ) $(C64OBJ) $(PETOBJ) $(MONOBJ) xcbm.dep c64.log

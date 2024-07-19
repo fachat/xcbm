@@ -1,5 +1,5 @@
 
-all:
+all: lib65816.a
 	make -C src
 	make -C roms
 
@@ -10,3 +10,14 @@ clean:
 distclean: clean
 	make -C roms clean
 
+lib65816/build/lib65816.a: lib65816
+	(cd lib65816; cmake -S . -B build)
+	(cd lib65816/build; make CCOPTS='-DDEBUG')
+
+lib65816.a: lib65816/build/lib65816.a
+	cp lib65816/build/lib65816.a .
+	
+lib65816:
+	git clone https://github.com/fachat/lib65816.git
+	(cd lib65816; git checkout upet)
+	

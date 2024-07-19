@@ -11,12 +11,14 @@
 #include	"types.h"
 #include	"alarm.h"
 #include	"bus.h"
+#include	"cpu.h"
 #include	"emu6502.h"
 #include	"ccurses.h"
 #include	"devices.h"
 #include	"vdrive.h"
 #include	"mem.h"
 #include	"mon.h"
+#include	"stop.h"
 #include	"labels.h"
 #include	"config.h"
 
@@ -49,7 +51,9 @@ int main(int argc, char *argv[])
 {
 	int er=0;
 	
-	loginit("c64.log");
+	loginit("pet.log");
+
+	setbinprefix("pet", argv[0]);
 
 	config_init();
 
@@ -76,8 +80,8 @@ int main(int argc, char *argv[])
 
 	CPU *cpu = cpu_init("main", 1000000, 16, 0);
 
-	video_init(cpu);
-	key_init(cpu);	
+	video_init(cpu->bus, 1000000/60);
+	key_init(cpu->bus);	
 
 	io_init(cpu->bus);	
 
@@ -85,25 +89,18 @@ int main(int argc, char *argv[])
 	vdrive_setdrive(8,0,".");
 //settrap(MP_KERNEL1,0xfce4,NULL,"test");
 
+	stop_init();
+
 	mon_init();
 	mon_register_cpu(cpu);
 
 	// 200% speed for now
 	speed_set_percent(1000);
 
-	// TODO: move that into CPU struct
-	//dismode=1;
-
 	cpu_run();
 	
 	return(er);	
 }
 
-
-/*
-void trap1(scnt trapadr, CPU *cpu) {
-        dismode=1;
-}
-*/
 
 

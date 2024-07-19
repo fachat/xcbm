@@ -1,3 +1,9 @@
+
+Note: this license applies to all files with the exception of the "src/sdcard.h"
+and "src/sdcard.c" files. For those, see the file LICENSE
+
+-----------------------------------------------------------------------------
+
 		    GNU GENERAL PUBLIC LICENSE
 		       Version 2, June 1991
 

@@ -9,11 +9,13 @@
 #include	"types.h"
 #include	"alarm.h"
 #include	"bus.h"
+#include	"cpu.h"
 #include	"emu6502.h"
 #include	"ccurses.h"
 #include	"mem.h"
 #include	"mem64.h"
 #include	"mon.h"
+#include	"stop.h"
 
 #include	"io.h"
 #include	"video.h"
@@ -44,6 +46,8 @@ int main(int argc, char *argv[])
 	
 	loginit("c64.log");
 
+	setbinprefix("c64", argv[0]);
+
 	config_init();
 
 	label_init();
@@ -71,11 +75,13 @@ int main(int argc, char *argv[])
 	// PAL
 	CPU *cpu = cpu_init("main", 985248, 20, 0);
 
+	stop_init();
+
 	mon_init();
 	mon_register_cpu(cpu);
 
-	video_init(cpu);
-	key_init(cpu);
+	video_init(cpu->bus, 985248/60);
+	key_init(cpu->bus);
 	io_init(cpu->bus);	
 
 	vdrive_init();
@@ -88,11 +94,5 @@ int main(int argc, char *argv[])
 	
 	return(er);	
 }
-
-/*
-void trap1(scnt trapadr, CPU *cpu) {
-        dismode=1;
-}
-*/
 
 

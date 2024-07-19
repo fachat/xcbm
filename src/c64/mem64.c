@@ -9,7 +9,7 @@
 #include	"types.h"
 #include	"alarm.h"
 #include	"bus.h"
-#include	"emu6502.h"
+#include	"cpu.h"
 #include	"emu64.h"
 #include 	"mem.h"
 #include 	"mem64.h"
@@ -23,7 +23,7 @@ int	charen;
 static uchar ram[0x10000];	// 64k RAM
 static uchar rom[0x9000];	// 36 ROM (8k Kernal, 8k BASIC, 4k charrom, 8k loram, 8k hiram)
 
-static meminfo_t ram_info[16];
+static meminfo_t ram_info[C64PAGES];
 
 static bank_t rambank = {
 	"ram",
@@ -197,7 +197,7 @@ scnt mem_getvbyt(scnt addr) {
 
 void inimemvec(void){
 	int i;
-	for(i=0;i<PAGES;i++) {
+	for(i=0;i<C64PAGES;i++) {
 		ram_info[i].page=i;
 		ram_info[i].mt_wr=NULL;
 		ram_info[i].mt_rd=NULL;
@@ -378,21 +378,13 @@ void mem_init() {
 
 
 void mem_start(){
-	char fname[MAXLINE];
 	size_t offset[]={ 0, KERNEL, BASIC, CHAROM, ROMH, ROML };
 	size_t len[]=   { 0, 8192,   8192,  4096,   8192, 8192 };
 	int i;
 	loram=hiram=charen=1;
 
 	  for(i=1;i<6;i++) {
-	    if(names[i][0]=='/') {
-	      strcpy(fname,names[i]);
-	    } else {
-	      strcpy(fname,names[0]);
-	      if(fname[strlen(fname)-1]!='/') strcat(fname,"/");
-	      strcat(fname,names[i]);
-	    }
-	    loadrom(fname, rom + offset[i], len[i]);
+	    loadrom(names[0], names[i], rom + offset[i], len[i]);
 	  }	
 	  inimemvec();
 	  return;

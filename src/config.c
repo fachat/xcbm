@@ -8,7 +8,7 @@
 #include "log.h"
 #include "alarm.h"
 #include "bus.h"
-#include "emu6502.h"
+#include "cpu.h"
 #include "video.h"
 #include "ccurses.h"
 #include "mem.h"
@@ -20,7 +20,7 @@ static float cf_speed_ratio = 0.;
 static float cf_target_speed = 0.;
 static int cf_shiftmap = 0;
 static int cf_cfg_mode = 0;
-int cf_trace_enabled = 0;
+static int cf_trace_enabled = 0;
 
 #define	MAXLINE 80
 
@@ -160,7 +160,7 @@ void config_print() {
 
 static void config_update() {
 
-        snprintf(line, MAXLINE, "Speed: % 3.0lf%%, limit=% 3.0lf%%  Esc: C-%c  Shift:%c%c %s %s", 
+        snprintf(line, MAXLINE, "Speed: % 5.0lf%%, limit=% 4.0lf%%  Esc: C-%c  Shift:%c%c %s %s", 
 		cf_speed_ratio, cf_target_speed,
 		cf_esc_char,
 		cf_shiftmap & SLINE_SHIFT_L ? 'L' : '-',
@@ -196,6 +196,7 @@ void config_set_shift(int shiftmap) {
 
 void config_toggle_trace() {
 	cf_trace_enabled = !cf_trace_enabled;
+	cpu_set_trace(cf_trace_enabled);
 }
 
 /*************************************************************************/
@@ -212,7 +213,7 @@ int cmd_trace() {
 }
 
 int cmd_reset() {
-	maincpu_reset();
+	cpu_res();
 	return ERR;
 }
 
@@ -349,5 +350,7 @@ static config_t config_pars[] = {
 void config_init() {
 
 	config_register(config_pars);
+
+	cpu_set_trace(0);
 }
 

@@ -5,7 +5,7 @@
 #include "types.h"
 #include "alarm.h"
 #include "bus.h"
-#include "emu6502.h"
+#include "cpu.h"
 #include "ccurses.h"
 #include "mem.h"
 #include "mem64.h"
@@ -84,7 +84,7 @@ logout(0,"videopage=%x",videopage);
 }
 
 
-int video_init(CPU *cpu){
+int video_init(BUS *bus, int cyclesperscreen){
 	int i;
 	update=0;
 	for(i=0;i<48;i++) vic_reg[i]=0;

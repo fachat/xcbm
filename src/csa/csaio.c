@@ -5,7 +5,7 @@
 #include "types.h"
 #include "alarm.h"
 #include "bus.h"
-#include "emu6502.h"
+#include "cpu.h"
 
 #include "timer.h"
 #include "video.h"
@@ -62,7 +62,7 @@ static void ctrl_wr(scnt val) {
 
 static scnt ctrl_rd() {
 
-	return (ctrl_port & 0x3e) | 0x40 | (ctrl_irq ? 0x80 : 0) | (hirq ? 0 : 0x01);
+	return (ctrl_port & 0x3e) | 0x40 | (ctrl_irq ? 0x80 : 0) | (cpu_is_irq() ? 0 : 0x01);
 }
 
 static void bios_ctrl_cb(struct alarm_s *alarm, CLOCK current) {

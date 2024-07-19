@@ -1,7 +1,8 @@
 
 
-int video_init(CPU *cpu);
+int video_init(BUS *bus, int cyclesperframe);
 
+// video chip register access (VIC-II, CTRC, ...)
 void video_wr(scnt,scnt);
 scnt video_rd(scnt);
 

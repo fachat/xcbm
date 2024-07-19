@@ -5,15 +5,19 @@
 #include  	"types.h"
 #include  	"alarm.h"
 #include  	"bus.h"
+#include	"cpu.h"
 #include	"emu6502.h"
 #include	"timer.h"
 #include 	"mem.h"
 #include 	"speed.h"
 #include 	"mon.h"
+#include 	"stop.h"
 #include 	"config.h"
 #include	"asm6502.h"
 
 #define	MAXLINE	200
+
+#define	PAGES	16
 
 BUS		bus;
 CPU		cpu;
@@ -25,8 +29,6 @@ void cpu2struct(CPU*);
 
 int	hnmi=0;
 int	hirq=0;
-int 	dismode	=0;
-int 	traplines =0;
 int	is_ill = 0;
 
 typedef void (*sim_f)();
@@ -52,17 +54,23 @@ static bank_t cpubank = {
 void logass(CPU *cpu){
 	char l[MAXLINE];
 	int ll; 
+	unsigned char stat;
 
 	ll = snprintf(l, MAXLINE, "% 8ld", cpu->bus->actx.clk);
 
-	ll += logcpu(cpu, l+ll, MAXLINE - ll);
+	ll += cpu_log(cpu, l+ll, MAXLINE - ll);
 
-	dis6502(&cpubank, cpu->pc, l+ll-1, MAXLINE-ll);
+	cpu_dis(&cpubank, cpu->pc, &stat, l+ll-1, MAXLINE-ll);
 
 	logout(0, l);
 }
 
-int logcpu(CPU *cpu, char *line, int maxlen){
+int cpu_dis(bank_t *bank, int addr, unsigned char *stat, char *line, int maxlen) {
+
+	return dis6502(bank, addr, line, maxlen);
+}
+
+int cpu_log(CPU *cpu, char *line, int maxlen){
 	
 	return snprintf(line, maxlen, "  %04x A:%02x X:%02x Y:%02x P:%02x  S:%c%c%c%c%c%c%c%c   ",
 		cpu->pc,cpu->a,cpu->x,cpu->y,cpu->sp,
@@ -77,27 +85,78 @@ int logcpu(CPU *cpu, char *line, int maxlen){
 		);
 }
 
-void cpu_reset(CPU *cpu){
-	cpu->pc=getadr(0xfffc);
+const char *cpu_name(CPU *cpu) {
+	return cpu->name;
+}
+
+saddr cpu_pc(CPU *cpu) {
+	return cpu->pc;
+}
+
+unsigned char cpu_st(CPU *cpu) {
+	return cpu->sr;
+}
+
+void cpu_set_trace(int flag) {
+	if (flag) {
+		cpu.flags |= CPUFLG_TRACE;
+	} else {
+		cpu.flags &= ~CPUFLG_TRACE;
+	}
+}
+
+void cpu02_reset(CPU *cpu){
+	cpu->pc=getaddr(0xfffc);
 	cpu->sr=IRQ+STRUE;
 	err=0;
 }
 
-void maincpu_reset() {
-	cpu_reset(&cpu);
+int cpu_is_irq() {
+	return hirq;
 }
 
-// TODO: add time offset to getbyt/getadr, so fetches are done at correct cycle
+void cpu_set_irq(scnt int_mask, uchar flag) {
+        if (((hirq & int_mask) && !flag)
+                || (!(hirq & int_mask) && flag)) {
+                logout(0, "set IRQ %02x to %d", int_mask, flag);
+        }
+
+        if (flag) {
+                hirq |= int_mask;
+        } else {
+                hirq &= ~int_mask;
+        }
+}
+
+void cpu_set_nmi(scnt int_mask, uchar flag) {
+        if (((hnmi & int_mask) && !flag)
+                || (!(hnmi & int_mask) && flag)) {
+                logout(0, "set NMI %02x to %d", int_mask, flag);
+        }
+
+        if (flag) {
+                hnmi |= int_mask;
+        } else {
+                hnmi &= ~int_mask;
+        }
+}
+
+
+// TODO: add time offset to getbyt/getaddr, so fetches are done at correct cycle
+void cpu_res() {
+	cpu02_reset(&cpu);
+}
+
  
 #define azp(a)		getbyt(a+1)
 #define azpx(a)		((getbyt(a+1)+cpu.x)&0xff)
 #define azpy(a)		((getbyt(a+1)+cpu.y)&0xff)
-#define aabs(a)		getadr(a+1)
-#define aabsx(a)	(getadr(a+1)+cpu.x)
-#define aabsy(a)	(getadr(a+1)+cpu.y)
-#define aindx(a)	getadr(getbyt(a+1)+cpu.x)
-#define aindy(a)	(getadr(getbyt(a+1))+cpu.y)
-#define aabsi(a)	getadr(getadr(a+1))
+#define aabs(a)		getaddr(a+1)
+#define aabsx(a)	(getaddr(a+1)+cpu.x)
+#define aabsy(a)	(getaddr(a+1)+cpu.y)
+#define aindx(a)	getaddr(getbyt(a+1)+cpu.x)
+#define aindy(a)	(getaddr(getbyt(a+1))+cpu.y)
+#define aabsi(a)	getaddr(getaddr(a+1))
 
 #define zp(a)		getbyt(azp(a))
 #define zpx(a)		getbyt(azpx(a))
@@ -162,7 +221,7 @@ logout(0,"brk @ $%04x",cpu.pc);
 	cpu2struct(&cpu);
 	phpc();
 	phbyt(cpu.sr);
-	cpu.pc=getadr(0xfffe);
+	cpu.pc=getaddr(0xfffe);
 	next(7);	// clock cycles;
 }
 
@@ -174,7 +233,7 @@ void php(){
 }
 
 void jsr_abs(){
-	register scnt a=getadr(cpu.pc+1); 
+	register scnt a=getaddr(cpu.pc+1); 
 	cpu.pc+=2;
 	phpc();
 	cpu.pc=a;
@@ -1353,12 +1412,16 @@ void struct2cpu(CPU *cpu){
 int cpu_run(void){
 	scnt c;
 	void (*v)(CPU*, scnt);
-	cpu_reset(&cpu);
+	cpu02_reset(&cpu);
 	struct2cpu(&cpu);
 	
 	do{
 /*if(dismode || hirq) printf("\n\nhirq=%d, irq=%d, hnmi=%d\n",hirq,irq,hnmi);*/
 
+		// this may be changed to signal ctrl-c to the actual emulated machine
+/*
+		if (stop_ack_flag()) {
+*/
                 if(v=trap6502(cpu.pc)) {
 			cpu2struct(&cpu);
 			v(&cpu, cpu.pc);
@@ -1374,10 +1437,10 @@ int cpu_run(void){
 		if(hirq && !(irq)) {
 			aclb();
 			cpu2struct(&cpu);
-logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, getadr(0xfffe));
+logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, getaddr(0xfffe));
 			phpc();
 			phbyt(cpu.sr);
-			cpu.pc=getadr(0xfffe);
+			cpu.pc=getaddr(0xfffe);
 			asei();
 		}
                 if(hnmi) {
@@ -1385,16 +1448,12 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
                         cpu2struct(&cpu);
                         phpc();
                         phbyt(cpu.sr);
-                        cpu.pc=getadr(0xfffa);
+                        cpu.pc=getaddr(0xfffa);
                         cpu.sr |= IRQ;
 			struct2cpu(&cpu);
                 }
 
- 		if(traplines) {
-			if(!(--traplines))
-				dismode =2;
-		}
-		if(config_is_trace_enabled()) {
+		if(cpu.flags & CPUFLG_TRACE) {
 			cpu2struct(&cpu);
 			logass(&cpu);
 		}
@@ -1419,12 +1478,13 @@ CPU *cpu_init(const char *n, int cyclespersec, int msperframe, int cmos) {
 	alarm_context_init(&bus.actx, "main cpu");
 
 	cpu.name = n;
+	cpu.flags = 0;
 	cpu.bus = &bus;
 	bus.cpu = &cpu;
 
-	speed_init(&cpu, cyclespersec, msperframe);
+	speed_init(&cpu.bus->actx, cyclespersec, msperframe);
 
-	cpu_reset(&cpu);
+	cpu02_reset(&cpu);
 
 	mon_register_bank(&cpubank);
 

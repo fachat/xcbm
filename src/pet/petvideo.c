@@ -6,7 +6,7 @@
 #include "types.h"
 #include "alarm.h"
 #include "bus.h"
-#include "emu6502.h"
+#include "cpu.h"
 #include "ccurses.h"
 #include "mem.h"
 #include "petmem.h"
@@ -47,7 +47,7 @@ void vmem_set(uchar *vramp, scnt mask) {
 	vrmask = mask;
 }
 
-static void wrvid(scnt a, scnt b){
+void wrvid(scnt a, scnt b){
 	static chtype c;
 	static int line, col;
 	if(a<scrlen) {
@@ -108,17 +108,17 @@ alarm_t clr_vdrive = {
 
 void set_vdrive_cb(struct alarm_s *alarm, CLOCK current) {
 	io_set_vdrive(1);
-	set_alarm_clock_plus(&set_vdrive, ((BUS*)set_vdrive.data)->cyclesperframe);
+	set_alarm_clock_plus(&set_vdrive, (int)set_vdrive.data);
 }
 
 void clr_vdrive_cb(struct alarm_s *alarm, CLOCK current) {
 	io_set_vdrive(0);
-	set_alarm_clock_plus(&clr_vdrive, ((BUS*)clr_vdrive.data)->cyclesperframe);
+	set_alarm_clock_plus(&clr_vdrive, (int)clr_vdrive.data);
 }
 
 
 	
-int video_init(CPU *cpu){
+int video_init(BUS *bus, int cyclesperframe){
 	int i;
 	update=0;
 	for(i=0;i<16;i++) crtc_reg[i]=0;
@@ -126,11 +126,11 @@ int video_init(CPU *cpu){
 //	crtc_wr(33,0);
 
 	// 128 cycles VDRIVE pulse
-	set_vdrive.data = cpu->bus;
-	alarm_register(&cpu->bus->actx, &set_vdrive);
+	set_vdrive.data = (void*)cyclesperframe;
+	alarm_register(&bus->actx, &set_vdrive);
 	set_alarm_clock(&set_vdrive, 0);
-	clr_vdrive.data = cpu->bus;
-	alarm_register(&cpu->bus->actx, &clr_vdrive);
+	clr_vdrive.data = (void*)cyclesperframe;
+	alarm_register(&bus->actx, &clr_vdrive);
 	set_alarm_clock(&clr_vdrive, 128);
 
 	updatevideo();

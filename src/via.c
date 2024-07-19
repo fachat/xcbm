@@ -6,7 +6,7 @@
 #include "alarm.h"
 #include "bus.h"
 #include "via.h"
-#include "emu6502.h"
+#include "cpu.h"
 
 
 static void t1alarm_cb(alarm_t *, CLOCK);
@@ -136,7 +136,7 @@ void via_wr(VIA *via, scnt addr, uchar val) {
 
 	uchar reg = addr & 0x0f;
 
-	logout(0, "% 6d - %04x: %s write %02x to reg %02x", rclk, via->bus->cpu->pc, via->name, val, reg);
+	//logout(0, "% 6d - %04x: %s write %02x to reg %02x", rclk, cpu_pc(via->bus->cpu), via->name, val, reg);
 
 	switch(reg) {
 	case VIA_PRB:
@@ -302,7 +302,7 @@ uchar via_rd(VIA *via, scnt addr) {
 		break;
 	}
 
-	logout(0, "%04x: %s read from reg %02x as %02x", via->bus->cpu->pc, via->name, reg, rv);
+	//logout(0, "%04x: %s read from reg %02x as %02x", cpu_pc(via->bus->cpu), via->name, reg, rv);
 	return rv;
 }
 

@@ -11,18 +11,19 @@
 #include "types.h"
 #include "alarm.h"
 #include "bus.h"
-#include "emu6502.h"
+#include "cpu.h"
 #include "config.h"
 
 static unsigned int target_speed_percent = 100;
 static double speed_ratio = 0.0;
+
+static unsigned int msperframe;
 
 static struct timespec last;
 
 /* update status only every N frames */
 static const int UPDATE_COUNT = 5;
 static int update_counter;
-
 
 // set target speed in percent of the original machine. 0 = warp
 void speed_set_percent(unsigned int per) {
@@ -42,7 +43,7 @@ void speed_alarm_cb(alarm_t *alarm, CLOCK current) {
 	// get current time
         clock_gettime(CLOCK_MONOTONIC, &spec);
 
-	BUS *bus = (BUS*) alarm->data;
+	int cyclesperframe = (int) alarm->data;
 
         s  = spec.tv_sec;
         ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
@@ -51,11 +52,11 @@ void speed_alarm_cb(alarm_t *alarm, CLOCK current) {
                 ms = 0;
         }
 
-	set_alarm_clock(alarm, alarm->clk + bus->cyclesperframe);
+	set_alarm_clock(alarm, alarm->clk + cyclesperframe);
 
         logout(0, "speed ctrl: clock=%lu, time=%ld.%03ds, last=%ld.%03ds", current, s, ms, last.tv_sec, last.tv_nsec /1000000);
 
-	long expectedns = target_speed_percent == 0 ? 1 : (bus->msperframe * 1000000ul) * 100 / target_speed_percent;
+	long expectedns = target_speed_percent == 0 ? 1 : (msperframe * 1000000ul) * 100 / target_speed_percent;
 
 	logout(0, "spec nsec=%ld, last nsec=%ld", spec.tv_nsec, last.tv_nsec);
 
@@ -84,7 +85,7 @@ void speed_alarm_cb(alarm_t *alarm, CLOCK current) {
 		// we are too slow
 		last = spec;
 
-		double upper = (bus->msperframe * 1000000.);
+		double upper = (msperframe * 1000000.);
 		double lower = (diff.tv_sec * 1000000000. + diff.tv_nsec);
 
 		speedratio = 100.0 * upper / lower;
@@ -123,24 +124,26 @@ void speed_alarm_cb(alarm_t *alarm, CLOCK current) {
 }
 
 
-void speed_init(CPU *cpu, int cyclespersec, int msperframe) {
+void speed_init(alarm_context_t *actx, int pcyclespersec, int pmsperframe) {
+
+	alarm_t *speed = malloc(sizeof(alarm_t));
 
 	update_counter = UPDATE_COUNT;
 
-	cpu->bus->msperframe = msperframe;
-	cpu->bus->cyclesperframe = (cyclespersec / 1000) * msperframe;
+	msperframe = pmsperframe;
+	int cyclesperframe = (pcyclespersec / 1000) * pmsperframe;
 
 	clock_gettime(CLOCK_MONOTONIC, &last);
 
 	target_speed_percent = 100;
 
-	cpu->speed.name = "CPU speed control";
-	cpu->speed.callback = speed_alarm_cb;
-	cpu->speed.data = cpu->bus;
-	cpu->speed.clk = CLOCK_MAX;
+	speed->name = "CPU speed control";
+	speed->data = (void*) cyclesperframe;
+	speed->callback = speed_alarm_cb;
+	speed->clk = CLOCK_MAX;
 
-	alarm_register(&cpu->bus->actx, &cpu->speed);
+	alarm_register(actx, speed);
 
-	set_alarm_clock_diff(&cpu->speed, cpu->bus->cyclesperframe);
+	set_alarm_clock_diff(speed, cyclesperframe);
 }
 

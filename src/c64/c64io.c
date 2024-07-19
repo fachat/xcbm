@@ -5,7 +5,7 @@
 #include "types.h"
 #include "alarm.h"
 #include "bus.h"
-#include "emu6502.h"
+#include "cpu.h"
 
 #include "emu64.h"
 #include "timer.h"
@@ -163,9 +163,9 @@ scnt io_peek(meminfo_t *inf, scnt adr) {
 
 
 #define	cia1_setirq()	\
- if(!(cia1.icr&0x80)) {if(cia1.icr&cia1.imr&0x7f){cia1.icr|=0x80;hirq++;}}
+ if(!(cia1.icr&0x80)) {if(cia1.icr&cia1.imr&0x7f){cia1.icr|=0x80;cpu_set_irq(IRQ_CIA1, 1);}}
 #define	cia2_setirq()	\
- if(!(cia2.icr&0x80)) {if(cia2.icr&cia2.imr&0x7f){cia2.icr|=0x80;hnmi++;}}
+ if(!(cia2.icr&0x80)) {if(cia2.icr&cia2.imr&0x7f){cia2.icr|=0x80;cpu_set_nmi(IRQ_CIA2, 1);}}
 
 void cia1_tia(int endval) {
 	cia1.talo = cia1.talo_w;
@@ -354,7 +354,9 @@ static scnt cia1_rd_int(scnt reg, int ispeek) {
 	case 7:
 		return((time_get(cia1.timerb)&0xff00)>>8);
 	case 13:
-		if(cia1.icr&0x80) hirq--;
+		if(cia1.icr&0x80) {
+			cpu_set_irq(IRQ_CIA1, 0);
+		};
 		i=cia1.icr;
 		if (!ispeek) {
 			cia1.icr=0;
@@ -396,7 +398,9 @@ static scnt cia2_rd_int(scnt reg, int ispeek) {
         case 7:
                 return((time_get(cia2.timerb)&0xff00)>>8);
         case 13:
-                if(cia2.icr&0x80) hirq--;
+                if(cia2.icr&0x80) {
+			cpu_set_nmi(IRQ_CIA2, 0);
+		}
                 i=cia2.icr;
 		if (!ispeek) {
                 	cia2.icr=0;

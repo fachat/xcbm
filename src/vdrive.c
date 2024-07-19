@@ -17,7 +17,7 @@
 #include "types.h"
 #include "alarm.h"
 #include "bus.h"
-#include "emu6502.h"
+#include "cpu.h"
 #include "vdrive.h"
 #include "convert.h"
 #include "mem.h"
@@ -117,6 +117,7 @@ typedef struct {
 		vcBuf		*buf;
 } vcFile;
 
+#define	MAX_DRIVES	2
 
 typedef struct {
 		device		dev;
@@ -130,7 +131,7 @@ typedef struct {
 		int 		secadr;
 		int		cmd;
 	
-		const char 	*drive[2];	/* unix pathnames */
+		const char 	*drive[MAX_DRIVES];	/* unix pathnames */
 
 		vcFile		bufp[16];
 		vcBuf		*cmdbufp;
@@ -336,7 +337,14 @@ int parse_1541(char *cmd, vc1541_name *ns, int needcolon, char **cmdp) {
 int open_1541dir(vcFile *vf, vc1541_name *n1) {
 	char *p;
 	int i;
-	if(n1->drive<0) n1->drive=0;
+	if(n1->drive<0) {
+		n1->drive=0;
+	}
+	if (n1->drive >= MAX_DRIVES || vc->drive[n1->drive] == NULL) {
+		// not configured
+	    	err_1541(VCE_NOTFOUND);
+	    	return(VCE_NOTFOUND);
+	}
 	if(vf->buf=vcBuf_get(VCBUF)) {
 	  if(n1->name[0]=='/') {
 	    strcpy(vf->path,"/");

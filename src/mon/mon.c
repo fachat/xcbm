@@ -1,6 +1,5 @@
 
 #include <stdio.h>
-#include <signal.h>
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
@@ -9,10 +8,11 @@
 #include "types.h"
 #include "alarm.h"
 #include "bus.h"
-#include "emu6502.h"
+#include "cpu.h"
 #include "labels.h"
 #include "mem.h"
 #include "mon.h"
+#include "stop.h"
 #include "asm6502.h"
 #include "ccurses.h"
 #include "labels.h"
@@ -34,9 +34,6 @@ static bank_t *banks[MAXBANKS];
 static int numbanks = 0;
 static bank_t *mon_bank = NULL;
 
-static struct sigaction monaction;
-static struct sigaction oldaction;
-
 // monitor flag
 int monflag = 0;
 // number of ops to trace (if monflag == 2)
@@ -52,6 +49,56 @@ static void cmd_err(const char *msg) {
 
 /**************************************************************************/
 // parameter scanner
+
+static char *scan_srbit(char *p, unsigned char *stat) {
+
+	while (*p && !isspace(*p)) {
+		switch (*p) {
+		case 'x':
+			*stat |= 0x10;
+			p++;
+			break;
+		case 'm':
+			*stat |= 0x20;
+			p++;
+			break;
+		default:
+			// ignore unknown
+			p++;
+		}
+	}
+	return p;
+}
+
+static char *scan_stat(char *p, unsigned char *stat) {
+
+	while (*p && isspace(*p)) {
+		p++;
+	}
+
+	do {
+		unsigned char bits = 0;
+		switch(*p) {
+		case '+':
+			p++;
+			p = scan_srbit(p, &bits);
+			*stat |= bits;
+			break;
+		case '-':
+			p++;
+			p = scan_srbit(p, &bits);
+			*stat &= ~bits;
+			break;
+		default:
+			// return, as this may be address
+			goto end;
+		}
+	} while (true);
+
+	end:
+
+	return p;
+}
 
 static char *scan_name(char *p, char *buf, int len) {
 	
@@ -239,7 +286,6 @@ static int cmd_break(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	return R_CONT;
 }
 
-
 static int getpars(char *pars, unsigned int *from, unsigned int *to) {
 
 	char *p;
@@ -262,19 +308,32 @@ static int getpars(char *pars, unsigned int *from, unsigned int *to) {
 	return R_CONT;
 }
 
+static int getxpars(char *pars, unsigned char *stat, unsigned int *from, unsigned int *to) {
+
+	char *p;
+
+	p = scan_stat(pars, stat);
+
+	return getpars(p, from, to);
+}
+
+
 static int trace_dis(CPU *tocpu, unsigned int addr) {
 	char line[MAXLEN];
 	int llen = MAXLEN;
 	int l = 0;
+	unsigned char stat = cpu_st(tocpu);
 
-	l = logcpu(tocpu, line, llen);
+	l = cpu_log(tocpu, line, llen);
 	
-	dis6502(mon_bank, addr, line + l - 1, llen - l);
+	cpu_dis(mon_bank, addr, &stat, line + l - 1, llen - l);
 
 	printf(": %05x %s\n", addr, line);
 
 	return R_CONT;
 }
+
+unsigned char stat = 0x30;
 
 static int cmd_dis(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	unsigned int from, to;
@@ -285,15 +344,16 @@ static int cmd_dis(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	to = *default_addr;
 	from = to;
 
-	if (r = getpars(pars, &from, &to)) {
+	if (r = getxpars(pars, &stat, &from, &to)) {
 		return r;
 	}
+
 	if (to == from) {
 		to = from + 32;
 	}
 
 	do {
-		l = dis6502(mon_bank, from, line, llen);
+		l = cpu_dis(mon_bank, from, &stat, line, llen);
 
 		printf(": %05x %s", from, line);
 
@@ -367,7 +427,8 @@ static int cmd_mem(char *pars, CPU *tocpu, unsigned int *default_addr) {
 static int cmd_reg(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	char buf[100];
 	printf("   PC  AC   XR   YR   SP      NV1BDIZC\n");
-	logcpu(tocpu, buf, 100);
+
+	cpu_log(tocpu, buf, 100);
 
 	printf("%s\n", buf);
 
@@ -432,7 +493,7 @@ static cmd_t* mon_parse(char *line, char **pp) {
 }
 
 static void mon_prompt() {
-	printf("%s/%s: ", cpu->name, mon_bank->name);
+	printf("%s/%s: ", cpu_name(cpu), mon_bank->name);
 }
 
 void mon_line(CPU *tocpu) {
@@ -444,7 +505,7 @@ void mon_line(CPU *tocpu) {
 	int r = R_CONT;
 	static cmd_t *c = NULL;
 
-	unsigned int default_addr = cpu->pc;
+	unsigned int default_addr = cpu_pc(cpu);
 
 	logout(0, "Entering monitor!");
 	cur_exit();
@@ -466,7 +527,7 @@ void mon_line(CPU *tocpu) {
 	}
 
 
-	monflag = 0;
+	stop_ack_flag();
 
 	// monitor loop (skipped on continuous trace)
 	while ( r == R_CONT ) {
@@ -517,7 +578,7 @@ void mon_line(CPU *tocpu) {
 	}
 	
 	if (len < 0) {
-		if (errno == EINTR && monflag) {
+		if (errno == EINTR && stop_get_flag()) {
 			// interrupted
 			exit(1);
 		}
@@ -530,13 +591,8 @@ void mon_line(CPU *tocpu) {
 	free(line);
 
 	cur_setup();
-}
 
-
-//static void mon_sigaction(int sig, siginfo_t siginfo, void *p);
-static void mon_sighandler(int sig) {
-
-	monflag = 1;
+	stop_ack_flag();
 }
 
 
@@ -546,21 +602,6 @@ void mon_register_cpu(CPU *cpu_p) {
 }
 
 void mon_init() {
-
-	monflag = 0;
-
-	monaction.sa_handler = mon_sighandler;
-	monaction.sa_flags = 0;
-	sigemptyset(&monaction.sa_mask);
-
-	int er = sigaction(SIGINT, &monaction, &oldaction);
-
-	if (er) {
-
-		logout(0, "Could not establish signal handler: %s", 
-			strerror(er));
-
-	}
 
 	// set CPU bank as initial bank
 	cmd_bank("cpu", NULL, 0);

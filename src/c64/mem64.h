@@ -1,4 +1,6 @@
 
+#define	C64PAGES	16
+
 #define MP_RAM0		0	/* RAM1-15= MP_RAM0+{1-15} */
 
 

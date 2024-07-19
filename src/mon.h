@@ -14,6 +14,10 @@ enum mon_rc mon_run();
 
 extern int monflag;
 
+static inline int is_mon() {
+	return monflag;
+}
+
 void mon_register_cpu(CPU *cpu);
 
 void mon_register_bank(bank_t *bank);

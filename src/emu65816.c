@@ -12,7 +12,6 @@
 #include	"cpu.h"
 #include	"emu65816.h"
 #include	"timer.h"
-#include	"emucmd.h"
 #include 	"mem.h"
 #include 	"speed.h"
 #include 	"mon.h"
@@ -58,6 +57,10 @@ const char *cpu_name(CPU *cpu) {
 
 saddr cpu_pc(CPU *cpu) {
         return cpu->pc;
+}
+
+unsigned char cpu_st(CPU *cpu) {
+        return cpu->sr;
 }
 
 /*******************************************************************/
@@ -174,6 +177,10 @@ int cpu_run(void){
 	return(0);
 }
 
+void cpu_res() {
+	CPU_reset();
+}
+
 byte MEM_readMem(word32 address, word32 timestamp, word32 emulFlags) {
 	byte v = getbyt(address & cpu.mask);
 	//logout(0, "readMem (%05x) -> %02x", address, v);
@@ -223,4 +230,20 @@ CPU *cpu_init(const char *n, int cyclespersec, int msperframe, int cmos, int add
 	return &cpu;
 }
 
+static bank_t *peekbank;
+static unsigned char peek(int addr) {
+	return peekbank->peek(peekbank, addr);
+}
+
+int cpu_log(CPU *cpu, char *line, int maxlen) {
+
+	return CPU_log(line, maxlen);
+}
+
+int cpu_dis(bank_t *bank, int addr, unsigned char *stat, char *line, int maxlen) {
+
+	peekbank = bank;
+
+	return CPU_dis(line, maxlen, addr, stat, &peek);
+}
 

@@ -25,4 +25,9 @@ typedef struct CPU {
 
 CPU *cpu_init(const char *name, int cyclespersec, int msperframe, int cmos);	/* init trap etc */
 
+int cpu_run(void);	/* start execution at RESET address */
+
+void CPU_reset();
+
+
 

@@ -8,7 +8,6 @@
 #include	"cpu.h"
 #include	"emu6502.h"
 #include	"timer.h"
-#include	"emucmd.h"
 #include 	"mem.h"
 #include 	"speed.h"
 #include 	"mon.h"
@@ -30,6 +29,7 @@ void cpu2struct(CPU*);
 
 int	hnmi=0;
 int	hirq=0;
+int	is_ill = 0;
 
 typedef void (*sim_f)();
 
@@ -50,12 +50,29 @@ static bank_t cpubank = {
 	PAGESMASK
 };
 
+
 void logass(CPU *cpu){
 	char l[MAXLINE];
+	int ll; 
+	unsigned char stat;
+
+	ll = snprintf(l, MAXLINE, "% 8ld", cpu->bus->actx.clk);
+
+	ll += cpu_log(cpu, l+ll, MAXLINE - ll);
+
+	cpu_dis(&cpubank, cpu->pc, &stat, l+ll-1, MAXLINE-ll);
+
+	logout(0, l);
+}
+
+int cpu_dis(bank_t *bank, int addr, unsigned char *stat, char *line, int maxlen) {
+
+	return dis6502(bank, addr, line, maxlen);
+}
+
+int cpu_log(CPU *cpu, char *line, int maxlen){
 	
-/*	sprintf(l,"\033[15;1H%04x %02x %02x %02x %02x %02x \n  ",*/
-	sprintf(l,"% 8ld %04x A:%02x X:%02x Y:%02x P:%02x  S:%c%c%c%c%c%c%c%c            \n  ",
-		cpu->bus->actx.clk,
+	return snprintf(line, maxlen, "  %04x A:%02x X:%02x Y:%02x P:%02x  S:%c%c%c%c%c%c%c%c   ",
 		cpu->pc,cpu->a,cpu->x,cpu->y,cpu->sp,
 		cpu->sr & 0x80 ? 'N' : '-',
 		cpu->sr & 0x40 ? 'V' : '-',
@@ -66,10 +83,6 @@ void logass(CPU *cpu){
 		cpu->sr & 0x02 ? 'Z' : '-',
 		cpu->sr & 0x01 ? 'C' : '-'
 		);
-
-	dis6502(&cpubank, cpu->pc, l+47, MAXLINE-47);
-
-	logout(0, l);
 }
 
 const char *cpu_name(CPU *cpu) {
@@ -80,6 +93,10 @@ saddr cpu_pc(CPU *cpu) {
 	return cpu->pc;
 }
 
+unsigned char cpu_st(CPU *cpu) {
+	return cpu->sr;
+}
+
 void cpu_set_trace(int flag) {
 	if (flag) {
 		cpu.flags |= CPUFLG_TRACE;
@@ -88,7 +105,7 @@ void cpu_set_trace(int flag) {
 	}
 }
 
-void cpu_reset(CPU *cpu){
+void cpu02_reset(CPU *cpu){
 	cpu->pc=getaddr(0xfffc);
 	cpu->sr=IRQ+STRUE;
 	err=0;
@@ -125,11 +142,11 @@ void cpu_set_nmi(scnt int_mask, uchar flag) {
 }
 
 
-
-
-
-
 // TODO: add time offset to getbyt/getaddr, so fetches are done at correct cycle
+void cpu_res() {
+	cpu02_reset(&cpu);
+}
+
  
 #define azp(a)		getbyt(a+1)
 #define azpx(a)		((getbyt(a+1)+cpu.x)&0xff)
@@ -187,7 +204,7 @@ void cpu_set_nmi(scnt int_mask, uchar flag) {
 #define	next(a)		advance_clock(&(cpu.bus->actx), (a))
 
 void ill(){
-	err=1;
+	is_ill=1;
 	logout(4,"Illegal Intruction %02x %02x %02x at adress %04x\n",
 		getbyt(cpu.pc),getbyt(cpu.pc+1),getbyt(cpu.pc+2),cpu.pc);
 }
@@ -1395,7 +1412,7 @@ void struct2cpu(CPU *cpu){
 int cpu_run(void){
 	scnt c;
 	void (*v)(CPU*, scnt);
-	cpu_reset(&cpu);
+	cpu02_reset(&cpu);
 	struct2cpu(&cpu);
 	
 	do{
@@ -1404,11 +1421,19 @@ int cpu_run(void){
 		// this may be changed to signal ctrl-c to the actual emulated machine
 /*
 		if (stop_ack_flag()) {
+*/
+                if(v=trap6502(cpu.pc)) {
+			cpu2struct(&cpu);
+			v(&cpu, cpu.pc);
+			struct2cpu(&cpu);
+		}
+		if (is_ill || is_mon()) {
+			is_ill = 0;
 			cpu2struct(&cpu);
 			mon_line(&cpu);
 			struct2cpu(&cpu);
 		}
-*/
+
 		if(hirq && !(irq)) {
 			aclb();
 			cpu2struct(&cpu);
@@ -1427,11 +1452,6 @@ logout(0,"irq: push %04x as rti address - set pc to IRQ address %04x", cpu.pc, g
                         cpu.sr |= IRQ;
 			struct2cpu(&cpu);
                 }
-                if(v=trap6502(cpu.pc)) {
-			cpu2struct(&cpu);
-			v(&cpu, cpu.pc);
-			struct2cpu(&cpu);
-		}
 
 		if(cpu.flags & CPUFLG_TRACE) {
 			cpu2struct(&cpu);
@@ -1464,7 +1484,7 @@ CPU *cpu_init(const char *n, int cyclespersec, int msperframe, int cmos) {
 
 	speed_init(&cpu.bus->actx, cyclespersec, msperframe);
 
-	cpu_reset(&cpu);
+	cpu02_reset(&cpu);
 
 	mon_register_bank(&cpubank);
 

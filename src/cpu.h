@@ -5,6 +5,7 @@ typedef struct bank_s bank_t;
 const char *cpu_name(CPU *cpu);
 
 saddr cpu_pc(CPU *cpu);
+unsigned char cpu_st(CPU *cpu);
 
 /* flag bits */
 #define	CPUFLG_TRACE	0x01
@@ -34,7 +35,7 @@ int cpu_is_irq();
 int cpu_log(CPU *cpu, char *line, int maxlen);
 
 // print disassembly to line buffer
-int cpu_dis(bank_t *bank, int addr, char *line, int maxlen);
+int cpu_dis(bank_t *bank, int addr, unsigned char *stat, char *line, int maxlen);
 
 void cpu_res();
 

@@ -50,6 +50,56 @@ static void cmd_err(const char *msg) {
 /**************************************************************************/
 // parameter scanner
 
+static char *scan_srbit(char *p, unsigned char *stat) {
+
+	while (*p && !isspace(*p)) {
+		switch (*p) {
+		case 'x':
+			*stat |= 0x10;
+			p++;
+			break;
+		case 'm':
+			*stat |= 0x20;
+			p++;
+			break;
+		default:
+			// ignore unknown
+			p++;
+		}
+	}
+	return p;
+}
+
+static char *scan_stat(char *p, unsigned char *stat) {
+
+	while (*p && isspace(*p)) {
+		p++;
+	}
+
+	do {
+		unsigned char bits = 0;
+		switch(*p) {
+		case '+':
+			p++;
+			p = scan_srbit(p, &bits);
+			*stat |= bits;
+			break;
+		case '-':
+			p++;
+			p = scan_srbit(p, &bits);
+			*stat &= ~bits;
+			break;
+		default:
+			// return, as this may be address
+			goto end;
+		}
+	} while (true);
+
+	end:
+
+	return p;
+}
+
 static char *scan_name(char *p, char *buf, int len) {
 	
 	int i = 0;
@@ -236,7 +286,6 @@ static int cmd_break(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	return R_CONT;
 }
 
-
 static int getpars(char *pars, unsigned int *from, unsigned int *to) {
 
 	char *p;
@@ -259,19 +308,32 @@ static int getpars(char *pars, unsigned int *from, unsigned int *to) {
 	return R_CONT;
 }
 
+static int getxpars(char *pars, unsigned char *stat, unsigned int *from, unsigned int *to) {
+
+	char *p;
+
+	p = scan_stat(pars, stat);
+
+	return getpars(p, from, to);
+}
+
+
 static int trace_dis(CPU *tocpu, unsigned int addr) {
 	char line[MAXLEN];
 	int llen = MAXLEN;
 	int l = 0;
+	unsigned char stat = cpu_st(tocpu);
 
 	l = cpu_log(tocpu, line, llen);
 	
-	cpu_dis(mon_bank, addr, line + l - 1, llen - l);
+	cpu_dis(mon_bank, addr, &stat, line + l - 1, llen - l);
 
 	printf(": %05x %s\n", addr, line);
 
 	return R_CONT;
 }
+
+unsigned char stat = 0x30;
 
 static int cmd_dis(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	unsigned int from, to;
@@ -282,15 +344,16 @@ static int cmd_dis(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	to = *default_addr;
 	from = to;
 
-	if (r = getpars(pars, &from, &to)) {
+	if (r = getxpars(pars, &stat, &from, &to)) {
 		return r;
 	}
+
 	if (to == from) {
 		to = from + 32;
 	}
 
 	do {
-		l = cpu_dis(mon_bank, from, line, llen);
+		l = cpu_dis(mon_bank, from, &stat, line, llen);
 
 		printf(": %05x %s", from, line);
 

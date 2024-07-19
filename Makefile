@@ -5,7 +5,6 @@ all: lib65816.a
 
 clean:
 	make -C src clean
-	make -C roms clean
 	rm -f c64.log
 
 distclean: clean

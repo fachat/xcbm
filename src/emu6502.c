@@ -54,19 +54,20 @@ static bank_t cpubank = {
 void logass(CPU *cpu){
 	char l[MAXLINE];
 	int ll; 
+	unsigned char stat;
 
 	ll = snprintf(l, MAXLINE, "% 8ld", cpu->bus->actx.clk);
 
 	ll += cpu_log(cpu, l+ll, MAXLINE - ll);
 
-	cpu_dis(&cpubank, cpu->pc, l+ll-1, MAXLINE-ll);
+	cpu_dis(&cpubank, cpu->pc, &stat, l+ll-1, MAXLINE-ll);
 
 	logout(0, l);
 }
 
-int cpu_dis(bank_t *bank, int addr, char *line, int maxlen) {
+int cpu_dis(bank_t *bank, int addr, unsigned char *stat, char *line, int maxlen) {
 
-	return dis6502(&cpubank, cpu.pc, line, maxlen);
+	return dis6502(bank, addr, line, maxlen);
 }
 
 int cpu_log(CPU *cpu, char *line, int maxlen){
@@ -90,6 +91,10 @@ const char *cpu_name(CPU *cpu) {
 
 saddr cpu_pc(CPU *cpu) {
 	return cpu->pc;
+}
+
+unsigned char cpu_st(CPU *cpu) {
+	return cpu->sr;
 }
 
 void cpu_set_trace(int flag) {

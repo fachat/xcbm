@@ -59,6 +59,10 @@ saddr cpu_pc(CPU *cpu) {
         return cpu->pc;
 }
 
+unsigned char cpu_st(CPU *cpu) {
+        return cpu->sr;
+}
+
 /*******************************************************************/
 
 void cpu_set_trace(int flag) {
@@ -227,7 +231,7 @@ CPU *cpu_init(const char *n, int cyclespersec, int msperframe, int cmos, int add
 }
 
 static bank_t *peekbank;
-static char peek(int addr) {
+static unsigned char peek(int addr) {
 	return peekbank->peek(peekbank, addr);
 }
 
@@ -236,10 +240,10 @@ int cpu_log(CPU *cpu, char *line, int maxlen) {
 	return CPU_log(line, maxlen);
 }
 
-int cpu_dis(bank_t *bank, int addr, char *line, int maxlen) {
+int cpu_dis(bank_t *bank, int addr, unsigned char *stat, char *line, int maxlen) {
 
 	peekbank = bank;
 
-	return CPU_dis(line, maxlen, addr, &peek);
+	return CPU_dis(line, maxlen, addr, stat, &peek);
 }
 

@@ -3,6 +3,8 @@ all: lib65816.a
 	make -C src
 	make -C roms
 
+clone: lib65816
+
 clean:
 	make -C src clean
 	rm -f c64.log

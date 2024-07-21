@@ -50,16 +50,16 @@ static void cmd_err(const char *msg) {
 /**************************************************************************/
 // parameter scanner
 
-static char *scan_srbit(char *p, unsigned char *stat) {
+static char *scan_srbit(char *p, unsigned char *statb) {
 
 	while (*p && !isspace(*p)) {
 		switch (*p) {
 		case 'x':
-			*stat |= 0x10;
+			*statb |= 0x10;
 			p++;
 			break;
 		case 'm':
-			*stat |= 0x20;
+			*statb |= 0x20;
 			p++;
 			break;
 		default:
@@ -70,7 +70,7 @@ static char *scan_srbit(char *p, unsigned char *stat) {
 	return p;
 }
 
-static char *scan_stat(char *p, unsigned char *stat) {
+static char *scan_stat(char *p, unsigned char *statb) {
 
 	while (*p && isspace(*p)) {
 		p++;
@@ -82,12 +82,12 @@ static char *scan_stat(char *p, unsigned char *stat) {
 		case '+':
 			p++;
 			p = scan_srbit(p, &bits);
-			*stat |= bits;
+			*statb |= bits;
 			break;
 		case '-':
 			p++;
 			p = scan_srbit(p, &bits);
-			*stat &= ~bits;
+			*statb &= ~bits;
 			break;
 		default:
 			// return, as this may be address
@@ -308,11 +308,11 @@ static int getpars(char *pars, unsigned int *from, unsigned int *to) {
 	return R_CONT;
 }
 
-static int getxpars(char *pars, unsigned char *stat, unsigned int *from, unsigned int *to) {
+static int getxpars(char *pars, unsigned char *statb, unsigned int *from, unsigned int *to) {
 
 	char *p;
 
-	p = scan_stat(pars, stat);
+	p = scan_stat(pars, statb);
 
 	return getpars(p, from, to);
 }
@@ -322,18 +322,18 @@ static int trace_dis(CPU *tocpu, unsigned int addr) {
 	char line[MAXLEN];
 	int llen = MAXLEN;
 	int l = 0;
-	unsigned char stat = cpu_st(tocpu);
+	unsigned char statb = cpu_st(tocpu);
 
 	l = cpu_log(tocpu, line, llen);
 	
-	cpu_dis(mon_bank, addr, &stat, line + l - 1, llen - l);
+	cpu_dis(mon_bank, addr, &statb, line + l - 1, llen - l);
 
 	printf(": %05x %s\n", addr, line);
 
 	return R_CONT;
 }
 
-unsigned char stat = 0x30;
+unsigned char statbyte = 0x30;
 
 static int cmd_dis(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	unsigned int from, to;
@@ -344,7 +344,7 @@ static int cmd_dis(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	to = *default_addr;
 	from = to;
 
-	if (r = getxpars(pars, &stat, &from, &to)) {
+	if (r = getxpars(pars, &statbyte, &from, &to)) {
 		return r;
 	}
 
@@ -353,7 +353,7 @@ static int cmd_dis(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	}
 
 	do {
-		l = cpu_dis(mon_bank, from, &stat, line, llen);
+		l = cpu_dis(mon_bank, from, &statbyte, line, llen);
 
 		printf(": %05x %s", from, line);
 

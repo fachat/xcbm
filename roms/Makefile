@@ -5,6 +5,12 @@ all: romcheck rompatch
 	make -C upet
 	make -C csa
 
+clone:
+	(cd upet; make clone)
+
+update:
+	(cd upet; make update)
+
 romcheck: romcheck.c
 	cc $< -o $@
 

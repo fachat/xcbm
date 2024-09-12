@@ -1,16 +1,24 @@
-ARCHIVE=https://github.com/fachat/MicroPET.git
+
+BASE=$(shell git remote -v | cut -f 2- | sed -e "s%fachat/.*%fachat%g" | uniq )
+ARCHIVE=$(BASE)/upet_roms.git
 
 ROMS=spi.rom
 
 all: $(ROMS)
 
-MicroPET: 
-	git clone ${ARCHIVE}
+clone: upet_roms
 
-MicroPET/ROM/spiimg: MicroPET
-	(cd MicroPET/ROM; make)
+update:
+	(cd upet_roms; git pull)
 
-${ROMS}: MicroPET/ROM/spiimg
+upet_roms: 
+	test -d ../../../roms && ln -s ../../../roms upet_roms || true
+	test -d upet_roms || git clone ${ARCHIVE}
+
+upet_roms/spiimg: upet_roms
+	(cd upet_roms; make)
+
+${ROMS}: upet_roms/spiimg
 	cp $< $@
 
 clean:

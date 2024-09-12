@@ -4,6 +4,11 @@ all: lib65816.a
 	make -C roms
 
 clone: lib65816
+	(cd roms; make clone)
+
+update:
+	(cd lib65816; git pull)
+	(cd roms; make update)
 
 clean:
 	make -C src clean

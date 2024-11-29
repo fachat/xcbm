@@ -23,6 +23,7 @@
 #include	"config.h"
 #include	"spi.h"
 #include	"sdcard.h"
+#include	"rtc.h"
 
 #include	"io.h"
 #include	"video.h"
@@ -50,8 +51,17 @@ static int sdcard_set_img(const char *name) {
 	return 0;
 }
 
+static int rtc_set_img(const char *name) {
+
+	rtc_set_path(name);
+	rtc_attach();
+
+	return 0;
+}
+
 static config_t sdcard_pars[] = {
 	{ "sdcard", 'S', "imgpath", sdcard_set_img, "Set the path for the emulated SD card" },
+	{ "rtc", 'C', "imgpath", rtc_set_img, "Set the path for the emulated RTC chip memory" },
 	{ NULL }
 };
 
@@ -64,6 +74,8 @@ int main(int argc, char *argv[])
 	setbinprefix("upet", argv[0]);
 
 	config_init();
+
+	rtc_init();
 
 	config_register(sdcard_pars);
 

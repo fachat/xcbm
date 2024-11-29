@@ -8,8 +8,8 @@ all: $(ROMS)
 
 clone: upet_roms
 
-update:
-	(cd upet_roms; git pull)
+update: upet_roms
+	(cd upet_roms; make update)
 
 upet_roms: 
 	test -d ../../../roms && ln -s ../../../roms upet_roms || true

@@ -10,6 +10,7 @@
 #include	"cpu.h"
 #include 	"mem.h"
 #include 	"sdcard.h"
+#include 	"rtc.h"
 
 // up to 512k Flash ROM
 #define	SPI_LEN		0x20000
@@ -75,7 +76,8 @@ void spi_ipl(uchar *iplblk) {
 /* ---------------------------------------------------------------*/
 
 #define	SPI_FLASH	1	/* flash image is this selected device */
-#define	SPI_SDCARD	3	/* flash image is this selected device */
+#define	SPI_SDCARD	3	/* SD card */
+#define	SPI_RTC		5	/* RTC chip */
 
 static scnt spi_last = 0xff;
 
@@ -85,17 +87,25 @@ void spi_wr(scnt addr, scnt val) {
 	case 0:		// control register
 		switch (val & 0x07) {
 		case SPI_FLASH:
+			rtc_select(0);
 			sdcard_select(0);
 			selected = SPI_FLASH;
 			break;
 		case SPI_SDCARD:
+			rtc_select(0);
 			sdcard_select(1);
+			flash_deselect();
+			selected = SPI_SDCARD;
+			break;
+		case SPI_RTC:
+			rtc_select(1);
 			flash_deselect();
 			selected = SPI_SDCARD;
 			break;
 		default:
 			flash_deselect();
 			sdcard_select(0);
+			rtc_select(0);
 			selected = -1;
 			break;
 		}
@@ -107,6 +117,9 @@ void spi_wr(scnt addr, scnt val) {
 			break;
 		case SPI_SDCARD:
 			spi_last = sdcard_handle(val);
+			break;
+		case SPI_RTC:
+			spi_last = rtc_handle(val);
 			break;
 		}
 		break;
@@ -132,6 +145,9 @@ scnt spi_rd(scnt addr) {
 		case SPI_SDCARD:
 			spi_last = sdcard_handle(0xff);
 			break;
+		case SPI_RTC:
+			spi_last = rtc_handle(0xff);
+			break;
 		}
 		return tmp;	
 		break;
@@ -148,7 +164,7 @@ scnt spi_rd(scnt addr) {
 
 static const char *names[] = { 
 		"/var/lib/cbm/upet",
-		"spi.rom"
+		"spi.rom",
 };
 
 static int mem_set_rom_dir(const char *param) {

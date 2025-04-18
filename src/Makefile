@@ -53,6 +53,7 @@ UPETOBJ = 	upet/upetemu.o \
 		emu65816.o \
 		asm6502.o \
 		sdcard.o \
+		rtc.o \
 
 CSAOBJ = 	csa/xcsa.o \
 		csa/csamem.o \

@@ -103,6 +103,8 @@ void key_irq(scnt adr) {
 	if(k) {	
 		// yes. so handle it
 
+		//logout(0, "translate into %d strokes", k->cnt);
+
 		// 1. combine rows for all keys as mask
 		// (just an optimization for the next step)
  		rows=0;
@@ -128,6 +130,7 @@ void key_irq(scnt adr) {
 				// no, set with $ff
 				prb[i]=0xff;
 			}
+			//logout(0, "map %d -> %02x", i, prb[i]);
 		}
 		xflag =0;
 	} else {				/* no char */

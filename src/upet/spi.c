@@ -12,6 +12,8 @@
 #include 	"sdcard.h"
 #include 	"rtc.h"
 
+#define	SPI_FLASH_VERBOSE
+
 // up to 512k Flash ROM
 #define	SPI_LEN		0x20000
 
@@ -28,7 +30,11 @@ static int flash_addr = 0;	// flash addr
 // write a byte, and at the same time read one from SPI, and return it... emulated...
 static scnt flash_wr(scnt val) {
 
-	//logout(0, "flash_wr(%02x) with state=%d", val, flash_state);
+	scnt rv = 0;
+
+#ifdef SPI_FLASH_VERBOSE
+	int old_state = flash_state;
+#endif
 
 	switch (flash_state) {
 	case 0:		// initial
@@ -56,10 +62,15 @@ static scnt flash_wr(scnt val) {
 	case 4:	
 		switch(flash_cmd) {
 		case 3:
-			return spiimg[(flash_addr++) & 0x1ffff];
+			rv = spiimg[(flash_addr++) & 0x1ffff];
 		}
 	}
-	return 0;
+#ifdef SPI_FLASH_VERBOSE
+	logout(0, "flash_wr(%02x) with state=%d, cmd=%d, addr=%06x -> new state %d, rv=%02x", 
+		val, old_state, flash_cmd, flash_addr, rv);
+#endif
+	return rv;
+
 }
 
 static void flash_deselect() {
@@ -85,6 +96,7 @@ void spi_wr(scnt addr, scnt val) {
 
 	switch (addr & 0x03) {
 	case 0:		// control register
+		int old_selected = selected;
 		switch (val & 0x07) {
 		case SPI_FLASH:
 			rtc_select(0);
@@ -108,6 +120,9 @@ void spi_wr(scnt addr, scnt val) {
 			rtc_select(0);
 			selected = -1;
 			break;
+		}
+		if (old_selected != selected) {
+			logout(0, "SPI selected device %d", selected);
 		}
 		break;
 	case 1:		// read/write with auto-shift
@@ -134,7 +149,7 @@ scnt spi_rd(scnt addr) {
 
 	switch (addr & 0x03) {
 	case 0:		// control register (ignore state, we're always ready)
-		return 0;
+		return selected & 0x07;
 		break;
 	case 1:		// read/write with auto-shift
 		tmp = spi_last;

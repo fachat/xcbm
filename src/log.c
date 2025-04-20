@@ -25,12 +25,15 @@ int loginit(char *name){
 	return(0);
 }		
 
-char *logout(int c,char *format, ...)
+char *logout_x(const char *file, int lineno, int c,char *format, ...)
 {
 	char ch[]={" #:+!*"};
 	static char line[MAXLOG+1];
-	static struct tm *ts;
-	static time_t ti;
+	struct tm *ts;
+	time_t ti;
+	int sizeleft = MAXLOG;
+	int sizeprtd;
+	int pos = 0;
 
 	va_list argl;
 	va_start(argl,format);
@@ -38,11 +41,22 @@ char *logout(int c,char *format, ...)
 	time(&ti);
 	ts=localtime(&ti);
 
-	line[0]=ch[c&0x07];
+	line[pos++]=ch[c&0x07];
+	sizeleft-=1;
 
-	strftime(line+1,22," %d-%b-%y %H:%M:%S  ",ts);
-	
-	vsnprintf(line+22,MAXLOG-22,format,argl);
+	strftime(line+pos,22," %d-%b-%y %H:%M:%S  ",ts);
+	sizeleft-=21;
+	pos+=21;
+
+	sizeprtd = snprintf(line+pos,sizeleft, "[%-12s] ", file);
+	if (sizeprtd > sizeleft) {
+		// truncated
+		sizeprtd=sizeleft;
+	}
+	sizeleft -= sizeprtd;
+	pos +=sizeprtd;
+
+	vsnprintf(line+pos,sizeleft,format,argl);
 /*	printf("%s\n",line);*/
 
 	if(flog){

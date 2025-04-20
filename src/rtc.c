@@ -42,7 +42,7 @@ void rtc_init()
 static void rtc_detach()
 {
 	if (rtc_attached) {
-		logout(0, "RTC file detached.\n");
+		logout(0, "RTC file detached.");
 		rtc_attached = false;
 	}
 }
@@ -68,7 +68,7 @@ void
 rtc_attach()
 {
 	if (!rtc_attached && rtc_path_is_set()) {
-		logout(0, "RTC file attached.\n");
+		logout(0, "RTC file attached.");
 		rtc_attached = true;
 	}
 }
@@ -78,7 +78,9 @@ rtc_select(bool select)
 {
 	selected = select;
 #if defined(VERBOSE) && VERBOSE >= 2
-	logout(0, "*** SD card select: %u\n", select);
+	if (selected) {
+		logout(0, "*** SD card select: %u", select);
+	}
 #endif
 }
 

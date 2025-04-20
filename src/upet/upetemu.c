@@ -32,7 +32,6 @@
 #include	"vdrive.h"
 
 
-
 void usage(void) {
 	printf(
  		"xupet is a Micro-PET emulator for curses based Un*x systems\n"
@@ -59,6 +58,7 @@ static int rtc_set_img(const char *name) {
 	return 0;
 }
 
+
 static config_t sdcard_pars[] = {
 	{ "sdcard", 'S', "imgpath", sdcard_set_img, "Set the path for the emulated SD card" },
 	{ "rtc", 'C', "imgpath", rtc_set_img, "Set the path for the emulated RTC chip memory" },
@@ -81,6 +81,9 @@ int main(int argc, char *argv[])
 
 	// init virtual device table
 	devices_init();
+
+	vdrive_init();
+	//vdrive_setdrive(drive_unit,0,drive_path);
 
 	label_init();
 
@@ -110,8 +113,7 @@ int main(int argc, char *argv[])
 
 	io_init(cpu->bus);	
 
-	vdrive_init();
-	vdrive_setdrive(8,0,".");
+	//vdrive_setdrive(8,0,".");
 
 	stop_init();
 

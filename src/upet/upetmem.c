@@ -50,7 +50,7 @@ void setmap(void) {
 	int j=UPETPAGES/2;
 	int k;
 
-	logout(0, "set map (bank=%d, swap=%d)\n", bank, swap);
+	logout(0, "set map (bank=%d, swap=%d)", bank, swap);
 
 	for(i=0;i<UPETPAGES;i++) {
 

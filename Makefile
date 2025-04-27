@@ -27,4 +27,9 @@ lib65816.a: lib65816/build/lib65816.a
 lib65816:
 	git clone https://github.com/fachat/lib65816.git
 	(cd lib65816; git checkout upet)
+
+upetroms:
+	make -C ../roms
+	make
+	./bin/xupet -S roms/parts.sdcard -8 0=.
 	

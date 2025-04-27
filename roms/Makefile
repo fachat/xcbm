@@ -1,5 +1,5 @@
 
-all: romcheck rompatch
+all: romcheck rompatch parts.sdcard
 	make -C c64
 	make -C pet
 	make -C upet
@@ -16,6 +16,9 @@ romcheck: romcheck.c
 
 rompatch: rompatch.c
 	cc $< -o $@
+
+parts.sdcard: parts.sdcard.gz
+	gzip -c $< > $@
 
 clean:
 	make -C c64 clean

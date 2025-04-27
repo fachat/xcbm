@@ -18,7 +18,7 @@ rompatch: rompatch.c
 	cc $< -o $@
 
 parts.sdcard: parts.sdcard.gz
-	gzip -c $< > $@
+	gunzip -c $< > $@
 
 clean:
 	make -C c64 clean

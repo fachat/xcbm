@@ -332,8 +332,12 @@ sdcard_handle(uint8_t inbyte)
 			response_counter = 0;
 
 #if defined(VERBOSE) && VERBOSE >= 2
-			for (int i = 0; i < (response_length < 16 ? response_length : 16); i++) {
-				logout(0, " %02X", response[i]);
+			if (response != NULL) {
+				for (int i = 0; i < (response_length < 16 ? response_length : 16); i++) {
+					logout(0, " %02X", response[i]);
+				}
+			} else {
+				logout(0, "No Reponse");
 			}
 			//logout(0, "\n");
 #endif

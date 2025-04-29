@@ -118,7 +118,9 @@ scnt bank_cpu_peek(bank_t *bankp, saddr addr) {
         memmap_t *cpumap = &((memmap_t*)(bankp->map))[page];
 
 	if (cpumap->mask && ((offset & cpumap->mask) == cpumap->comp)) {
-		return cpumap->m_peek(offset);
+		if (cpumap->m_peek) {
+			return cpumap->m_peek(offset);
+		}
 	}
 
 	meminfo_t *inf = cpumap->inf;

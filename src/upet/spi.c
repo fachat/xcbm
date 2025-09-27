@@ -15,7 +15,7 @@
 #define	SPI_FLASH_VERBOSE
 
 // up to 512k Flash ROM
-#define	SPI_LEN		0x20000
+#define	SPI_LEN		0x40000
 
 static int selected;		// selected device
 
@@ -62,7 +62,7 @@ static scnt flash_wr(scnt val) {
 	case 4:	
 		switch(flash_cmd) {
 		case 3:
-			rv = spiimg[(flash_addr++) & 0x1ffff];
+			rv = spiimg[(flash_addr++) & (SPI_LEN - 1)];
 		}
 	}
 #ifdef SPI_FLASH_VERBOSE

@@ -47,10 +47,18 @@ void io_wr(scnt addr, scnt val) {
 		}
 		break;
 	case 0x10:
-		pia_wr(&pia1, addr, val);
+		if (addr & 0x08) {
+			// TODO UART
+		} else {
+			pia_wr(&pia1, addr, val);
+		}
 		break;
 	case 0x20:
-		pia_wr(&pia2, addr, val);
+		if (addr & 0x08) {
+			// TODO UART
+		} else {
+			pia_wr(&pia2, addr, val);
+		}
 		break;
 	case 0x30:
 		//dac_wr(&dac, addr, val);
@@ -82,8 +90,16 @@ scnt io_rd(scnt addr) {
                 }
                 break;
 	case 0x10:
+		if (addr & 0x08) {
+			// TODO: UART
+			return 0;
+		} 
 		return pia_rd(&pia1, addr);
 	case 0x20:
+		if (addr & 0x08) {
+			// TODO: UART
+			return 0;
+		} 
 		return pia_rd(&pia2, addr);
 	case 0x40:
 		return via_rd(&via, addr);

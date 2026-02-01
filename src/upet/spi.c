@@ -12,7 +12,7 @@
 #include 	"sdcard.h"
 #include 	"rtc.h"
 
-#define	SPI_FLASH_VERBOSE
+#undef	SPI_FLASH_VERBOSE
 
 // up to 512k Flash ROM
 #define	SPI_LEN		0x40000

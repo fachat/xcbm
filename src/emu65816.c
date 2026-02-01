@@ -240,6 +240,10 @@ int cpu_log(CPU *cpu, char *line, int maxlen) {
 	return CPU_log(line, maxlen);
 }
 
+// needed in lib65816 for unknown reasons (referenced as extern)
+int no_io = 0;
+int trace = 1;
+
 int cpu_dis(bank_t *bank, int addr, unsigned char *stat, char *line, int maxlen) {
 
 	peekbank = bank;

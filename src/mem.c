@@ -209,6 +209,11 @@ int loadrom(const char *prefix, const char *fname, uchar *mem, size_t len) {
 		return 0;
 	}
 
+	r = loadrom_int("./", fname, mem, len);
+	if (r == 0) {
+		return 0;
+	}
+
 	return r;
 }
 

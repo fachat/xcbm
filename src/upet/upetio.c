@@ -115,9 +115,19 @@ scnt io_rd(scnt addr) {
 // note: PET I/O chips do not change state on read
 scnt io_peek(scnt addr) {
 
+	//logout(0, "io_peek from %04x", addr);
+
 	register uchar a = (addr & 0xf0);
 	switch(a) {
 	case 0x10:
+                if (addr & 0x08 == 0) {
+                        // e800-e807
+                        return ctrl_rd(addr);
+                } else {
+                        // e808-e80f
+                        return spi_peek(addr);
+                }
+                break;
 	case 0x20:
 	case 0x40:
 		return io_rd(addr);

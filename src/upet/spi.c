@@ -94,9 +94,9 @@ static scnt spi_last = 0xff;
 
 void spi_wr(scnt addr, scnt val) {
 
+	int old_selected = selected;
 	switch (addr & 0x03) {
 	case 0:		// control register
-		int old_selected = selected;
 		switch (val & 0x07) {
 		case SPI_FLASH:
 			rtc_select(0);
@@ -165,6 +165,23 @@ scnt spi_rd(scnt addr) {
 			break;
 		}
 		return tmp;	
+		break;
+	case 2:		// peek data from last transfer without auto-triggering
+		return spi_last;
+	default:
+		break;
+	}
+	return 0;
+}
+
+scnt spi_peek(scnt addr) {
+
+	switch (addr & 0x03) {
+	case 0:		// control register (ignore state, we're always ready)
+		return selected & 0x07;
+		break;
+	case 1:		// read/write with auto-shift
+		return spi_last;	
 		break;
 	case 2:		// peek data from last transfer without auto-triggering
 		return spi_last;

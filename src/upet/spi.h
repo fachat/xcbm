@@ -30,3 +30,5 @@ void spi_wr(scnt addr, scnt val);
 
 scnt spi_rd(scnt addr);
 
+scnt spi_peek(scnt addr);
+

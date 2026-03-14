@@ -3,6 +3,8 @@
 
 void mon_init();
 
+void mon_setup();
+
 enum mon_rc {
 	CONT,
 	EXIT,

@@ -17,6 +17,7 @@
 #include	"devices.h"
 #include	"vdrive.h"
 #include	"mem.h"
+#include	"upetmem.h"
 #include	"mon.h"
 #include	"stop.h"
 #include	"labels.h"
@@ -73,6 +74,8 @@ int main(int argc, char *argv[])
 
 	setbinprefix("upet", argv[0]);
 
+	mon_setup();
+
 	config_init();
 
 	rtc_init();
@@ -106,7 +109,8 @@ int main(int argc, char *argv[])
 	mem_start();
 	cur_init();
 
-	CPU *cpu = cpu_init("main", 1000000, 16, 0, 0xfffff);
+
+	CPU *cpu = cpu_init("main", 1000000, 16, 0, UPETPAGESMASK);
 
 	video_init(cpu->bus, 1000000/60);
 	key_init(cpu->bus);	

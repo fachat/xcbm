@@ -22,6 +22,7 @@
 #define	R_ERR	2
 #define	R_NOPAR	3
 #define	R_TRACE	4
+#define	R_RET	5
 
 #define	min(a,b)	((a)<(b)?(a):(b))
 
@@ -30,9 +31,16 @@
 /* this should be more dynamic, but heck.... */
 #define	MAXBANKS	16
 
+typedef struct {
+	const char *name;
+	int (*func)(char *pars, CPU *cpu, unsigned int *default_addr);
+	const char *desc;
+} cmd_t;
+
 static bank_t *banks[MAXBANKS];
 static int numbanks = 0;
 static bank_t *mon_bank = NULL;
+static cmd_t *c = NULL;
 
 // monitor flag
 int monflag = 0;
@@ -212,11 +220,9 @@ static char *scan_addr(char *p, unsigned int *res) {
 
 /**************************************************************************/
 
-typedef struct {
-	const char *name;
-	int (*func)(char *pars, CPU *cpu, unsigned int *default_addr);
-	const char *desc;
-} cmd_t;
+static int cmd_cont(char *pars, CPU *tocpu, unsigned int *default_addr) {
+	return R_RET;
+}
 
 static int cmd_quit(char *pars, CPU *tocpu, unsigned int *default_addr) {
 	return R_QUIT;
@@ -448,7 +454,7 @@ static cmd_t cmds[] = {
 	{ "step", cmd_step, "step CPU one or more operations: s [num of ops]" },
 	{ "help", cmd_help, "Show this help" },
 	{ "x", cmd_quit, "Leave the monitor (eXit)" },
-	{ "c", cmd_quit, "Leave the monitor (continue)" },
+	{ "c", cmd_cont, "Leave the monitor (continue)" },
 	{ NULL }
 };
 
@@ -503,7 +509,6 @@ void mon_line(CPU *tocpu) {
 	size_t buflen = 0;
 	char *p, *pp;
 	int r = R_CONT;
-	static cmd_t *c = NULL;
 
 	unsigned int default_addr = cpu_pc(cpu);
 
@@ -576,6 +581,9 @@ void mon_line(CPU *tocpu) {
 	if (r == R_TRACE) {
 		monflag = 2;
 	}
+	if (r == R_QUIT) {
+		exit(1);
+	}
 	
 	if (len < 0) {
 		if (errno == EINTR && stop_get_flag()) {
@@ -601,6 +609,13 @@ void mon_register_cpu(CPU *cpu_p) {
 	cpu = cpu_p;
 }
 
+void mon_setup() {
+	c = NULL;
+	numbanks = 0;
+	mon_bank = NULL;
+}
+
+
 void mon_init() {
 
 	// set CPU bank as initial bank
@@ -612,9 +627,9 @@ void mon_register_bank(bank_t *bank) {
 
 	int i = numbanks;
 
-	if (i < MAXBANKS) {
+	if ((i+1) < MAXBANKS) {
 		banks[i] = bank;
-		numbanks++;
+		numbanks = numbanks + 1;
 		return;
 	}
 

@@ -150,6 +150,7 @@ static inline void setbyt(saddr a, scnt b) {
 	meminfo_t *inf = cpupage->inf;
 
         if(inf->mt_wr != NULL) {
+		//logout(0, "mt_wr b=%04x %p[%06x]->%p", bank, inf->mt_wr, offset, inf->mt_wr+offset);
              	inf->mt_wr[offset] = b;
         }
         if(inf->mf_wr != NULL) {

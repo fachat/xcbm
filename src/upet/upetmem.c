@@ -47,16 +47,17 @@ static bank_t rambank = {
 void setmap(void) {
 	int i;
 
-	int j=UPETPAGES/2;
+	int j; //=UPETPAGES/2;
 	int k;
 
 	logout(0, "set map (bank=%d, swap=%d)", bank, swap);
 
 	for(i=0;i<UPETPAGES;i++) {
+		j = i & 255;
 
-		if (i < j) {
+		if (j < 128) {
 			if (swap) {
-				k = i + j;
+				k = i + 128;
 			} else {
 				if (i < 8) {
 					k = (bank * 8) + i;
@@ -66,10 +67,10 @@ void setmap(void) {
 			}
 		} else {
 			if (swap) {
-				if ((i-j) < 8) {
-					k = (bank * 8) + i - j;
+				if ((i-128) < 8) {
+					k = (bank * 8) + i - 128;
 				} else {
-					k = i - j;
+					k = i - 128;
 				}
 			} else {
 				k = i;
@@ -141,25 +142,30 @@ void mem_set_vidblk(byte newblk) {
 void inimemvec(void){
 	int i;
 
-	int j = UPETPAGES/2;
+	int j; // = UPETPAGES/2;
 
-	for(i=0; i<j; i++) {
-		pet_info[i].page=i;
-		pet_info[i].mt_wr=fram+i*4096;
-		pet_info[i].mt_rd=fram+i*4096;
-		pet_info[i].traplist=NULL;
-		pet_info[i].mf_wr=NULL;
-		pet_info[i].mf_rd=NULL;
-		pet_info[i].mf_peek=NULL;
-	}
-	for(i=j; i<UPETPAGES; i++) {
-		pet_info[i].page=i;
-		pet_info[i].mt_wr=vram+(i-j)*4096;
-		pet_info[i].mt_rd=vram+(i-j)*4096;
-		pet_info[i].traplist=NULL;
-		pet_info[i].mf_wr=NULL;
-		pet_info[i].mf_rd=NULL;
-		pet_info[i].mf_peek=NULL;
+	for (i=0; i < UPETPAGES; i++) {
+		j = i & 255;
+
+		if (j < 128) {
+			// fast RAM
+			pet_info[i].page=i;
+			pet_info[i].mt_wr=fram+j*4096;
+			pet_info[i].mt_rd=fram+j*4096;
+			pet_info[i].traplist=NULL;
+			pet_info[i].mf_wr=NULL;
+			pet_info[i].mf_rd=NULL;
+			pet_info[i].mf_peek=NULL;
+		} else {
+			// media RAM
+			pet_info[i].page=i;
+			pet_info[i].mt_wr=vram+(i-128)*4096;
+			pet_info[i].mt_rd=vram+(i-128)*4096;
+			pet_info[i].traplist=NULL;
+			pet_info[i].mf_wr=NULL;
+			pet_info[i].mf_rd=NULL;
+			pet_info[i].mf_peek=NULL;
+		}
 	}
 
 	/* the CPU map parts that may need to survive a setmap() */

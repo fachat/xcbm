@@ -18,7 +18,7 @@
 #include 	"stop.h"
 #include 	"config.h"
 
-#define	PAGES	256
+#define	PAGES	512
 #define	MAXLINE	200
 
 BUS		bus;
@@ -46,7 +46,7 @@ static bank_t cpubank = {
 	bank_cpu_peek,
 	bank_cpu_poke,
 	cpumap,
-	PAGESMASK
+	0x1fffff
 };
 
 #define next(a)         advance_clock(&(cpu.bus->actx), (a))
@@ -194,7 +194,8 @@ byte MEM_peekMem(word32 address, word32 timestamp, word32 emulFlags) {
 }
 
 void MEM_writeMem(word32 address, byte b, word32 timestamp) {
-	//logout(0, "writeMem (%06x, masked=%06x) -> %02x", address, address & cpu.mask, b);
+	//if ((address & 0xfff) == 0) 
+	//	logout(0, "writeMem (%06x, masked=%06x) -> %02x", address, address & cpu.mask, b);
 	setbyt(address & cpu.mask, b);
 }
 

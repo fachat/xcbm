@@ -110,10 +110,13 @@ scnt bank_mem_peek(bank_t *bankp, saddr addr) {
 void bank_cpu_poke(bank_t *bank, saddr addr, scnt val) {
 }
 
-scnt bank_cpu_peek(bank_t *bankp, saddr addr) {
-	addr &= bankp->mapmask;
+scnt bank_cpu_peek(bank_t *bankp, saddr addr_in) {
+	saddr addr = addr_in & bankp->mapmask;
         register scnt page = addr >> 12;
         register scnt offset = addr & 0xfff;
+
+//	logout(0, "peek %06x (mask %06x) -> %02x, %04x -> memaddr=%06x", 
+//		addr_in, bankp->mapmask, page, offset, addr);
 
         memmap_t *cpumap = &((memmap_t*)(bankp->map))[page];
 

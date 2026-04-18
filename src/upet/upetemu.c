@@ -32,6 +32,9 @@
 #include	"keys.h"
 #include	"vdrive.h"
 
+#include	"graphlib.h"
+#include	"viccy2.h"
+
 
 void usage(void) {
 	printf(
@@ -107,8 +110,17 @@ int main(int argc, char *argv[])
 
 	spi_start();
 	mem_start();
-	cur_init();
 
+	if (graphlib_init() != 0) {
+		logout(0, "graphlib not found");
+		cur_init();
+	} else {
+		// init sdl graphics
+		viccy2_init();
+
+		// just for now still needed (monitor, ...)
+		cur_init();
+	}
 
 	CPU *cpu = cpu_init("main", 1000000, 16, 0, UPETPAGESMASK);
 

@@ -1,10 +1,24 @@
 XCBMLIB = ../bin
 
-CFLAGS = -g -finline-functions -Wall -pedantic -Wno-parentheses
 
 LIBS = -lc -lncurses -lm
 
 all: xcbm64 xcbm8032 xcsa xupet
+
+
+# Detect SDL2 development headers via pkg-config (optional).
+# When found, the library is compiled with the real SDL2 types (HAVE_SDL2_HEADERS).
+# At runtime the library always loads SDL2 dynamically via dlopen regardless.
+SDL_CFLAGS := $(shell pkg-config --cflags sdl2 2>/dev/null)
+ifneq ($(SDL_CFLAGS),)
+LIB_CFLAGS_EXTRA := $(SDL_CFLAGS) -DHAVE_SDL2_HEADERS
+else
+LIB_CFLAGS_EXTRA :=
+endif
+
+CFLAGS = -g -finline-functions -Wall -pedantic -Wno-parentheses $(LIB_CFLAGS_EXTRA)
+
+SDLINCLUDE=-Isdl
 
 COMMOBJ = 	curses.o \
 		log.o \
@@ -16,6 +30,8 @@ COMMOBJ = 	curses.o \
 		speed.o \
 		config.o \
 		stop.o \
+
+SDLOBJ =	sdl/graphlib.o
 
 C64OBJ = 	c64/mem64.o \
 		c64/emu64.o \
@@ -43,6 +59,7 @@ UPETOBJ = 	upet/upetemu.o \
 		upet/upetmem.o \
 		upet/upetio.o \
 		upet/upetvideo.o \
+		upet/viccy2.o \
 		upet/ctrl.o \
 		upet/spi.o \
 		pet/petkeys.o \
@@ -70,32 +87,28 @@ CSAOBJ = 	csa/xcsa.o \
 MONOBJ =	mon/mon.o \
 		mon/labels.o
 
-ALLOBJ =	$(COMMONOBJ) $(C64OBJ) $(PETOBJ) $(MONOBJ) $(CSAOBJ) $(UPETOBJ)
+ALLOBJ =	$(COMMONOBJ) $(C64OBJ) $(PETOBJ) $(MONOBJ) $(CSAOBJ) $(UPETOBJ) $(SDLOBJ)
 
 DEPDIR=.dep
 
 include $(wildcard $(DEPDIR)/*.d)
 include $(wildcard $(DEPDIR)/*/*.d)
 
-MAKEDEPEND = $(CC) -E -MM -I. $< > $(DEPDIR)/$*.d
+MAKEDEPEND = $(CC) -E -MM -I. $(SDLINCLUDE) $< > $(DEPDIR)/$*.d
 #MAKECSADEPEND = $(CC) -E -MM -I. -Ipet $< > $(DEPDIR)/$*.d
 
 $(DEPDIR):
-	@mkdir -p $@ $@/pet $@/c64 $@/csa $@/mon $@/upet
+	@mkdir -p $@ $@/pet $@/c64 $@/csa $@/mon $@/upet $@/sdl
 
 %.o : %.c $(DEPDIR)
 	$(MAKEDEPEND)
-	$(CC) $(CFLAGS) -I. -c -o $@ $<
+	$(CC) $(CFLAGS) -I. $(SDLINCLUDE) -c -o $@ $<
 
 emu65816.o : emu65816.c $(DEPDIR)
 	$(CC) $(CFLAGS) -I. -I../lib65816 -I../lib65816/build -c -o $@ $<
 
-#csa/%.o : csa/%.c $(DEPDIR)
-#	$(MAKECSADEPEND)
-#	$(CC) $(CFLAGS) -I. -Ipet -c -o $@ $<
 
-
-depfiles: $(DEPDIR) $(DEPFILES)
+depfiles: $(DEPDIR) 
  
 $(XCBMLIB):
 	test -d $(XCBMLIB) || mkdir $(XCBMLIB)
@@ -109,8 +122,8 @@ xcbm64: $(XCBMLIB) $(C64OBJ) $(COMMOBJ) $(MONOBJ)
 xcsa: $(XCBMLIB) $(CSAOBJ) $(COMMOBJ) $(MONOBJ)
 	cc  -o $(XCBMLIB)/xcsa  $(CSAOBJ) $(COMMOBJ) $(MONOBJ) $(LIBS)
 
-xupet: $(XCBMLIB) $(UPETOBJ) $(COMMOBJ) $(MONOBJ)
-	cc  -o $(XCBMLIB)/xupet  $(UPETOBJ) $(COMMOBJ) $(MONOBJ) $(LIBS) ../lib65816.a
+xupet: $(XCBMLIB) $(UPETOBJ) $(COMMOBJ) $(MONOBJ) $(SDLOBJ)
+	cc  -o $(XCBMLIB)/xupet  $(UPETOBJ) $(COMMOBJ) $(MONOBJ) $(SDLOBJ) $(LIBS) ../lib65816.a
 
 clean:
 	rm -f $(COMMOBJ) $(C64OBJ) $(PETOBJ) $(MONOBJ) xcbm.dep c64.log

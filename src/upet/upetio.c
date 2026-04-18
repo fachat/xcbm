@@ -17,6 +17,7 @@
 #include "via.h"
 #include "parallel.h"
 #include "piavia.h"
+#include "viccy2.h"
 
 #include "ctrl.h"
 #include "spi.h"
@@ -67,7 +68,7 @@ void io_wr(scnt addr, scnt val) {
 		via_wr(&via, addr, val);
 		break;
 	case 0x80:
-		// todo CRTC
+		viccy2_wr(addr, val);
 		break;
 	default:
 		break;
@@ -104,7 +105,7 @@ scnt io_rd(scnt addr) {
 	case 0x40:
 		return via_rd(&via, addr);
 	case 0x80:
-		// todo CRTC
+		return viccy2_rd(addr);
 		break;
 	default:
 		break;

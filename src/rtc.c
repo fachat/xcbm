@@ -79,7 +79,7 @@ rtc_select(bool select)
 	selected = select;
 #if defined(VERBOSE) && VERBOSE >= 2
 	if (selected) {
-		logout(0, "*** SD card select: %u", select);
+		logout(0, "*** RTC card select: %u", select);
 	}
 #endif
 }

@@ -111,20 +111,18 @@ int main(int argc, char *argv[])
 	spi_start();
 	mem_start();
 
-	if (graphlib_init() != 0) {
-		logout(0, "graphlib not found");
-		cur_init();
-	} else {
-		// init sdl graphics
-		viccy2_init();
-
-		// just for now still needed (monitor, ...)
-		cur_init();
-	}
+	cur_init();
 
 	CPU *cpu = cpu_init("main", 1000000, 16, 0, UPETPAGESMASK);
 
 	video_init(cpu->bus, 1000000/60);
+
+	if (graphlib_init() != 0) {
+		logout(0, "graphlib not found - falling back to curses");
+	} else {
+		// init sdl graphics
+		viccy2_init(&cpu->bus->actx);
+	}
 	key_init(cpu->bus);	
 
 	io_init(cpu->bus);	

@@ -90,8 +90,10 @@ static inline scnt getbyt(saddr a) {
 	register scnt offset = a & 0xfff;
 	memmap_t *cpupage = &cpumap[bank];
 
-	if (cpupage->mask && ((offset & cpupage->mask) == cpupage->comp) && cpupage->m_rd != NULL) {
-		return cpupage->m_rd(offset);
+	if (cpupage->mask && ((offset & cpupage->mask) == cpupage->comp)) {
+		if  (cpupage->m_rd) {
+			return cpupage->m_rd(offset);
+		}
 	}
 
 	meminfo_t *inf = cpupage->inf;
@@ -103,7 +105,6 @@ static inline scnt getbyt(saddr a) {
              	return(inf->mt_rd[offset]);
         }
         return(a>>8);
-
 }
 
 static inline scnt peekbyt(saddr a) {
@@ -143,7 +144,7 @@ static inline void setbyt(saddr a, scnt b) {
 	register scnt offset = a & 0xfff;
 	memmap_t *cpupage = &cpumap[bank];
 
-	if ((cpupage->mask != 0) && ((offset & cpupage->mask) == cpupage->comp)) {
+	if (cpupage->mask && ((offset & cpupage->mask) == cpupage->comp)) {
 		cpupage->m_wr(offset,b);
 	}
 

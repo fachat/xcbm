@@ -26,9 +26,6 @@ void ctrl_wr(scnt adr, scnt val) {
 
 	switch (adr & 0x0f) {
 	case 0:
-		r0_vid = val & 0xdf;
-		mem_set_vctrl(r0_vid);
-		vset_width((r0_vid & 0x02) ? 80 : 40);
 		break;
 	case 1:
 		r1_memmap = val & 0xfb;
@@ -46,6 +43,10 @@ void ctrl_wr(scnt adr, scnt val) {
 		r4_vidblk = val & 0x07;
 		mem_set_vidblk(r4_vidblk);
 		break;
+	case 7:
+		r0_vid = val & 0xdf;
+		mem_set_vctrl(r0_vid);
+		vset_width((r0_vid & 0x02) ? 80 : 40);
 	default:
 		break;
 	}
@@ -53,11 +54,11 @@ void ctrl_wr(scnt adr, scnt val) {
 
 
 /* read control ports e800-e807 */
-scnt ctr_rd(scnt adr) {
+scnt ctrl_rd(scnt adr) {
 
 	switch (adr & 0x0f) {
 	case 0:
-		return r0_vid;
+		return 0xff;
 	case 1:
 		return r1_memmap;
 	case 2:
@@ -66,6 +67,8 @@ scnt ctr_rd(scnt adr) {
 		return r3_speed;
 	case 4:
 		return r4_vidblk;
+	case 7:
+		return r0_vid;
 	default:
 		return 0;
 	}

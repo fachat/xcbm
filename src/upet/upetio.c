@@ -31,7 +31,7 @@ int io_init(BUS *bus) {
 
 void io_wr(scnt addr, scnt val) {
 
-	//logout(0, "io_wr %02x to %04x", val, addr);
+	logout(0, "io_wr %02x to %04x", val, addr);
 
 	register uchar a = (addr & 0xf0);
 	switch(a) {
@@ -77,12 +77,14 @@ void io_wr(scnt addr, scnt val) {
 
 scnt io_rd(scnt addr) {
 
-	//logout(0, "io_rd from %04x", addr);
+
+	logout(0, "io_rd from %04x", addr);
 
 	register uchar a = (addr & 0xf0);
+
 	switch(a) {
         case 0x00:
-                if (addr & 0x08 == 0) {
+                if ((addr & 0x08) == 0) {
                         // e800-e807
                         return ctrl_rd(addr);
                 } else {
@@ -116,7 +118,7 @@ scnt io_rd(scnt addr) {
 // note: PET I/O chips do not change state on read
 scnt io_peek(scnt addr) {
 
-	//logout(0, "io_peek from %04x", addr);
+	logout(0, "io_peek from %04x", addr);
 
 	register uchar a = (addr & 0xf0);
 	switch(a) {

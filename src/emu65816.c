@@ -183,7 +183,7 @@ void cpu_res() {
 
 byte MEM_readMem(word32 address, word32 timestamp, word32 emulFlags) {
 	byte v = getbyt(address & cpu.mask);
-	//logout(0, "readMem (%05x) -> %02x", address, v);
+	//logout(0, "readMem (%06x, masked=%06x) -> %02x", address, address & cpu.mask, v);
 	return v;
 }
 

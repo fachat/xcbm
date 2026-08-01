@@ -124,7 +124,7 @@ void mem_set_bank(byte newbank) {
 
 void mem_set_map(byte newmap) {
 	wprot = newmap & 0xf0;
-	swap = newmap & 0x02;
+	swap = 0; //newmap & 0x02;
 	setmap();
 }
 
@@ -193,7 +193,8 @@ void mem_start() {
 
 	mem_set_map(0x02);	// reset state
 
-	spi_ipl(vram+0xff00);
+	//spi_ipl(vram+0xff00);
+	spi_ipl(fram+0xff00);
 
 	return;
 }
